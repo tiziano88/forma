@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package example;
+
+// Enum for eye color.
+enum EyeColor {
+  EYE_COLOR_UNSPECIFIED = 0;
+  BLUE = 1;
+  GREEN = 2;
+  BROWN = 3;
+}
+
+// A person's address.
+message Address {
+  string street = 1;
+  string city = 2;
+  string zip_code = 3;
+}
+
+// A phone number.
+message PhoneNumber {
+  string number = 1;
+  enum PhoneType {
+    PHONE_TYPE_UNSPECIFIED = 0;
+    MOBILE = 1;
+    HOME = 2;
+    WORK = 3;
+  }
+  PhoneType type = 2;
+}
+
+// A person profile.
+message Person {
+  string name = 1;
+  int32 id = 2;
+  bool is_verified = 3;
+  EyeColor eye_color = 4;
+  Address address = 5;
+  repeated PhoneNumber phones = 6;
+}
