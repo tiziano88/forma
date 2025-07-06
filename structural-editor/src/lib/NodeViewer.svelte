@@ -63,7 +63,7 @@
 </script>
 
 <div class="form-control">
-  <label class="label">
+  <label class="label cursor-pointer">
     <span class="label-text font-bold">{key}</span>
   </label>
 
@@ -86,7 +86,10 @@
                 <ObjectViewer object={item} type={valueType} />
               {:else}
                 {#if field.type === 'bool'}
-                  <input type="checkbox" class="checkbox" bind:checked={value[i]} />
+                  <label class="label cursor-pointer">
+                    <span class="label-text">Value</span> 
+                    <input type="checkbox" class="checkbox checkbox-primary" bind:checked={value[i]} />
+                  </label>
                 {:else if numericTypes.has(field.type)}
                   <input type="number" class="input input-bordered w-full" bind:value={value[i]} />
                 {:else}
@@ -112,7 +115,7 @@
       {/each}
     </select>
   {:else if typeof value === 'boolean'}
-    <input type="checkbox" class="checkbox" bind:checked={parent[key]} />
+    <input type="checkbox" class="checkbox checkbox-primary" bind:checked={parent[key]} />
   {:else if typeof value === 'number'}
     <input type="number" class="input input-bordered w-full" bind:value={parent[key]} />
   {:else}
