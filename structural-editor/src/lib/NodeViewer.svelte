@@ -12,6 +12,8 @@
   $: field = type.fields[key.toString()];
   $: valueType = (field?.resolvedType) as protobuf.Type | undefined;
 
+  const numericTypes = new Set(['double', 'float', 'int32', 'uint32', 'sint32', 'fixed32', 'sfixed32', 'int64', 'uint64', 'sint64', 'fixed64', 'sfixed64']);
+
   function isObject(val: any) {
     return val !== null && typeof val === 'object' && !Array.isArray(val);
   }
@@ -26,8 +28,26 @@
   }
 
   function addToArray() {
-    if (!valueType) return;
-    const newItem = createDefaultObject(valueType);
+    if (!field) return;
+
+    let newItem;
+    if (field.resolvedType instanceof protobuf.Type) {
+      // It's a message type
+      newItem = createDefaultObject(field.resolvedType);
+    } else {
+      // It's a primitive type
+      switch (field.type) {
+        case 'string':
+          newItem = '';
+          break;
+        case 'bool':
+          newItem = false;
+          break;
+        default: // All numeric types fall here
+          newItem = 0;
+          break;
+      }
+    }
     parent[key] = [...(value || []), newItem];
   }
 </script>
@@ -42,7 +62,19 @@
         {#each value as item, i}
           <div class="array-item">
             <span class="array-index">{i}:</span>
-            <ObjectViewer object={item} type={valueType} />
+            {#if valueType}
+              <!-- It's an array of messages -->
+              <ObjectViewer object={item} type={valueType} />
+            {:else}
+              <!-- It's an array of primitives -->
+              {#if field.type === 'bool'}
+                <input type="checkbox" bind:checked={value[i]} />
+              {:else if numericTypes.has(field.type)}
+                <input type="number" bind:value={value[i]} />
+              {:else}
+                <input type="text" bind:value={value[i]} />
+              {/if}
+            {/if}
           </div>
         {/each}
       {/if}
@@ -93,6 +125,9 @@
     padding: 0.5rem;
     margin-top: 0.5rem;
     border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
   .array-index {
     font-weight: bold;
