@@ -6,8 +6,10 @@
   export let type: protobuf.Type;
 </script>
 
-{#if type}
-  {#each type.fieldsArray as field}
-    <NodeViewer parent={object} key={field.name} type={type} />
-  {/each}
-{/if}
+<div class="space-y-4">
+  {#if type}
+    {#each type.fieldsArray as field}
+      <NodeViewer parent={object} key={field.name} type={type} />
+    {/each}
+  {/if}
+</div>

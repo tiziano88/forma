@@ -88,11 +88,6 @@
 
   const numericTypes = new Set(['double', 'float', 'int32', 'uint32', 'sint32', 'fixed32', 'sfixed32', 'int64', 'uint64', 'sint64', 'fixed64', 'sfixed64']);
 
-  /**
-   * Recursively sanitizes data to match schema types before saving.
-   * - Converts enum strings to numbers.
-   * - Coerces non-numeric values in number fields to numbers.
-   */
   function sanitizeDataForSave(data: any, type: protobuf.Type): any {
     if (!data || !type) return data;
 
@@ -119,7 +114,7 @@
         result[key] = field.resolvedType.values[value];
       }
       else if (numericTypes.has(field.type) && typeof value !== 'number') {
-        result[key] = Number(value) || 0; // Coerce to number, default to 0 if NaN
+        result[key] = Number(value) || 0;
       }
       else {
         result[key] = value;
@@ -162,94 +157,44 @@
   }
 </script>
 
-<main>
-  <header>
-    <h1>Structural Editor</h1>
-    <p>Load a Protobuf schema (.proto) and a binary data file (.bin) to begin editing.</p>
-  </header>
+<div class="p-4 sm:p-6 lg:p-8">
+  <div class="max-w-4xl mx-auto">
+    <header class="text-center mb-8">
+      <h1 class="text-4xl font-bold">Structural Editor</h1>
+      <p class="text-lg mt-2">Load a Protobuf schema (.proto) and a binary data file (.bin) to begin editing.</p>
+    </header>
 
-  <div class="file-loader">
-    <div class="file-info">
-      <button on:click={() => loadFile('schema')}>Load Schema (.proto)</button>
-      <span>{schemaFileName}</span>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+          <button class="btn btn-primary" on:click={() => loadFile('schema')}>Load Schema (.proto)</button>
+          <span class="text-sm mt-2">{schemaFileName}</span>
+        </div>
+      </div>
+      <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+          <button class="btn btn-secondary" on:click={() => loadFile('data')}>Load Data (.bin)</button>
+          <span class="text-sm mt-2">{dataFileName}</span>
+        </div>
+      </div>
     </div>
-    <div class="file-info">
-      <button on:click={() => loadFile('data')}>Load Data (.bin)</button>
-      <span>{dataFileName}</span>
-    </div>
+
+    {#if errorMessage}
+      <div role="alert" class="alert alert-error mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <span>Error: {errorMessage}</span>
+      </div>
+    {/if}
+
+    {#if decodedDataObject && rootMessageType}
+      <div class="mb-4">
+        <button class="btn btn-success w-full" on:click={saveData}>Save Changes</button>
+      </div>
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <ObjectViewer object={decodedDataObject} type={rootMessageType} />
+        </div>
+      </div>
+    {/if}
   </div>
-
-  {#if errorMessage}
-    <div class="error">
-      <p>Error: {errorMessage}</p>
-    </div>
-  {/if}
-
-  {#if decodedDataObject && rootMessageType}
-    <div class="editor-controls">
-      <button on:click={saveData}>Save Changes</button>
-    </div>
-    <div class="data-viewer">
-      <ObjectViewer object={decodedDataObject} type={rootMessageType} />
-    </div>
-  {/if}
-
-</main>
-
-<style>
-  :root {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-      Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    color-scheme: light dark;
-  }
-
-  main {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem;
-  }
-
-  header {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
-
-  .file-loader {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 2rem;
-  }
-
-  .file-info {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  button {
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid #ccc;
-    cursor: pointer;
-  }
-
-  .error {
-    color: #ff3e00;
-    background-color: #ff3e0020;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .editor-controls {
-    margin-bottom: 1rem;
-  }
-
-  .data-viewer {
-    margin-top: 1rem;
-    border: 1px solid #ccc;
-    padding: 1rem;
-    border-radius: 0.5rem;
-  }
-</style>
+</div>

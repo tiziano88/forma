@@ -32,132 +32,90 @@
 
     let newItem;
     if (field.resolvedType instanceof protobuf.Type) {
-      // It's a message type
       newItem = createDefaultObject(field.resolvedType);
     } else {
-      // It's a primitive type
       switch (field.type) {
-        case 'string':
-          newItem = '';
-          break;
-        case 'bool':
-          newItem = false;
-          break;
-        default: // All numeric types fall here
-          newItem = 0;
-          break;
+        case 'string': newItem = ''; break;
+        case 'bool': newItem = false; break;
+        default: newItem = 0; break;
       }
     }
     parent[key] = [...(value || []), newItem];
   }
+
+  function removeItem(index: number) {
+    if (!value || !Array.isArray(value)) return;
+    parent[key] = value.filter((_, i) => i !== index);
+  }
+
+  function moveItem(index: number, direction: 'up' | 'down') {
+    if (!value || !Array.isArray(value)) return;
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= value.length) return;
+
+    const newArray = [...value];
+    const temp = newArray[index];
+    newArray[index] = newArray[newIndex];
+    newArray[newIndex] = temp;
+    
+    parent[key] = newArray;
+  }
 </script>
 
-<div class="node">
-  <span class="name">{key}:</span>
+<div class="form-control">
+  <label class="label">
+    <span class="label-text font-bold">{key}</span>
+  </label>
 
   {#if field?.repeated}
-    <!-- Repeated field (array) -->
-    <div class="node-children array">
+    <div class="pl-4 border-l-2 border-base-300 space-y-4">
       {#if value && Array.isArray(value)}
         {#each value as item, i}
-          <div class="array-item">
-            <span class="array-index">{i}:</span>
-            {#if valueType}
-              <!-- It's an array of messages -->
-              <ObjectViewer object={item} type={valueType} />
-            {:else}
-              <!-- It's an array of primitives -->
-              {#if field.type === 'bool'}
-                <input type="checkbox" bind:checked={value[i]} />
-              {:else if numericTypes.has(field.type)}
-                <input type="number" bind:value={value[i]} />
+          <div class="card bg-base-200 shadow-inner">
+            <div class="card-body p-4">
+              <div class="flex justify-between items-center">
+                <span class="font-mono text-xs">Item {i}</span>
+                <div class="btn-group">
+                  <button class="btn btn-xs btn-ghost" title="Move Up" on:click={() => moveItem(i, 'up')} disabled={i === 0}>↑</button>
+                  <button class="btn btn-xs btn-ghost" title="Move Down" on:click={() => moveItem(i, 'down')} disabled={i === value.length - 1}>↓</button>
+                  <button class="btn btn-xs btn-ghost text-error" title="Remove Item" on:click={() => removeItem(i)}>✕</button>
+                </div>
+              </div>
+              <div class="divider my-1"></div>
+              {#if valueType}
+                <ObjectViewer object={item} type={valueType} />
               {:else}
-                <input type="text" bind:value={value[i]} />
+                {#if field.type === 'bool'}
+                  <input type="checkbox" class="checkbox" bind:checked={value[i]} />
+                {:else if numericTypes.has(field.type)}
+                  <input type="number" class="input input-bordered w-full" bind:value={value[i]} />
+                {:else}
+                  <input type="text" class="input input-bordered w-full" bind:value={value[i]} />
+                {/if}
               {/if}
-            {/if}
+            </div>
           </div>
         {/each}
       {/if}
-      <button class="add-button" on:click={addToArray}>+ Add Item</button>
+      <button class="btn btn-sm btn-outline" on:click={addToArray}>+ Add Item</button>
     </div>
   {:else if valueType && isObject(value)}
-    <!-- Single message object -->
-    <div class="node-children object">
+    <div class="pl-4 border-l-2 border-base-300">
       <ObjectViewer object={value} type={valueType} />
     </div>
   {:else if valueType && value === undefined}
-    <!-- An optional message that is not present in the data -->
-    <div class="add-field">
-      <span class="field-name">{key} (optional)</span>
-      <button class="add-button" on:click={addOptionalField}>+ Add</button>
-    </div>
+    <button class="btn btn-sm btn-outline" on:click={addOptionalField}>+ Add {key}</button>
   {:else if field?.resolvedType instanceof protobuf.Enum}
-    <select bind:value={parent[key]}>
+    <select class="select select-bordered w-full" bind:value={parent[key]}>
       {#each Object.keys(field.resolvedType.values) as enumName}
         <option value={enumName}>{enumName}</option>
       {/each}
     </select>
   {:else if typeof value === 'boolean'}
-    <input type="checkbox" bind:checked={parent[key]} />
+    <input type="checkbox" class="checkbox" bind:checked={parent[key]} />
   {:else if typeof value === 'number'}
-    <input type="number" bind:value={parent[key]} />
+    <input type="number" class="input input-bordered w-full" bind:value={parent[key]} />
   {:else}
-    <input type="text" bind:value={parent[key]} />
+    <input type="text" class="input input-bordered w-full" bind:value={parent[key]} />
   {/if}
 </div>
-
-<style>
-  .node {
-    padding-left: 1.5rem;
-    border-left: 1px solid #ccc;
-    margin-top: 0.5rem;
-  }
-  .name {
-    font-weight: bold;
-    margin-right: 0.5rem;
-  }
-  .node-children {
-    display: flex;
-    flex-direction: column;
-  }
-  .array-item {
-    border: 1px solid #eee;
-    padding: 0.5rem;
-    margin-top: 0.5rem;
-    border-radius: 0.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .array-index {
-    font-weight: bold;
-    color: #666;
-  }
-  input, select {
-    padding: 0.25rem;
-    border-radius: 0.25rem;
-    border: 1px solid #aaa;
-    background-color: inherit;
-    color: inherit;
-    font-family: inherit;
-    margin-top: 0.25rem;
-  }
-  .add-field {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .field-name {
-    color: #888;
-    font-style: italic;
-  }
-  .add-button {
-    padding: 0.2rem 0.5rem;
-    border-radius: 0.25rem;
-    border: 1px solid #888;
-    cursor: pointer;
-    font-size: 0.8rem;
-    margin-top: 0.5rem;
-    align-self: flex-start;
-  }
-</style>
