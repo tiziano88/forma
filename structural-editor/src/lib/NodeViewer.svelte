@@ -59,6 +59,12 @@
       <span class="field-name">{key} (optional)</span>
       <button class="add-button" on:click={addOptionalField}>+ Add</button>
     </div>
+  {:else if field?.resolvedType instanceof protobuf.Enum}
+    <select bind:value={parent[key]}>
+      {#each Object.keys(field.resolvedType.values) as enumName}
+        <option value={enumName}>{enumName}</option>
+      {/each}
+    </select>
   {:else if typeof value === 'boolean'}
     <input type="checkbox" bind:checked={parent[key]} />
   {:else if typeof value === 'number'}
@@ -92,7 +98,7 @@
     font-weight: bold;
     color: #666;
   }
-  input {
+  input, select {
     padding: 0.25rem;
     border-radius: 0.25rem;
     border: 1px solid #aaa;
