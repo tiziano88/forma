@@ -1,6 +1,6 @@
 <script lang="ts">
   import * as protobuf from 'protobufjs';
-  import NodeViewer from './lib/NodeViewer.svelte';
+  import ObjectViewer from './lib/ObjectViewer.svelte';
 
   let schemaHandle: FileSystemFileHandle | null = null;
   let dataHandle: FileSystemFileHandle | null = null;
@@ -11,10 +11,6 @@
   
   let decodedDataObject: object | null = null;
   let errorMessage = "";
-
-  // Create a wrapper object to serve as the initial parent for the root data.
-  let rootParent = { root: decodedDataObject };
-  $: rootParent.root = decodedDataObject;
 
   async function loadFile(type: 'schema' | 'data') {
     try {
@@ -82,7 +78,7 @@
 
       rootMessageType = messageTypes[messageTypes.length - 1];
       const message = rootMessageType.decode(dataBuffer);
-      decodedDataObject = message.toJSON({ enums: String }); // Explicitly get enums as strings
+      decodedDataObject = message.toJSON({ enums: String, defaults: true });
 
     } catch (err) {
       console.error("Error processing files:", err);
@@ -90,10 +86,14 @@
     }
   }
 
+  const numericTypes = new Set(['double', 'float', 'int32', 'uint32', 'sint32', 'fixed32', 'sfixed32', 'int64', 'uint64', 'sint64', 'fixed64', 'sfixed64']);
+
   /**
-   * Recursively transforms a data object, converting enum strings to numbers.
+   * Recursively sanitizes data to match schema types before saving.
+   * - Converts enum strings to numbers.
+   * - Coerces non-numeric values in number fields to numbers.
    */
-  function convertEnumsToNumbers(data: any, type: protobuf.Type): any {
+  function sanitizeDataForSave(data: any, type: protobuf.Type): any {
     if (!data || !type) return data;
 
     const result: { [k: string]: any } = {};
@@ -109,19 +109,18 @@
         continue;
       }
       
-      // Handle repeated fields of messages
       if (field.repeated && field.resolvedType instanceof protobuf.Type && Array.isArray(value)) {
-        result[key] = value.map(item => convertEnumsToNumbers(item, field.resolvedType as protobuf.Type));
+        result[key] = value.map(item => sanitizeDataForSave(item, field.resolvedType as protobuf.Type));
       } 
-      // Handle single nested messages
       else if (field.resolvedType instanceof protobuf.Type && isObject(value)) {
-        result[key] = convertEnumsToNumbers(value, field.resolvedType as protobuf.Type);
+        result[key] = sanitizeDataForSave(value, field.resolvedType as protobuf.Type);
       }
-      // Handle enums
       else if (field.resolvedType instanceof protobuf.Enum && typeof value === 'string') {
         result[key] = field.resolvedType.values[value];
-      } 
-      // Handle all other primitive types
+      }
+      else if (numericTypes.has(field.type) && typeof value !== 'number') {
+        result[key] = Number(value) || 0; // Coerce to number, default to 0 if NaN
+      }
       else {
         result[key] = value;
       }
@@ -140,7 +139,7 @@
     }
 
     try {
-      const objectToSave = convertEnumsToNumbers(decodedDataObject, rootMessageType);
+      const objectToSave = sanitizeDataForSave(decodedDataObject, rootMessageType);
 
       const errMsg = rootMessageType.verify(objectToSave);
       if (errMsg) {
@@ -186,12 +185,12 @@
     </div>
   {/if}
 
-  {#if decodedDataObject}
+  {#if decodedDataObject && rootMessageType}
     <div class="editor-controls">
       <button on:click={saveData}>Save Changes</button>
     </div>
     <div class="data-viewer">
-      <NodeViewer parent={rootParent} key="root" />
+      <ObjectViewer object={decodedDataObject} type={rootMessageType} />
     </div>
   {/if}
 
