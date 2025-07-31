@@ -22,3 +22,7 @@ preview:
 # Run checks
 check:
     npm run check
+
+# Publish to Cloudflare Pages
+publish: build
+    npx wrangler pages deploy dist --project-name=lintx
