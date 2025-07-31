@@ -43,8 +43,57 @@
     }
   }
 
+  
+  async function loadSampleData() {
+    try {
+      errorMessage = "";
+      decodedDataObject = null;
+      schemaHandle = null;
+      dataHandle = null;
+      schemaFileName = "sample.proto";
+      dataFileName = "sample.bin";
+
+      const schemaResponse = await fetch('/sample.proto');
+      if (!schemaResponse.ok) throw new Error('Failed to load sample.proto');
+      const schema = await schemaResponse.text();
+
+      const dataResponse = await fetch('/sample.bin');
+      if (!dataResponse.ok) throw new Error('Failed to load sample.bin');
+      const dataBuffer = new Uint8Array(await dataResponse.arrayBuffer());
+
+      const { root } = protobuf.parse(schema);
+      
+      function findAllMessageTypes(ns: protobuf.Namespace | protobuf.Root): protobuf.Type[] {
+        let types: protobuf.Type[] = [];
+        for (const obj of ns.nestedArray) {
+          if (obj instanceof protobuf.Type) {
+            types.push(obj);
+          } else if (obj instanceof protobuf.Namespace) {
+            types = types.concat(findAllMessageTypes(obj));
+          }
+        }
+        return types;
+      }
+
+      const messageTypes = findAllMessageTypes(root);
+
+      if (messageTypes.length === 0) {
+        throw new Error("No message types found in the schema.");
+      }
+
+      rootMessageType = messageTypes[messageTypes.length - 1];
+      const message = rootMessageType.decode(dataBuffer);
+      decodedDataObject = message.toJSON({ enums: String, defaults: true });
+
+    } catch (err) {
+      console.error("Error loading sample data:", err);
+      errorMessage = err.message;
+    }
+  }
+
   async function parseAndDecode() {
     if (!schemaHandle || !dataHandle) return;
+
 
     try {
       errorMessage = "";
@@ -164,7 +213,7 @@
       <p class="text-lg mt-2">Load a Protobuf schema (.proto) and a binary data file (.bin) to begin editing.</p>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
       <div class="card bg-base-200 shadow-xl">
         <div class="card-body">
           <button class="btn btn-primary" on:click={() => loadFile('schema')}>Load Schema (.proto)</button>
@@ -179,6 +228,11 @@
       </div>
     </div>
 
+    <div class="mb-8">
+        <button class="btn btn-accent w-full" on:click={loadSampleData}>Load Sample Data</button>
+    </div>
+    
+
     {#if errorMessage}
       <div role="alert" class="alert alert-error mb-4">
         <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -188,7 +242,7 @@
 
     {#if decodedDataObject && rootMessageType}
       <div class="mb-4">
-        <button class="btn btn-success w-full" on:click={saveData}>Save Changes</button>
+        <button class="btn btn-success w-full" on:click={saveData} disabled={!dataHandle}>Save Changes</button>
       </div>
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
