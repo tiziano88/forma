@@ -3,11 +3,31 @@
   "displayName": "Lintx Structural Editor",
   "description": "View and edit Protobuf-encoded binary files with a schema using a Svelte-based webview.",
   "version": "0.0.1",
-  "publisher": "your-publisher",
+  "publisher": "tiziano88",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/lintx"
+  },
+  "homepage": "https://github.com/your-username/lintx",
+  "bugs": {
+    "url": "https://github.com/your-username/lintx/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "protobuf",
+    "binary",
+    "editor",
+    "structural",
+    "lintx"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other",
+    "Programming Languages",
+    "Visualization"
+  ],
   "activationEvents": [
     "onCommand:lintx.openStructuralEditor",
     "onCommand:lintx.openForActiveFile",
@@ -20,8 +40,12 @@
         "viewType": "lintx.structuralEditor",
         "displayName": "Structural Editor",
         "selector": [
-          { "filenamePattern": "*.bin" },
-          { "filenamePattern": "*.binpb" }
+          {
+            "filenamePattern": "*.bin"
+          },
+          {
+            "filenamePattern": "*.binpb"
+          }
         ],
         "priority": "default"
       }
@@ -38,14 +62,20 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "tsc -p ./",
+    "vscode:prepublish": "npm run build && npm run build:webview",
     "compile": "tsc -watch -p ./",
-    "build": "tsc -p ./"
+    "build": "tsc -p ./",
+    "build:webview": "cd ../structural-editor && npm run build && cd ../vscode-extension && mkdir -p media && cp -r ../structural-editor/dist/* media/ && cp ../structural-editor/public/sample.* media/",
+    "package": "npm run build && npm run build:webview && vsce package",
+    "publish": "npm run package && vsce publish",
+    "install:deps": "npm install && cd ../structural-editor && npm install",
+    "clean": "rm -rf out media && cd ../structural-editor && rm -rf dist"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",
     "typescript": "^5.4.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "@vscode/vsce": "^3.2.0"
   },
   "dependencies": {
     "protobufjs": "^7.5.3"

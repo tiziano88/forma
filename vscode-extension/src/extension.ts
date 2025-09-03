@@ -88,12 +88,6 @@ export function activate(context: vscode.ExtensionContext) {
         enableScripts: true,
         localResourceRoots: [
           vscode.Uri.joinPath(context.extensionUri, "media"),
-          vscode.Uri.joinPath(
-            context.extensionUri,
-            "..",
-            "structural-editor",
-            "dist"
-          ),
         ],
       };
       webview.html = await getWebviewHtml(webview, context);
@@ -158,16 +152,12 @@ export function activate(context: vscode.ExtensionContext) {
             if (type === "getSample") {
               const protoUri = vscode.Uri.joinPath(
                 context.extensionUri,
-                "..",
-                "structural-editor",
-                "public",
+                "media",
                 "sample.proto"
               );
               const binUri = vscode.Uri.joinPath(
                 context.extensionUri,
-                "..",
-                "structural-editor",
-                "public",
+                "media",
                 "sample.bin"
               );
               const schemaBytes = await vscode.workspace.fs.readFile(protoUri);
@@ -239,13 +229,8 @@ async function getWebviewHtml(
   webview: vscode.Webview,
   context: vscode.ExtensionContext
 ) {
-  // Load the Svelte app from structural-editor/dist
-  const distRoot = vscode.Uri.joinPath(
-    context.extensionUri,
-    "..",
-    "structural-editor",
-    "dist"
-  );
+  // Load the Svelte app from media directory (copied during build)
+  const distRoot = vscode.Uri.joinPath(context.extensionUri, "media");
   const indexUri = vscode.Uri.joinPath(distRoot, "index.html");
   let html = (await vscode.workspace.fs.readFile(indexUri)).toString();
 
@@ -301,12 +286,6 @@ async function createPanel(
       enableScripts: true,
       localResourceRoots: [
         vscode.Uri.joinPath(context.extensionUri, "media"),
-        vscode.Uri.joinPath(
-          context.extensionUri,
-          "..",
-          "structural-editor",
-          "dist"
-        ),
       ],
     }
   );
@@ -373,16 +352,12 @@ async function createPanel(
       if (type === "getSample") {
         const protoUri = vscode.Uri.joinPath(
           context.extensionUri,
-          "..",
-          "structural-editor",
-          "public",
+          "media",
           "sample.proto"
         );
         const binUri = vscode.Uri.joinPath(
           context.extensionUri,
-          "..",
-          "structural-editor",
-          "public",
+          "media", 
           "sample.bin"
         );
         const schemaBytes = await vscode.workspace.fs.readFile(protoUri);
