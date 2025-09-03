@@ -10,10 +10,22 @@
   "categories": ["Other"],
   "activationEvents": [
     "onCommand:lintx.openStructuralEditor",
-    "onCommand:lintx.openForActiveFile"
+    "onCommand:lintx.openForActiveFile",
+    "onCustomEditor:lintx.structuralEditor"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "customEditors": [
+      {
+        "viewType": "lintx.structuralEditor",
+        "displayName": "Structural Editor",
+        "selector": [
+          { "filenamePattern": "*.bin" },
+          { "filenamePattern": "*.binpb" }
+        ],
+        "priority": "default"
+      }
+    ],
     "commands": [
       {
         "command": "lintx.openStructuralEditor",

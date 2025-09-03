@@ -11,6 +11,7 @@ type PanelSession = {
 
 export function activate(context: vscode.ExtensionContext) {
   const out = vscode.window.createOutputChannel('lintx');
+  context.subscriptions.push(out);
   const openBlank = vscode.commands.registerCommand('lintx.openStructuralEditor', async () => {
     const { panel } = await createPanel(context);
     // No pre-init; user can click buttons
@@ -37,6 +38,78 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   context.subscriptions.push(openBlank, openForActive);
+
+  // Register custom editor provider for *.bin files
+  const provider: vscode.CustomReadonlyEditorProvider = {
+    async openCustomDocument(uri: vscode.Uri): Promise<vscode.CustomDocument> {
+      return { uri, dispose() {} } as vscode.CustomDocument;
+    },
+    async resolveCustomEditor(document: vscode.CustomDocument, webviewPanel: vscode.WebviewPanel): Promise<void> {
+      const session = await resolveSessionFromConfig(document.uri);
+      const webview = webviewPanel.webview;
+      webview.options = {
+        enableScripts: true,
+        localResourceRoots: [
+          vscode.Uri.joinPath(context.extensionUri, 'media'),
+          vscode.Uri.joinPath(context.extensionUri, '..', 'structural-editor', 'dist')
+        ]
+      };
+      webview.html = await getWebviewHtml(webview, context);
+
+      const sessionState: PanelSession = { dataUri: session.dataUri ?? document.uri, schemaUri: session.schemaUri, typeName: session.typeName, pendingInit: null };
+
+      const disposables: vscode.Disposable[] = [];
+      webview.onDidReceiveMessage(async (msg) => {
+        const { type, requestId, payload } = msg || {};
+        try {
+          if (type === 'ready') {
+            const initPayload = await prepareInitPayload(context, sessionState);
+            sessionState.pendingInit = initPayload;
+            webview.postMessage({ type: 'initWithConfig', requestId: 0, payload: initPayload });
+            sessionState.pendingInit = null;
+            return;
+          }
+          if (type === 'pickFile') {
+            const isSchema = payload?.kind === 'schema';
+            const filters = isSchema ? { 'Protobuf Schema': ['proto'] } : { 'Binary Data': ['bin', 'binpb'] };
+            const chosen = await vscode.window.showOpenDialog({ canSelectMany: false, filters });
+            if (!chosen || !chosen[0]) {
+              webview.postMessage({ type, requestId, payload: { name: '', content: [] } });
+              return;
+            }
+            const uri = chosen[0];
+            const data = await vscode.workspace.fs.readFile(uri);
+            if (isSchema) sessionState.schemaUri = uri; else sessionState.dataUri = uri;
+            webview.postMessage({ type, requestId, payload: { name: path.basename(uri.fsPath), content: Array.from(data) } });
+            return;
+          }
+          if (type === 'getSample') {
+            const protoUri = vscode.Uri.joinPath(context.extensionUri, '..', 'structural-editor', 'public', 'sample.proto');
+            const binUri = vscode.Uri.joinPath(context.extensionUri, '..', 'structural-editor', 'public', 'sample.bin');
+            const schemaBytes = await vscode.workspace.fs.readFile(protoUri);
+            const dataBytes = await vscode.workspace.fs.readFile(binUri);
+            webview.postMessage({ type, requestId, payload: { schema: Buffer.from(schemaBytes).toString('utf-8'), data: Array.from(dataBytes) } });
+            return;
+          }
+          if (type === 'saveData') {
+            const content: number[] = payload?.content || [];
+            const target = sessionState.dataUri ?? document.uri;
+            await vscode.workspace.fs.writeFile(target, Buffer.from(new Uint8Array(content)));
+            webview.postMessage({ type, requestId, payload: true });
+            return;
+          }
+        } catch (err: any) {
+          vscode.window.showErrorMessage(err?.message || String(err));
+          webview.postMessage({ type, requestId, payload: { error: err?.message || String(err) } });
+        }
+      }, undefined, disposables);
+
+      webviewPanel.onDidDispose(() => {
+        disposables.forEach(d => d.dispose());
+      });
+    }
+  };
+  context.subscriptions.push(vscode.window.registerCustomEditorProvider('lintx.structuralEditor', provider, { webviewOptions: { retainContextWhenHidden: true } }));
 }
 
 export function deactivate() {}
@@ -87,7 +160,7 @@ async function getWebviewHtml(webview: vscode.Webview, context: vscode.Extension
 
 async function createPanel(context: vscode.ExtensionContext, predefined?: { dataUri?: vscode.Uri; schemaUri?: vscode.Uri; typeName?: string }) {
   const panel = vscode.window.createWebviewPanel(
-    'lintx.structuralEditor',
+    'lintx.structuralEditorPanel',
     'Structural Editor',
     vscode.ViewColumn.Active,
     {
@@ -116,7 +189,7 @@ async function createPanel(context: vscode.ExtensionContext, predefined?: { data
       }
       if (type === 'pickFile') {
         const isSchema = payload?.kind === 'schema';
-        const filters = isSchema ? { 'Protobuf Schema': ['proto'] } : { 'Binary Data': ['bin'] };
+        const filters = isSchema ? { 'Protobuf Schema': ['proto'] } : { 'Binary Data': ['bin', 'binpb'] };
         const chosen = await vscode.window.showOpenDialog({ canSelectMany: false, filters });
         if (!chosen || !chosen[0]) {
           panel.webview.postMessage({ type, requestId, payload: { name: '', content: [] } });
@@ -144,7 +217,7 @@ async function createPanel(context: vscode.ExtensionContext, predefined?: { data
           return;
         } else {
           const name: string = payload?.name || 'data.bin';
-          const saveUri = await vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(name), filters: { 'Binary Data': ['bin'] } });
+          const saveUri = await vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(name), filters: { 'Binary Data': ['bin', 'binpb'] } });
           if (saveUri) {
             await vscode.workspace.fs.writeFile(saveUri, Buffer.from(new Uint8Array(content)));
           }

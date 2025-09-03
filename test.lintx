@@ -1,6 +1,0 @@
-# Lintx config for this workspace
-# Points to the binary and schema to decode it with
-
-data=structural-editor/public/sample.bin
-schema=structural-editor/public/sample.proto
-type=example.Person
