@@ -1,0 +1,17 @@
+syntax = "proto3";
+package lintx;
+
+// A mapping between a data file and the schema/type to decode it.
+message FileMapping {
+  // Path to the binary data file (relative to config location or absolute)
+  string data = 1;
+  // Path to the .proto schema (relative to config location or absolute)
+  string schema = 2;
+  // Fully-qualified Protobuf message type to decode (optional)
+  string type = 3;
+}
+
+// Workspace-level configuration: multiple mappings supported only.
+message Config {
+  repeated FileMapping files = 1;
+}

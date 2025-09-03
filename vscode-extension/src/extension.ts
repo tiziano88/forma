@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+// Note: avoid importing protobufjs at top-level to prevent activation failures
 
 type PanelSession = {
   dataUri?: vscode.Uri;
@@ -9,6 +10,7 @@ type PanelSession = {
 };
 
 export function activate(context: vscode.ExtensionContext) {
+  const out = vscode.window.createOutputChannel('lintx');
   const openBlank = vscode.commands.registerCommand('lintx.openStructuralEditor', async () => {
     const { panel } = await createPanel(context);
     // No pre-init; user can click buttons
@@ -22,7 +24,9 @@ export function activate(context: vscode.ExtensionContext) {
       if (!picked || !picked[0]) return;
       target = picked[0];
     }
+    out.appendLine(`[openForActive] target=${target.fsPath}`);
     const session = await resolveSessionFromConfig(target);
+    out.appendLine(`[resolve] dataUri=${session.dataUri?.fsPath ?? ''} schemaUri=${session.schemaUri?.fsPath ?? ''} type=${session.typeName ?? ''}`);
     const { panel, sessionState } = await createPanel(context, session);
     if (sessionState.pendingInit) {
       // If webview already signaled ready, flush now
@@ -104,6 +108,7 @@ async function createPanel(context: vscode.ExtensionContext, predefined?: { data
         if (sessionState.dataUri) {
           const initPayload = await prepareInitPayload(context, sessionState);
           sessionState.pendingInit = initPayload;
+          console.log('[lintx] sending initWithConfig', { dataName: initPayload?.data?.length, schemaLen: initPayload?.schema?.length, type: initPayload?.typeName });
           panel.webview.postMessage({ type: 'initWithConfig', requestId: 0, payload: initPayload });
           sessionState.pendingInit = null;
         }
@@ -192,29 +197,16 @@ async function prepareInitPayload(context: vscode.ExtensionContext, session: Pan
 }
 
 async function resolveSessionFromConfig(target: vscode.Uri): Promise<{ dataUri?: vscode.Uri; schemaUri?: vscode.Uri; typeName?: string }> {
-  const dir = vscode.Uri.joinPath(target, '..');
-  const entries = await vscode.workspace.fs.readDirectory(dir);
-  // Look for *.lintx or lintx.txt
-  const configCandidates = entries
-    .filter(([name, type]) => type === vscode.FileType.File && (name.endsWith('.lintx') || name.toLowerCase() === 'lintx.txt'))
-    .map(([name]) => name);
-
-  let configUri: vscode.Uri | undefined;
-  for (const name of configCandidates) {
-    const uri = vscode.Uri.joinPath(dir, name);
-    const content = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf-8');
-    const cfg = parseKeyValueConfig(content);
-    const dataName = cfg['data'] || cfg['file'] || cfg['binary'] || '';
-    if (!dataName || path.basename(target.fsPath) === dataName || path.basename(target.fsPath) === path.basename(dataName)) {
-      // match
-      configUri = uri;
-      const session: { dataUri?: vscode.Uri; schemaUri?: vscode.Uri; typeName?: string } = { dataUri: target };
-      if (cfg['schema']) session.schemaUri = vscode.Uri.joinPath(dir, cfg['schema']);
-      if (cfg['type']) session.typeName = cfg['type'];
-      return session;
-    }
+  // 1) Try directory-local configs
+  const local = await tryResolveConfigInDir(vscode.Uri.joinPath(target, '..'), target);
+  if (local) return local;
+  // 2) Try workspace root configs
+  const root = vscode.workspace.workspaceFolders?.[0]?.uri;
+  if (root) {
+    const fromRoot = await tryResolveConfigInDir(root, target, /*isWorkspaceRoot*/ true);
+    if (fromRoot) return fromRoot;
   }
-  // No config matched; still return session using target; typeName may be undefined
+  // 3) Fallback to just the target
   return { dataUri: target };
 }
 
@@ -230,4 +222,132 @@ function parseKeyValueConfig(content: string): Record<string, string> {
     out[key] = val;
   }
   return out;
+}
+
+// ---- Binary .lintx config support (protobuf) ----
+const LINTX_PROTO = `syntax = "proto3"; package lintx; message FileMapping { string data = 1; string schema = 2; string type = 3; } message Config { repeated FileMapping files = 1; }`;
+
+type LintxFileMapping = { data?: string; schema?: string; type?: string };
+
+async function parseBinaryLintx(bytes: Uint8Array): Promise<LintxFileMapping[] | null> {
+  // Lazy-load protobufjs to avoid activation failure if dep missing
+  let protobuf: any;
+  try {
+    protobuf = await import('protobufjs');
+  } catch {
+    return null; // dependency not available; caller will fall back
+  }
+  try {
+    const { root } = protobuf.parse(LINTX_PROTO);
+    const Type = root.lookupType('lintx.Config');
+    const msg = Type.decode(bytes);
+    const obj = Type.toObject(msg, { defaults: false }) as any;
+    const out: LintxFileMapping[] = [];
+    if (Array.isArray(obj.files) && obj.files.length) {
+      for (const f of obj.files) {
+        const m: LintxFileMapping = {};
+        if (typeof f?.data === 'string') m.data = f.data;
+        if (typeof f?.schema === 'string') m.schema = f.schema;
+        if (typeof f?.type === 'string') m.type = f.type;
+        out.push(m);
+      }
+    }
+    return out.length ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+async function tryResolveConfigInDir(baseDir: vscode.Uri, target: vscode.Uri, isWorkspaceRoot = false): Promise<{ dataUri?: vscode.Uri; schemaUri?: vscode.Uri; typeName?: string } | null> {
+  let entries: [string, vscode.FileType][] = [];
+  try {
+    entries = await vscode.workspace.fs.readDirectory(baseDir);
+  } catch {
+    return null;
+  }
+  const names = entries
+    .filter(([name, type]) => type === vscode.FileType.File)
+    .map(([name]) => name);
+
+  // Prefer *.lintx (binary) over lintx.txt
+  const binaryCandidates = names.filter(n => n.toLowerCase().endsWith('.lintx'));
+  for (const name of binaryCandidates) {
+    const uri = vscode.Uri.joinPath(baseDir, name);
+    const bytes = new Uint8Array(await vscode.workspace.fs.readFile(uri));
+    const cfgs = await parseBinaryLintx(bytes);
+    if (cfgs && cfgs.length) {
+      const session = pickSessionFromMappings(cfgs, baseDir, target);
+      if (session) return session;
+    } else {
+      // Legacy: some repos may store text in a .lintx file; try KV parse
+      try {
+        const content = Buffer.from(bytes).toString('utf-8');
+        const kv = parseKeyValueConfig(content);
+        const cfg2: LintxFileMapping = { data: kv['data'] || kv['file'] || kv['binary'], schema: kv['schema'], type: kv['type'] };
+        const session = buildSessionFromMapping(cfg2, baseDir, target);
+        if (session) return session;
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  // Fallback: lintx.txt (legacy text)
+  const legacy = names.find(n => n.toLowerCase() === 'lintx.txt');
+  if (legacy) {
+    const uri = vscode.Uri.joinPath(baseDir, legacy);
+    const content = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf-8');
+    const cfgKV = parseKeyValueConfig(content);
+    const cfg: LintxFileMapping = { data: cfgKV['data'] || cfgKV['file'] || cfgKV['binary'], schema: cfgKV['schema'], type: cfgKV['type'] };
+    const session = buildSessionFromMapping(cfg, baseDir, target);
+    if (session) return session;
+  }
+  return null;
+}
+function pickSessionFromMappings(cfgs: LintxFileMapping[], baseDir: vscode.Uri, target: vscode.Uri): { dataUri?: vscode.Uri; schemaUri?: vscode.Uri; typeName?: string } | null {
+  // Prefer mappings where data matches target by basename or full path
+  const matches: LintxFileMapping[] = [];
+  const generics: LintxFileMapping[] = [];
+  for (const c of cfgs) {
+    if (c.data && c.data.trim().length) {
+      const uri = makeUri(baseDir, c.data.trim());
+      const baseMatch = path.basename(target.fsPath) === path.basename(uri.fsPath);
+      const fullMatch = target.fsPath === uri.fsPath;
+      if (baseMatch || fullMatch) matches.push(c);
+    } else {
+      generics.push(c);
+    }
+  }
+  const chosen = matches[0] || generics[0];
+  return chosen ? buildSessionFromMapping(chosen, baseDir, target) : null;
+}
+
+function buildSessionFromMapping(cfg: LintxFileMapping, baseDir: vscode.Uri, target: vscode.Uri): { dataUri?: vscode.Uri; schemaUri?: vscode.Uri; typeName?: string } | null {
+  const session: { dataUri?: vscode.Uri; schemaUri?: vscode.Uri; typeName?: string } = {};
+
+  const dataPath = cfg.data?.trim();
+  const schemaPath = cfg.schema?.trim();
+  const typeName = cfg.type?.trim();
+
+  if (schemaPath) session.schemaUri = makeUri(baseDir, schemaPath);
+
+  // If config specifies a data path, ensure it matches the target by basename or full path
+  if (dataPath && dataPath.length > 0) {
+    const dataUri = makeUri(baseDir, dataPath);
+    const baseMatch = path.basename(target.fsPath) === path.basename(dataUri.fsPath);
+    const fullMatch = target.fsPath === dataUri.fsPath;
+    if (!baseMatch && !fullMatch) return null; // not intended for this target
+    session.dataUri = target; // honor the exact file the user opened
+  } else {
+    // No data in config; assume generic config applicable to current target
+    session.dataUri = target;
+  }
+
+  if (typeName) session.typeName = typeName;
+  return session;
+}
+
+function makeUri(baseDir: vscode.Uri, p: string): vscode.Uri {
+  if (path.isAbsolute(p)) return vscode.Uri.file(p);
+  return vscode.Uri.joinPath(baseDir, p);
 }
