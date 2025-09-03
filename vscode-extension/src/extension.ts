@@ -510,7 +510,7 @@ async function resolveSessionFromConfig(target: vscode.Uri): Promise<{
       );
       mappings.forEach((mapping, index) => {
         outputChannel.appendLine(
-          `  [${index + 1}] data: "${mapping.data || "none"}", schema: "${
+          `  [${index}] data: "${mapping.data || "none"}", schema: "${
             mapping.schema || "none"
           }", type: "${mapping.type || "none"}"`
         );
