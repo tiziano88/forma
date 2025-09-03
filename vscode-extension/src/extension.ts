@@ -5,7 +5,7 @@ type PanelSession = {
   dataUri?: vscode.Uri;
   schemaUri?: vscode.Uri;
   typeName?: string;
-  pendingInit?: { schema: string; data: number[]; typeName?: string } | null;
+  pendingInit?: { schema: string; data: number[]; typeName?: string; dataName?: string; schemaName?: string } | null;
 };
 
 export function activate(context: vscode.ExtensionContext) {
@@ -16,7 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   const openForActive = vscode.commands.registerCommand('lintx.openForActiveFile', async () => {
-    let target: vscode.Uri | undefined = vscode.window.activeTextEditor?.document.uri;
+    let target: vscode.Uri | undefined = getActiveResourceUri() || vscode.window.activeTextEditor?.document.uri;
     if (!target) {
       const picked = await vscode.window.showOpenDialog({ canSelectMany: false });
       if (!picked || !picked[0]) return;
@@ -36,6 +36,20 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
+
+function getActiveResourceUri(): vscode.Uri | undefined {
+  const activeTab = vscode.window.tabGroups.activeTabGroup?.activeTab;
+  if (!activeTab) return undefined;
+  const input = activeTab.input;
+  // Text editors
+  if (input instanceof vscode.TabInputText) return input.uri;
+  if (input instanceof vscode.TabInputTextDiff) return input.modified;
+  // Custom editors (e.g., binary viewers)
+  if (input instanceof vscode.TabInputCustom) return input.uri;
+  // Notebooks (rare for our case)
+  if (input instanceof vscode.TabInputNotebook) return input.uri;
+  return undefined;
+}
 
 async function getWebviewHtml(webview: vscode.Webview, context: vscode.ExtensionContext) {
   // Load the Svelte app from structural-editor/dist
@@ -146,6 +160,7 @@ async function createPanel(context: vscode.ExtensionContext, predefined?: { data
 
 async function prepareInitPayload(context: vscode.ExtensionContext, session: PanelSession) {
   let schemaText = '';
+  let schemaName: string | undefined;
   if (!session.schemaUri) {
     // best-effort: look for a .proto next to dataUri
     if (session.dataUri) {
@@ -164,13 +179,16 @@ async function prepareInitPayload(context: vscode.ExtensionContext, session: Pan
   if (session.schemaUri) {
     const bytes = await vscode.workspace.fs.readFile(session.schemaUri);
     schemaText = Buffer.from(bytes).toString('utf-8');
+    schemaName = path.basename(session.schemaUri.fsPath);
   }
   let dataBytes: Uint8Array = new Uint8Array();
+  let dataName: string | undefined;
   if (session.dataUri) {
     const bytes = await vscode.workspace.fs.readFile(session.dataUri);
     dataBytes = new Uint8Array(bytes);
+    dataName = path.basename(session.dataUri.fsPath);
   }
-  return { schema: schemaText, data: Array.from(dataBytes), typeName: session.typeName };
+  return { schema: schemaText, data: Array.from(dataBytes), typeName: session.typeName, dataName, schemaName };
 }
 
 async function resolveSessionFromConfig(target: vscode.Uri): Promise<{ dataUri?: vscode.Uri; schemaUri?: vscode.Uri; typeName?: string }> {
