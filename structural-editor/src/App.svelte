@@ -1,6 +1,32 @@
 <script lang="ts">
   import * as protobuf from 'protobufjs';
   import ObjectViewer from './lib/ObjectViewer.svelte';
+  
+  // VS Code webview bridge
+  type VSCodeAPI = { postMessage: (msg: any) => void, getState: () => any, setState: (s: any) => void } | null;
+  // @ts-ignore acquireVsCodeApi is injected by VS Code webviews
+  const acquire = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi : null;
+  const vscode: VSCodeAPI = acquire ? acquire() : null;
+  let reqId = 0;
+  const pending = new Map<number, (data: any) => void>();
+  if (typeof window !== 'undefined') {
+    window.addEventListener('message', (event: MessageEvent) => {
+      const msg = event.data || {};
+      if (msg && typeof msg === 'object' && 'requestId' in msg) {
+        const resolver = pending.get(msg.requestId);
+        if (resolver) {
+          pending.delete(msg.requestId);
+          resolver(msg);
+        }
+      }
+    });
+  }
+  function postRequest<T = any>(type: string, payload?: any): Promise<T> {
+    if (!vscode) return Promise.reject(new Error('Not running inside VS Code'));
+    const id = ++reqId;
+    vscode.postMessage({ type, requestId: id, payload });
+    return new Promise<T>((resolve) => pending.set(id, (msg) => resolve(msg.payload as T)));
+  }
 
   let schemaHandle: FileSystemFileHandle | null = null;
   let dataHandle: FileSystemFileHandle | null = null;
@@ -14,28 +40,45 @@
 
   async function loadFile(type: 'schema' | 'data') {
     try {
-      const [handle] = await window.showOpenFilePicker({
-        types: [
-          {
-            description: type === 'schema' ? 'Protobuf Schema' : 'Protobuf Data',
-            accept: {
-              'application/octet-stream': type === 'schema' ? ['.proto'] : ['.bin'],
-            },
-          },
-        ],
-        multiple: false,
-      });
-
-      if (type === 'schema') {
-        schemaHandle = handle;
-        schemaFileName = schemaHandle.name;
+      if (vscode) {
+        const file = await postRequest<{ name: string; content: number[] }>('pickFile', { kind: type });
+        if (type === 'schema') {
+          schemaHandle = null;
+          schemaFileName = file.name;
+          // Store schema content in memory
+          (window as any).__schemaContent = new TextDecoder().decode(new Uint8Array(file.content));
+        } else {
+          dataHandle = null;
+          dataFileName = file.name;
+          (window as any).__dataContent = new Uint8Array(file.content);
+        }
+        if ((window as any).__schemaContent && (window as any).__dataContent) {
+          await parseAndDecode();
+        }
       } else {
-        dataHandle = handle;
-        dataFileName = dataHandle.name;
-      }
-
-      if (schemaHandle && dataHandle) {
-        await parseAndDecode();
+        const [handle] = await window.showOpenFilePicker({
+          types: [
+            {
+              description: type === 'schema' ? 'Protobuf Schema' : 'Protobuf Data',
+              accept: {
+                'application/octet-stream': type === 'schema' ? ['.proto'] : ['.bin'],
+              },
+            },
+          ],
+          multiple: false,
+        });
+  
+        if (type === 'schema') {
+          schemaHandle = handle;
+          schemaFileName = schemaHandle.name;
+        } else {
+          dataHandle = handle;
+          dataFileName = dataHandle.name;
+        }
+  
+        if (schemaHandle && dataHandle) {
+          await parseAndDecode();
+        }
       }
     } catch (err) {
       console.error("Error opening file:", err);
@@ -52,14 +95,24 @@
       dataHandle = null;
       schemaFileName = "sample.proto";
       dataFileName = "sample.bin";
+      let schema: string;
+      let dataBuffer: Uint8Array;
 
-      const schemaResponse = await fetch('/sample.proto');
-      if (!schemaResponse.ok) throw new Error('Failed to load sample.proto');
-      const schema = await schemaResponse.text();
-
-      const dataResponse = await fetch('/sample.bin');
-      if (!dataResponse.ok) throw new Error('Failed to load sample.bin');
-      const dataBuffer = new Uint8Array(await dataResponse.arrayBuffer());
+      if (vscode) {
+        const payload = await postRequest<{ schema: string; data: number[] }>('getSample');
+        schema = payload.schema;
+        dataBuffer = new Uint8Array(payload.data);
+        (window as any).__schemaContent = schema;
+        (window as any).__dataContent = dataBuffer;
+      } else {
+        const schemaResponse = await fetch('/sample.proto');
+        if (!schemaResponse.ok) throw new Error('Failed to load sample.proto');
+        schema = await schemaResponse.text();
+  
+        const dataResponse = await fetch('/sample.bin');
+        if (!dataResponse.ok) throw new Error('Failed to load sample.bin');
+        dataBuffer = new Uint8Array(await dataResponse.arrayBuffer());
+      }
 
       const { root } = protobuf.parse(schema);
       
@@ -92,18 +145,27 @@
   }
 
   async function parseAndDecode() {
-    if (!schemaHandle || !dataHandle) return;
+    const hasHandles = !!(schemaHandle && dataHandle);
+    const hasVSData = !!(vscode && (window as any).__schemaContent && (window as any).__dataContent);
+    if (!hasHandles && !hasVSData) return;
 
 
     try {
       errorMessage = "";
       decodedDataObject = null;
 
-      const schemaFile = await schemaHandle.getFile();
-      const schema = await schemaFile.text();
-
-      const dataFile = await dataHandle.getFile();
-      const dataBuffer = new Uint8Array(await dataFile.arrayBuffer());
+      let schema: string;
+      let dataBuffer: Uint8Array;
+      if (vscode) {
+        schema = (window as any).__schemaContent as string;
+        dataBuffer = (window as any).__dataContent as Uint8Array;
+      } else {
+        const schemaFile = await schemaHandle.getFile();
+        schema = await schemaFile.text();
+  
+        const dataFile = await dataHandle.getFile();
+        dataBuffer = new Uint8Array(await dataFile.arrayBuffer());
+      }
 
       const { root } = protobuf.parse(schema);
       
@@ -178,8 +240,10 @@
 
   async function saveData() {
     if (!dataHandle || !rootMessageType || !decodedDataObject) {
-      errorMessage = "Cannot save: Data, schema, or decoded object is missing.";
-      return;
+      if (!vscode) {
+        errorMessage = "Cannot save: Data, schema, or decoded object is missing.";
+        return;
+      }
     }
 
     try {
@@ -192,12 +256,15 @@
 
       const message = rootMessageType.fromObject(objectToSave);
       const buffer = rootMessageType.encode(message).finish();
-
-      const writable = await dataHandle.createWritable();
-      await writable.write(buffer);
-      await writable.close();
-
-      alert("Save successful!");
+      if (vscode) {
+        await postRequest('saveData', { name: dataFileName, content: Array.from(buffer) });
+        alert("Save successful!");
+      } else {
+        const writable = await dataHandle.createWritable();
+        await writable.write(buffer);
+        await writable.close();
+        alert("Save successful!");
+      }
 
     } catch (err) {
       console.error("Error saving file:", err);
@@ -242,7 +309,7 @@
 
     {#if decodedDataObject && rootMessageType}
       <div class="mb-4">
-        <button class="btn btn-success w-full" on:click={saveData} disabled={!dataHandle}>Save Changes</button>
+        <button class="btn btn-success w-full" on:click={saveData} disabled={!dataHandle && !vscode}>Save Changes</button>
       </div>
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body">

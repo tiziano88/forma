@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build:web",
+      "type": "npm",
+      "script": "build",
+      "options": { "cwd": "${workspaceFolder}/structural-editor" }
+    },
+    {
+      "label": "compile:ext",
+      "type": "npm",
+      "script": "compile",
+      "options": { "cwd": "${workspaceFolder}/vscode-extension" },
+      "problemMatcher": ["$tsc-watch"],
+      "isBackground": true
+    },
+    {
+      "label": "dev:prep",
+      "dependsOn": ["build:web", "compile:ext"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    }
+  ]
+}
+
