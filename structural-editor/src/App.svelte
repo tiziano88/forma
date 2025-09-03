@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import StructuralViewer from './lib/StructuralViewer.svelte';
   import type { StructuralEditorInit, SaveCallback } from './lib/types';
+  import { parseBinaryLintx, parseKeyValueConfig, findMatchingConfig, type LintxFileMapping } from './lib/core';
 
   // VS Code webview bridge
   type VSCodeAPI = { postMessage: (msg: any) => void, getState: () => any, setState: (s: any) => void } | null;
@@ -79,7 +80,7 @@
           dataBuffer = new Uint8Array(file.content);
         }
       } else {
-        const [handle] = await window.showOpenFilePicker({
+        const [handle] = await (window as any).showOpenFilePicker({
           types: [
             {
               description: kind === 'schema' ? 'Protobuf Schema' : 'Protobuf Data',
@@ -90,14 +91,19 @@
         });
         if (kind === 'schema') {
           schemaHandle = handle;
-          schemaFileName = schemaHandle.name;
-          const f = await schemaHandle.getFile();
+          schemaFileName = handle.name;
+          const f = await handle.getFile();
           schemaText = await f.text();
         } else {
           dataHandle = handle;
-          dataFileName = dataHandle.name;
-          const f = await dataHandle.getFile();
+          dataFileName = handle.name;
+          const f = await handle.getFile();
           dataBuffer = new Uint8Array(await f.arrayBuffer());
+          
+          // Offer to auto-load schema from lintx.binpb config if available
+          if (confirm('Would you like to search for a configuration file (lintx.binpb) to automatically load the matching schema?')) {
+            await tryAutoLoadSchema(handle);
+          }
         }
       }
     } catch (err: any) {
@@ -136,6 +142,105 @@
     }
   }
 
+  async function tryAutoLoadSchema(dataFileHandle: FileSystemFileHandle) {
+    try {
+      // For web File System Access API, we need to ask user to pick the directory
+      // Since we can't get parent directory directly, we'll ask for directory picker
+      console.log('Looking for config files for automatic schema loading...');
+      
+      // First try to pick a directory that might contain config files
+      const dirHandle = await (window as any).showDirectoryPicker({ 
+        id: 'lintx-config-dir',
+        startIn: 'downloads'
+      });
+      
+      if (!dirHandle) return;
+
+      // Look for lintx config files in the directory
+      const lintxFiles: string[] = [];
+      for await (const [name, handle] of dirHandle.entries()) {
+        if (handle.kind === 'file' && (
+          name.toLowerCase().endsWith('.lintx') ||
+          name.toLowerCase() === 'lintx.txt' ||
+          name.toLowerCase() === 'lintx.binpb'
+        )) {
+          lintxFiles.push(name);
+        }
+      }
+
+      // Try binary configs first, then text configs
+      const binaryConfigs = lintxFiles.filter(n => 
+        n.toLowerCase().endsWith('.binpb') || 
+        n.toLowerCase() === 'lintx.binpb' ||
+        (n.toLowerCase().includes('.lintx') && !n.toLowerCase().endsWith('.txt'))
+      );
+      const textConfigs = lintxFiles.filter(n => n.toLowerCase() === 'lintx.txt');
+      
+      const candidates = [...binaryConfigs, ...textConfigs];
+      
+      for (const configFileName of candidates) {
+        const configHandle = await dirHandle.getFileHandle(configFileName);
+        const configFile = await configHandle.getFile();
+        const configBytes = new Uint8Array(await configFile.arrayBuffer());
+        
+        let mappings: LintxFileMapping[] | null = null;
+        
+        if (!configFileName.toLowerCase().endsWith('.txt')) {
+          // Try binary format first
+          mappings = await parseBinaryLintx(configBytes);
+          
+          // If binary parsing failed, try text format
+          if (!mappings) {
+            try {
+              const content = new TextDecoder().decode(configBytes);
+              const kv = parseKeyValueConfig(content);
+              const mapping: LintxFileMapping = {
+                data: kv['data'] || kv['file'] || kv['binary'],
+                schema: kv['schema'],
+                type: kv['type']
+              };
+              if (mapping.schema) mappings = [mapping];
+            } catch {
+              // ignore
+            }
+          }
+        } else {
+          // Text format
+          const content = new TextDecoder().decode(configBytes);
+          const kv = parseKeyValueConfig(content);
+          const mapping: LintxFileMapping = {
+            data: kv['data'] || kv['file'] || kv['binary'],
+            schema: kv['schema'],
+            type: kv['type']
+          };
+          if (mapping.schema) mappings = [mapping];
+        }
+        
+        if (mappings && mappings.length > 0) {
+          const matchedConfig = findMatchingConfig(mappings, dataFileHandle.name);
+          if (matchedConfig?.schema) {
+            // Load the schema file
+            try {
+              const foundSchemaHandle = await dirHandle.getFileHandle(matchedConfig.schema);
+              const schemaFile = await foundSchemaHandle.getFile();
+              schemaText = await schemaFile.text();
+              schemaHandle = foundSchemaHandle;
+              schemaFileName = foundSchemaHandle.name;
+              typeNameOverride = matchedConfig.type || null;
+              console.log(`Auto-loaded schema: ${schemaFileName} with type: ${typeNameOverride || 'auto'}`);
+              break; // Found and loaded schema, stop searching
+            } catch (schemaErr) {
+              console.warn(`Could not load schema file ${matchedConfig.schema}:`, schemaErr);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Error during auto schema loading:', err);
+      // Don't set errorMessage as this is just auto-loading, user can still manually load
+    }
+  }
+
   const onSave: SaveCallback = async (bytes, suggestedName) => {
     if (vscode) {
       await postRequest('saveData', { name: suggestedName || dataFileName || 'data.bin', content: Array.from(bytes) });
@@ -146,7 +251,7 @@
       throw new Error(errorMessage);
     }
     const writable = await dataHandle.createWritable();
-    await writable.write(bytes);
+    await writable.write(new Uint8Array(bytes));
     await writable.close();
   };
 </script>

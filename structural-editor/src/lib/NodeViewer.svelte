@@ -19,7 +19,7 @@
   }
 
   function createDefaultObject(messageType: protobuf.Type) {
-    return messageType.toObject({}, { defaults: true, enums: String });
+    return (messageType as any).toObject({}, { defaults: true, enums: String });
   }
 
   function addOptionalField() {

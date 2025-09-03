@@ -30,13 +30,13 @@ export function decodeWithSchema(schemaText: string, data: Uint8Array, typeName?
   const slice = opts.offset ? data.subarray(opts.offset) : data;
   try {
     const message = opts.delimited ? target.decodeDelimited(slice) : target.decode(slice);
-    const decoded = message.toJSON({ enums: String, defaults: true });
+    const decoded = (message as any).toJSON({ enums: String, defaults: true });
     return { type: target, decoded };
   } catch (e: any) {
     // Fallback: if not explicitly delimited and we hit a wire-type error, try delimited
     if (!opts.delimited && /invalid wire type/i.test(String(e?.message || e))) {
       const message = target.decodeDelimited(slice);
-      const decoded = message.toJSON({ enums: String, defaults: true });
+      const decoded = (message as any).toJSON({ enums: String, defaults: true });
       return { type: target, decoded };
     }
     throw e;
@@ -104,4 +104,61 @@ function findAllMessageTypes(ns: protobuf.Namespace | protobuf.Root): protobuf.T
     }
   }
   return types;
+}
+
+// Configuration support for lintx files
+const LINTX_PROTO = `syntax = "proto3"; package lintx; message FileMapping { string data = 1; string schema = 2; string type = 3; } message Config { repeated FileMapping files = 1; }`;
+
+export type LintxFileMapping = { 
+  data?: string; 
+  schema?: string; 
+  type?: string 
+};
+
+export async function parseBinaryLintx(bytes: Uint8Array): Promise<LintxFileMapping[] | null> {
+  try {
+    const { root } = protobuf.parse(LINTX_PROTO);
+    const Type = root.lookupType('lintx.Config') as protobuf.Type;
+    const msg = Type.decode(bytes);
+    const obj = Type.toObject(msg, { defaults: false }) as any;
+    const out: LintxFileMapping[] = [];
+    if (Array.isArray(obj.files) && obj.files.length) {
+      for (const f of obj.files) {
+        const m: LintxFileMapping = {};
+        if (typeof f?.data === 'string') m.data = f.data;
+        if (typeof f?.schema === 'string') m.schema = f.schema;
+        if (typeof f?.type === 'string') m.type = f.type;
+        out.push(m);
+      }
+    }
+    return out.length ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+export function parseKeyValueConfig(content: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const raw of content.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#') || line.startsWith('//')) continue;
+    const idx = line.indexOf('=');
+    if (idx <= 0) continue;
+    const key = line.slice(0, idx).trim().toLowerCase();
+    const val = line.slice(idx + 1).trim();
+    out[key] = val;
+  }
+  return out;
+}
+
+export function findMatchingConfig(mappings: LintxFileMapping[], dataFileName: string): LintxFileMapping | null {
+  for (const mapping of mappings) {
+    if (mapping.data) {
+      const configDataName = mapping.data.split('/').pop() || mapping.data;
+      if (configDataName === dataFileName || dataFileName.includes(configDataName)) {
+        return mapping;
+      }
+    }
+  }
+  return mappings.find(m => !m.data) || null;
 }
