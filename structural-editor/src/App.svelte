@@ -1,7 +1,8 @@
 <script lang="ts">
   import * as protobuf from 'protobufjs';
-  import ObjectViewer from './lib/ObjectViewer.svelte';
-  
+	  import ObjectViewer from './lib/ObjectViewer.svelte';
+	  import { onMount } from 'svelte';
+	  
   // VS Code webview bridge
   type VSCodeAPI = { postMessage: (msg: any) => void, getState: () => any, setState: (s: any) => void } | null;
   // @ts-ignore acquireVsCodeApi is injected by VS Code webviews
@@ -9,28 +10,46 @@
   const vscode: VSCodeAPI = acquire ? acquire() : null;
   let reqId = 0;
   const pending = new Map<number, (data: any) => void>();
-  if (typeof window !== 'undefined') {
-    window.addEventListener('message', (event: MessageEvent) => {
-      const msg = event.data || {};
-      if (msg && typeof msg === 'object' && 'requestId' in msg) {
-        const resolver = pending.get(msg.requestId);
-        if (resolver) {
-          pending.delete(msg.requestId);
-          resolver(msg);
-        }
-      }
-    });
-  }
-  function postRequest<T = any>(type: string, payload?: any): Promise<T> {
+	  if (typeof window !== 'undefined') {
+	    window.addEventListener('message', (event: MessageEvent) => {
+	      const msg = event.data || {};
+	      if (msg && typeof msg === 'object' && 'requestId' in msg) {
+	        const resolver = pending.get(msg.requestId);
+	        if (resolver) {
+	          pending.delete(msg.requestId);
+	          resolver(msg);
+	        }
+	      }
+	    });
+	    // Listen for push-style init when opened from VS Code command
+	    window.addEventListener('message', (event: MessageEvent) => {
+	      const msg = event.data || {};
+	      if (msg && msg.type === 'initWithConfig' && msg.payload) {
+	        const p = msg.payload as { schema: string; data: number[]; typeName?: string };
+	        (window as any).__schemaContent = p.schema;
+	        (window as any).__dataContent = new Uint8Array(p.data || []);
+	        rootTypeNameOverride = p.typeName || null;
+	        parseAndDecode();
+	      }
+	    });
+	  }
+	  function postRequest<T = any>(type: string, payload?: any): Promise<T> {
     if (!vscode) return Promise.reject(new Error('Not running inside VS Code'));
     const id = ++reqId;
     vscode.postMessage({ type, requestId: id, payload });
-    return new Promise<T>((resolve) => pending.set(id, (msg) => resolve(msg.payload as T)));
-  }
+	    return new Promise<T>((resolve) => pending.set(id, (msg) => resolve(msg.payload as T)));
+	  }
+
+	  onMount(() => {
+	    if (vscode) {
+	      vscode.postMessage({ type: 'ready' });
+	    }
+	  });
 
   let schemaHandle: FileSystemFileHandle | null = null;
   let dataHandle: FileSystemFileHandle | null = null;
-  let rootMessageType: protobuf.Type | null = null;
+	  let rootMessageType: protobuf.Type | null = null;
+	  let rootTypeNameOverride: string | null = null;
 
   let schemaFileName = "No schema loaded";
   let dataFileName = "No data loaded";
@@ -128,13 +147,22 @@
         return types;
       }
 
-      const messageTypes = findAllMessageTypes(root);
-
-      if (messageTypes.length === 0) {
-        throw new Error("No message types found in the schema.");
-      }
-
-      rootMessageType = messageTypes[messageTypes.length - 1];
+	  let targetType: protobuf.Type | null = null;
+	  if (rootTypeNameOverride) {
+	    try {
+	      targetType = root.lookupType(rootTypeNameOverride) as protobuf.Type;
+	    } catch (e) {
+	      console.warn('Type override not found:', rootTypeNameOverride);
+	    }
+	  }
+	  if (!targetType) {
+	    const messageTypes = findAllMessageTypes(root);
+	    if (messageTypes.length === 0) {
+	      throw new Error("No message types found in the schema.");
+	    }
+	    targetType = messageTypes[messageTypes.length - 1];
+	  }
+	  rootMessageType = targetType;
       const message = rootMessageType.decode(dataBuffer);
       decodedDataObject = message.toJSON({ enums: String, defaults: true });
 
@@ -181,13 +209,22 @@
         return types;
       }
 
-      const messageTypes = findAllMessageTypes(root);
-
-      if (messageTypes.length === 0) {
-        throw new Error("No message types found in the schema.");
-      }
-
-      rootMessageType = messageTypes[messageTypes.length - 1];
+	  let targetType: protobuf.Type | null = null;
+	  if (rootTypeNameOverride) {
+	    try {
+	      targetType = root.lookupType(rootTypeNameOverride) as protobuf.Type;
+	    } catch (e) {
+	      console.warn('Type override not found:', rootTypeNameOverride);
+	    }
+	  }
+	  if (!targetType) {
+	    const messageTypes = findAllMessageTypes(root);
+	    if (messageTypes.length === 0) {
+	      throw new Error("No message types found in the schema.");
+	    }
+	    targetType = messageTypes[messageTypes.length - 1];
+	  }
+	  rootMessageType = targetType;
       const message = rootMessageType.decode(dataBuffer);
       decodedDataObject = message.toJSON({ enums: String, defaults: true });
 

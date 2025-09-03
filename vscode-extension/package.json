@@ -9,7 +9,8 @@
   },
   "categories": ["Other"],
   "activationEvents": [
-    "onCommand:lintx.openStructuralEditor"
+    "onCommand:lintx.openStructuralEditor",
+    "onCommand:lintx.openForActiveFile"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -17,6 +18,10 @@
       {
         "command": "lintx.openStructuralEditor",
         "title": "Open Structural Editor"
+      },
+      {
+        "command": "lintx.openForActiveFile",
+        "title": "Open Structural Editor for Active File"
       }
     ]
   },
@@ -31,4 +36,3 @@
     "@types/node": "^20.0.0"
   }
 }
-
