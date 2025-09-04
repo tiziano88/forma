@@ -4,3 +4,4 @@ out/
 media/
 
 .DS_Store
+*.vsix

@@ -2,6 +2,46 @@ import * as vscode from "vscode";
 import * as path from "path";
 // Note: avoid importing protobufjs at top-level to prevent activation failures
 
+// Webview message types
+interface WebviewMessage {
+  type: string;
+  requestId: number;
+  payload?: any;
+}
+
+interface ReadyMessage extends WebviewMessage {
+  type: "ready";
+  payload?: undefined;
+}
+
+interface PickFileMessage extends WebviewMessage {
+  type: "pickFile";
+  payload: { kind: "schema" | "data" };
+}
+
+interface GetSampleMessage extends WebviewMessage {
+  type: "getSample";
+  payload?: undefined;
+}
+
+interface SaveDataMessage extends WebviewMessage {
+  type: "saveData";
+  payload: { content: number[]; name?: string };
+}
+
+interface InitWithConfigMessage extends WebviewMessage {
+  type: "initWithConfig";
+  payload: {
+    schema: string;
+    data: number[];
+    typeName?: string;
+    dataName?: string;
+    schemaName?: string;
+  };
+}
+
+type IncomingMessage = ReadyMessage | PickFileMessage | GetSampleMessage | SaveDataMessage;
+
 type PanelSession = {
   dataUri?: vscode.Uri;
   schemaUri?: vscode.Uri;
@@ -101,7 +141,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       const disposables: vscode.Disposable[] = [];
       webview.onDidReceiveMessage(
-        async (msg) => {
+        async (msg: IncomingMessage) => {
           const { type, requestId, payload } = msg || {};
           try {
             if (type === "ready") {
@@ -243,19 +283,19 @@ async function getWebviewHtml(
   // naive replacements for href/src paths produced by Vite
   html = html.replace(
     /\shref=\"\/(.*?)\"/g,
-    (m, p1) => ` href="${toWebviewUri(p1)}"`
+    (_m, p1) => ` href="${toWebviewUri(p1)}"`
   );
   html = html.replace(
     /\ssrc=\"\/(.*?)\"/g,
-    (m, p1) => ` src="${toWebviewUri(p1)}"`
+    (_m, p1) => ` src="${toWebviewUri(p1)}"`
   );
   html = html.replace(
     /\shref=\"(assets\/.+?)\"/g,
-    (m, p1) => ` href="${toWebviewUri(p1)}"`
+    (_m, p1) => ` href="${toWebviewUri(p1)}"`
   );
   html = html.replace(
     /\ssrc=\"(assets\/.+?)\"/g,
-    (m, p1) => ` src="${toWebviewUri(p1)}"`
+    (_m, p1) => ` src="${toWebviewUri(p1)}"`
   );
 
   // Content Security Policy: allow scripts/styles from the webview
@@ -297,7 +337,7 @@ async function createPanel(
     pendingInit: null,
   };
 
-  panel.webview.onDidReceiveMessage(async (msg) => {
+  panel.webview.onDidReceiveMessage(async (msg: IncomingMessage) => {
     const { type, requestId, payload } = msg || {};
     try {
       if (type === "ready") {
@@ -413,7 +453,7 @@ async function createPanel(
 }
 
 async function prepareInitPayload(
-  context: vscode.ExtensionContext,
+  _context: vscode.ExtensionContext,
   session: PanelSession
 ) {
   let schemaText = "";
@@ -425,11 +465,11 @@ async function prepareInitPayload(
       const entries = await vscode.workspace.fs.readDirectory(dir);
       const protos = entries
         .filter(
-          ([name, type]) =>
+          ([name, type]: [string, vscode.FileType]) =>
             type === vscode.FileType.File &&
             name.toLowerCase().endsWith(".proto")
         )
-        .map(([name]) => name);
+        .map(([name]: [string, vscode.FileType]) => name);
       let chosen: string | undefined;
       if (protos.length === 1) chosen = protos[0];
       else if (protos.length > 1) {
