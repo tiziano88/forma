@@ -1,7 +1,7 @@
 node_modules/
 dist/
 out/
-media/assets/
+vscode-extension/media/assets/
 
 .DS_Store
 *.vsix

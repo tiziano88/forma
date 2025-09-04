@@ -316,10 +316,10 @@
 <div class="p-4 sm:p-6 lg:p-8">
   <div class="max-w-4xl mx-auto">
     <header class="text-center mb-8">
-      <h1 class="text-4xl font-bold">yyyqqXXStructural Editor</h1>
+      <h1 class="text-4xl font-bold">yStructural Editor</h1>
       <p class="text-lg mt-2">
-        YYYBBBZZZ Load a Protobuf schema (.proto) and a binary data file (.bin)
-        to begin editing.
+        Load a Protobuf schema (.proto) and a binary data file (.bin) to begin
+        editing.
       </p>
     </header>
 

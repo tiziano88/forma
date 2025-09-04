@@ -65,7 +65,7 @@
     "vscode:prepublish": "pnpm run build",
     "compile": "tsc -watch -p ./",
     "build": "tsc -p ./",
-    "build:webview": "pnpm --filter structural-editor build && node ./scripts/copy-media.js",
+    "build:webview": "pnpm --filter structural-editor build",
     "package": "pnpm -r build && vsce package",
     "publish": "pnpm run package && vsce publish",
     "clean": "rm -rf out media"
