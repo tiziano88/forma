@@ -1,0 +1,12 @@
+{
+  "name": "lintx-monorepo",
+  "private": true,
+  "scripts": {
+    "install:all": "pnpm install",
+    "build": "pnpm -r build"
+  },
+  "devDependencies": {
+    "fs-extra": "^11.1.1",
+    "typescript": "^5.4.0"
+  }
+}

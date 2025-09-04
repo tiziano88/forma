@@ -2,12 +2,15 @@ import * as vscode from "vscode";
 import * as path from "path";
 // Note: avoid importing protobufjs at top-level to prevent activation failures
 
+const VITE_DEV_SERVER_URL = "http://localhost:5173";
+
 // Webview message types
 interface WebviewMessage {
   type: string;
   requestId: number;
   payload?: any;
 }
+
 
 interface ReadyMessage extends WebviewMessage {
   type: "ready";
@@ -40,7 +43,11 @@ interface InitWithConfigMessage extends WebviewMessage {
   };
 }
 
-type IncomingMessage = ReadyMessage | PickFileMessage | GetSampleMessage | SaveDataMessage;
+type IncomingMessage =
+  | ReadyMessage
+  | PickFileMessage
+  | GetSampleMessage
+  | SaveDataMessage;
 
 type PanelSession = {
   dataUri?: vscode.Uri;
@@ -198,7 +205,7 @@ export function activate(context: vscode.ExtensionContext) {
               const binUri = vscode.Uri.joinPath(
                 context.extensionUri,
                 "media",
-                "sample.bin"
+                "sample.binpb"
               );
               const schemaBytes = await vscode.workspace.fs.readFile(protoUri);
               const dataBytes = await vscode.workspace.fs.readFile(binUri);
@@ -268,46 +275,52 @@ function getActiveResourceUri(): vscode.Uri | undefined {
 async function getWebviewHtml(
   webview: vscode.Webview,
   context: vscode.ExtensionContext
-) {
-  // Load the Svelte app from media directory (copied during build)
-  const distRoot = vscode.Uri.joinPath(context.extensionUri, "media");
-  const indexUri = vscode.Uri.joinPath(distRoot, "index.html");
-  let html = (await vscode.workspace.fs.readFile(indexUri)).toString();
+): Promise<string> {
+  // In production, we'll load the pre-built Svelte app from the media directory.
+  // This is created by the `pnpm run build:webview` script.
+  const mediaRoot = vscode.Uri.joinPath(context.extensionUri, "media");
+  const assetsRoot = vscode.Uri.joinPath(mediaRoot, "assets");
 
-  // Rewrite asset paths to use asWebviewUri
-  const toWebviewUri = (p: string) => {
-    const u = vscode.Uri.joinPath(distRoot, p);
-    return webview.asWebviewUri(u).toString();
-  };
+  // Find the actual CSS and JS files in the 'assets' directory.
+  // Vite generates filenames with hashes, so we can't hardcode them.
+  const files = await vscode.workspace.fs.readDirectory(assetsRoot);
+  const cssFile = files.find(([name]) => name.endsWith(".css"))?.[0];
+  const jsFile = files.find(([name]) => name.endsWith(".js"))?.[0];
 
-  // naive replacements for href/src paths produced by Vite
-  html = html.replace(
-    /\shref=\"\/(.*?)\"/g,
-    (_m, p1) => ` href="${toWebviewUri(p1)}"`
-  );
-  html = html.replace(
-    /\ssrc=\"\/(.*?)\"/g,
-    (_m, p1) => ` src="${toWebviewUri(p1)}"`
-  );
-  html = html.replace(
-    /\shref=\"(assets\/.+?)\"/g,
-    (_m, p1) => ` href="${toWebviewUri(p1)}"`
-  );
-  html = html.replace(
-    /\ssrc=\"(assets\/.+?)\"/g,
-    (_m, p1) => ` src="${toWebviewUri(p1)}"`
-  );
-
-  // Content Security Policy: allow scripts/styles from the webview
-  const csp = `
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} blob: data:; script-src ${webview.cspSource} 'unsafe-eval'; style-src ${webview.cspSource} 'unsafe-inline'; font-src ${webview.cspSource}; connect-src ${webview.cspSource};">
-  `;
-  html = html.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/, csp);
-  if (!/Content-Security-Policy/.test(html)) {
-    html = html.replace(/<head>/, `<head>\n${csp}`);
+  if (!cssFile || !jsFile) {
+    vscode.window.showErrorMessage(
+      "Could not find built webview assets. Please run the 'build:webview' task."
+    );
+    return "<body>Error: Could not find built webview assets.</body>";
   }
 
-  return html;
+  const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(assetsRoot, cssFile));
+  const jsUri = webview.asWebviewUri(vscode.Uri.joinPath(assetsRoot, jsFile));
+
+  const cspSource = webview.cspSource;
+
+  return `
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Structural Editor</title>
+        <meta http-equiv="Content-Security-Policy" content="
+          default-src 'none';
+          style-src ${cspSource};
+          script-src ${cspSource};
+          img-src ${cspSource} blob: data:;
+          font-src ${cspSource};
+        ">
+        <link rel="stylesheet" crossorigin href="${cssUri}">
+      </head>
+      <body>
+        <div id="app"></div>
+        <script type="module" crossorigin src="${jsUri}"></script>
+      </body>
+    </html>
+  `;
 }
 
 async function createPanel(
@@ -320,13 +333,11 @@ async function createPanel(
 ) {
   const panel = vscode.window.createWebviewPanel(
     "lintx.structuralEditorPanel",
-    "Structural Editor",
+    "YYStructural Editor",
     vscode.ViewColumn.Active,
     {
       enableScripts: true,
-      localResourceRoots: [
-        vscode.Uri.joinPath(context.extensionUri, "media"),
-      ],
+      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "media")],
     }
   );
 
@@ -397,8 +408,8 @@ async function createPanel(
         );
         const binUri = vscode.Uri.joinPath(
           context.extensionUri,
-          "media", 
-          "sample.bin"
+          "media",
+          "sample.binpb"
         );
         const schemaBytes = await vscode.workspace.fs.readFile(protoUri);
         const dataBytes = await vscode.workspace.fs.readFile(binUri);

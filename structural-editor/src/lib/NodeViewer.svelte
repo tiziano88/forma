@@ -63,7 +63,7 @@
 </script>
 
 <div class="form-control">
-  <label class="label cursor-pointer">
+  <label class="label cursor-pointer" for={key.toString()}>
     <span class="label-text font-bold">{key}</span>
   </label>
 
@@ -109,16 +109,16 @@
   {:else if valueType && value === undefined}
     <button class="btn btn-sm btn-outline" on:click={addOptionalField}>+ Add {key}</button>
   {:else if field?.resolvedType instanceof protobuf.Enum}
-    <select class="select select-bordered w-full" bind:value={parent[key]}>
+    <select class="select select-bordered w-full" bind:value={parent[key]} id={key.toString()}>
       {#each Object.keys(field.resolvedType.values) as enumName}
         <option value={enumName}>{enumName}</option>
       {/each}
     </select>
   {:else if typeof value === 'boolean'}
-    <input type="checkbox" class="checkbox checkbox-primary" bind:checked={parent[key]} />
+    <input type="checkbox" class="checkbox checkbox-primary" bind:checked={parent[key]} id={key.toString()} />
   {:else if typeof value === 'number'}
-    <input type="number" class="input input-bordered w-full" bind:value={parent[key]} />
+    <input type="number" class="input input-bordered w-full" bind:value={parent[key]} id={key.toString()} />
   {:else}
-    <input type="text" class="input input-bordered w-full" bind:value={parent[key]} />
+    <input type="text" class="input input-bordered w-full" bind:value={parent[key]} id={key.toString()} />
   {/if}
 </div>

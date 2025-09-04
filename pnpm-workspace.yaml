@@ -1,0 +1,9 @@
+packages:
+  - structural-editor
+  - vscode-extension
+
+onlyBuiltDependencies:
+  - '@vscode/vsce-sign'
+  - esbuild
+  - keytar
+  - protobufjs

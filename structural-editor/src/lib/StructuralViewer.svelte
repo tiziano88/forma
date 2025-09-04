@@ -99,8 +99,8 @@
 
   <div class="mb-4 card bg-base-200 shadow-xl">
     <div class="card-body">
-      <label class="label">Root Message Type</label>
-      <select class="select select-bordered w-full" value={selectedTypeName ?? ''} on:change={handleTypeChange}>
+      <label class="label" for="root-type-select">Root Message Type</label>
+      <select id="root-type-select" class="select select-bordered w-full" value={selectedTypeName ?? ''} on:change={handleTypeChange}>
         <option value=''>Auto (last in schema)</option>
         {#each availableTypeNames as name}
           <option value={name}>{name}</option>
@@ -133,8 +133,8 @@
         <div class="flex items-center justify-between mb-2">
           <div class="font-semibold">Hex Viewer</div>
           <div class="flex items-center gap-2">
-            <label class="label-text">Source</label>
-            <select class="select select-bordered select-sm" bind:value={hexSource}>
+            <label class="label-text" for="hex-source-select">Source</label>
+            <select id="hex-source-select" class="select select-bordered select-sm" bind:value={hexSource}>
               <option value="encoded">Current (encoded)</option>
               <option value="original">Original</option>
             </select>

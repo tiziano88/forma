@@ -62,22 +62,23 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run build && npm run build:webview",
+    "vscode:prepublish": "pnpm run build",
     "compile": "tsc -watch -p ./",
     "build": "tsc -p ./",
-    "build:webview": "cd ../structural-editor && npm run build && cd ../vscode-extension && mkdir -p media && cp -r ../structural-editor/dist/* media/ && cp ../structural-editor/public/sample.* media/",
-    "package": "npm run build && npm run build:webview && vsce package",
-    "publish": "npm run package && vsce publish",
-    "install:deps": "npm install && cd ../structural-editor && npm install",
-    "clean": "rm -rf out media && cd ../structural-editor && rm -rf dist"
+    "build:webview": "pnpm --filter structural-editor build && node ./scripts/copy-media.js",
+    "package": "pnpm -r build && vsce package",
+    "publish": "pnpm run package && vsce publish",
+    "clean": "rm -rf out media"
   },
   "devDependencies": {
-    "@types/vscode": "^1.85.0",
-    "typescript": "^5.4.0",
     "@types/node": "^20.0.0",
-    "@vscode/vsce": "^3.2.0"
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.0",
+    "fs-extra": "^11.2.0",
+    "typescript": "^5.4.0"
   },
   "dependencies": {
-    "protobufjs": "^7.5.3"
+    "protobufjs": "^7.5.3",
+    "structural-editor": "workspace:*"
   }
 }

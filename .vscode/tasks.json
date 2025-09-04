@@ -2,10 +2,10 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build:web",
+      "label": "build:webview",
       "type": "npm",
-      "script": "build",
-      "options": { "cwd": "${workspaceFolder}/structural-editor" }
+      "script": "build:webview",
+      "options": { "cwd": "${workspaceFolder}/vscode-extension" }
     },
     {
       "label": "compile:ext",
@@ -17,10 +17,9 @@
     },
     {
       "label": "dev:prep",
-      "dependsOn": ["build:web", "compile:ext"],
+      "dependsOn": ["build:webview", "compile:ext"],
       "dependsOrder": "sequence",
       "problemMatcher": []
     }
   ]
 }
-
