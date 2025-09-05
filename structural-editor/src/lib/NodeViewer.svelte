@@ -1,15 +1,18 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte';
   import * as protobuf from 'protobufjs';
   import ObjectViewer from './ObjectViewer.svelte';
 
   export let parent: any;
   export let key: string | number;
-  export let type: protobuf.Type; // This is the protobuf.Type for the PARENT object
+  export let type: protobuf.Type | undefined; // This is the protobuf.Type for the PARENT object
+
+  const dispatch = createEventDispatcher();
 
   $: value = parent[key];
 
   // Based on the parent's type, find the definition for the CURRENT value
-  $: field = type.fields[key.toString()];
+  $: field = type ? type.fields[key.toString()] : undefined;
   $: valueType = (field?.resolvedType) as protobuf.Type | undefined;
 
   const numericTypes = new Set(['double', 'float', 'int32', 'uint32', 'sint32', 'fixed32', 'sfixed32', 'int64', 'uint64', 'sint64', 'fixed64', 'sfixed64']);
@@ -25,6 +28,7 @@
   function addOptionalField() {
     if (!valueType) return;
     parent[key] = createDefaultObject(valueType);
+    dispatch('change');
   }
 
   function addToArray() {
@@ -41,11 +45,13 @@
       }
     }
     parent[key] = [...(value || []), newItem];
+    dispatch('change');
   }
 
   function removeItem(index: number) {
     if (!value || !Array.isArray(value)) return;
     parent[key] = value.filter((_, i) => i !== index);
+    dispatch('change');
   }
 
   function moveItem(index: number, direction: 'up' | 'down') {
@@ -59,6 +65,11 @@
     newArray[newIndex] = temp;
     
     parent[key] = newArray;
+    dispatch('change');
+  }
+
+  function handleChange() {
+    dispatch('change');
   }
 </script>
 
@@ -82,20 +93,7 @@
                 </div>
               </div>
               <div class="divider my-1"></div>
-              {#if valueType}
-                <ObjectViewer object={item} type={valueType} />
-              {:else}
-                {#if field.type === 'bool'}
-                  <label class="label cursor-pointer">
-                    <span class="label-text">Value</span> 
-                    <input type="checkbox" class="checkbox checkbox-primary" bind:checked={value[i]} />
-                  </label>
-                {:else if numericTypes.has(field.type)}
-                  <input type="number" class="input input-bordered w-full" bind:value={value[i]} />
-                {:else}
-                  <input type="text" class="input input-bordered w-full" bind:value={value[i]} />
-                {/if}
-              {/if}
+              <ObjectViewer bind:object={item} type={valueType} on:change={handleChange} />
             </div>
           </div>
         {/each}
@@ -104,21 +102,21 @@
     </div>
   {:else if valueType && isObject(value)}
     <div class="pl-4 border-l-2 border-base-300">
-      <ObjectViewer object={value} type={valueType} />
+      <ObjectViewer bind:object={value} type={valueType} on:change={handleChange} />
     </div>
   {:else if valueType && value === undefined}
     <button class="btn btn-sm btn-outline" on:click={addOptionalField}>+ Add {key}</button>
   {:else if field?.resolvedType instanceof protobuf.Enum}
-    <select class="select select-bordered w-full" bind:value={parent[key]} id={key.toString()}>
+    <select class="select select-bordered w-full" bind:value={parent[key]} id={key.toString()} on:change={handleChange}>
       {#each Object.keys(field.resolvedType.values) as enumName}
         <option value={enumName}>{enumName}</option>
       {/each}
     </select>
   {:else if typeof value === 'boolean'}
-    <input type="checkbox" class="checkbox checkbox-primary" bind:checked={parent[key]} id={key.toString()} />
+    <input type="checkbox" class="checkbox checkbox-primary" bind:checked={parent[key]} id={key.toString()} on:change={handleChange} />
   {:else if typeof value === 'number'}
-    <input type="number" class="input input-bordered w-full" bind:value={parent[key]} id={key.toString()} />
+    <input type="number" class="input input-bordered w-full" bind:value={parent[key]} id={key.toString()} on:input={handleChange} />
   {:else}
-    <input type="text" class="input input-bordered w-full" bind:value={parent[key]} id={key.toString()} />
+    <input type="text" class="input input-bordered w-full" bind:value={parent[key]} id={key.toString()} on:input={handleChange} />
   {/if}
 </div>

@@ -1,316 +1,174 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import StructuralViewer from "./lib/StructuralViewer.svelte";
-  import type { StructuralEditorInit, SaveCallback } from "./lib/types";
-  import {
-    parseBinaryLintx,
-    parseKeyValueConfig,
-    findMatchingConfig,
-    type LintxFileMapping,
-  } from "./lib/core";
+  import { StructuralEditor } from "core/src/StructuralEditor";
+  import type { EditorData } from "core/src/types";
 
-  // VS Code webview bridge
-  type VSCodeAPI = {
-    postMessage: (msg: any) => void;
-    getState: () => any;
-    setState: (s: any) => void;
-  } | null;
-  // @ts-ignore acquireVsCodeApi is injected by VS Code webviews
+  // VS Code webview bridge logic
+  type VSCodeAPI = { postMessage: (msg: any) => void };
+  // @ts-ignore
   const acquire =
     typeof acquireVsCodeApi === "function" ? acquireVsCodeApi : null;
-  const vscode: VSCodeAPI = acquire ? acquire() : null;
-  let reqId = 0;
-  const pending = new Map<number, (data: any) => void>();
-  if (typeof window !== "undefined") {
-    window.addEventListener("message", (event: MessageEvent) => {
-      const msg = event.data || {};
-      if (msg && typeof msg === "object" && "requestId" in msg) {
-        const resolver = pending.get(msg.requestId);
-        if (resolver) {
-          pending.delete(msg.requestId);
-          resolver(msg);
-        }
-      }
-    });
-    // Listen for push-style init when opened from VS Code command
-    window.addEventListener("message", (event: MessageEvent) => {
-      const msg = event.data || {};
-      if (msg && msg.type === "initWithConfig" && msg.payload) {
-        const p = msg.payload as {
-          schema: string;
-          data: number[];
-          typeName?: string;
-          dataName?: string;
-          schemaName?: string;
-        };
-        schemaText = p.schema;
-        dataBuffer = new Uint8Array(p.data || []);
-        schemaFileName = p.schemaName || "Schema";
-        dataFileName = p.dataName || "Data";
-        typeNameOverride = p.typeName || null;
-      }
-    });
-  }
-  function postRequest<T = any>(type: string, payload?: any): Promise<T> {
-    if (!vscode) return Promise.reject(new Error("Not running inside VS Code"));
-    const id = ++reqId;
-    vscode.postMessage({ type, requestId: id, payload });
-    return new Promise<T>((resolve) =>
-      pending.set(id, (msg) => resolve(msg.payload as T))
-    );
-  }
+  const vscode: VSCodeAPI | null = acquire ? acquire() : null;
 
-  onMount(() => {
-    if (vscode) {
-      vscode.postMessage({ type: "ready" });
-    }
-  });
-
-  // Chrome state
-  let schemaHandle: FileSystemFileHandle | null = null;
-  let dataHandle: FileSystemFileHandle | null = null;
-  let schemaText: string | null = null;
-  let dataBuffer: Uint8Array | null = null;
-  let typeNameOverride: string | null = null;
+  const editor = new StructuralEditor();
 
   let schemaFileName = "No schema loaded";
   let dataFileName = "No data loaded";
-
   let errorMessage = "";
+  let editorState: any = null; // This will hold all reactive state from the editor
 
-  // Build viewer init only when both are present
-  let current: StructuralEditorInit | null = null;
-  $: current =
-    schemaText && dataBuffer
-      ? {
-          schemaText,
-          data: dataBuffer,
-          typeName: typeNameOverride,
-          schemaName: schemaFileName,
-          dataName: dataFileName,
-        }
-      : null;
+  // --- UI Event Handlers ---
 
   async function loadFile(kind: "schema" | "data") {
+    errorMessage = "";
     try {
       if (vscode) {
-        const file = await postRequest<{ name: string; content: number[] }>(
-          "pickFile",
-          { kind }
-        );
+        // VS Code environment
+        const file = await postMessageWithResponse("pickFile", { kind });
         if (kind === "schema") {
-          schemaHandle = null;
+          await editor.setSchema(
+            new TextDecoder().decode(new Uint8Array(file.content))
+          );
           schemaFileName = file.name;
-          schemaText = new TextDecoder().decode(new Uint8Array(file.content));
         } else {
-          dataHandle = null;
+          await editor.setData(new Uint8Array(file.content));
           dataFileName = file.name;
-          dataBuffer = new Uint8Array(file.content);
         }
       } else {
+        // Web environment
         const [handle] = await (window as any).showOpenFilePicker({
-          types: [
-            {
-              description:
-                kind === "schema" ? "Protobuf Schema" : "Protobuf Data",
-              accept: {
-                "application/octet-stream":
-                  kind === "schema" ? [".proto"] : [".bin"],
-              },
-            },
-          ],
-          multiple: false,
+          /* ... */
         });
+        const file = await handle.getFile();
         if (kind === "schema") {
-          schemaHandle = handle;
-          schemaFileName = handle.name;
-          const f = await handle.getFile();
-          schemaText = await f.text();
+          const text = await file.text();
+          await editor.setSchema(text);
+          schemaFileName = file.name;
         } else {
-          dataHandle = handle;
-          dataFileName = handle.name;
-          const f = await handle.getFile();
-          dataBuffer = new Uint8Array(await f.arrayBuffer());
-
-          // Offer to auto-load schema from lintx.binpb config if available
-          if (
-            confirm(
-              "Would you like to search for a configuration file (lintx.binpb) to automatically load the matching schema?"
-            )
-          ) {
-            await tryAutoLoadSchema(handle);
-          }
+          const buffer = await file.arrayBuffer();
+          await editor.setData(new Uint8Array(buffer));
+          dataFileName = file.name;
         }
       }
     } catch (err: any) {
-      console.error("Error opening file:", err);
       errorMessage = err?.message || String(err);
     }
   }
 
   async function loadSampleData() {
+    errorMessage = "";
     try {
-      errorMessage = "";
-      schemaHandle = null;
-      dataHandle = null;
-      schemaFileName = "sample.proto";
-      dataFileName = "sample.bin";
-      let schema: string;
-      let buffer: Uint8Array;
+      let sample: { schema: string; data: number[] };
       if (vscode) {
-        const payload = await postRequest<{ schema: string; data: number[] }>(
-          "getSample"
-        );
-        schema = payload.schema;
-        buffer = new Uint8Array(payload.data);
+        sample = await postMessageWithResponse("getSample");
       } else {
-        const schemaResponse = await fetch("/sample.proto");
-        if (!schemaResponse.ok) throw new Error("Failed to load sample.proto");
-        schema = await schemaResponse.text();
-        const dataResponse = await fetch("/sample.bin");
-        if (!dataResponse.ok) throw new Error("Failed to load sample.bin");
-        buffer = new Uint8Array(await dataResponse.arrayBuffer());
+        const schemaRes = await fetch("/sample.proto");
+        const dataRes = await fetch("/sample.binpb");
+        sample = {
+          schema: await schemaRes.text(),
+          data: Array.from(new Uint8Array(await dataRes.arrayBuffer())),
+        };
       }
-      schemaText = schema;
-      dataBuffer = buffer;
-      typeNameOverride = null;
+      await editor.initialize({
+        schemaText: sample.schema,
+        data: new Uint8Array(sample.data),
+      });
+      schemaFileName = "sample.proto";
+      dataFileName = "sample.binpb";
     } catch (err: any) {
-      console.error("Error loading sample data:", err);
       errorMessage = err?.message || String(err);
     }
   }
 
-  async function tryAutoLoadSchema(dataFileHandle: FileSystemFileHandle) {
+  async function onSave() {
+    errorMessage = "";
     try {
-      // For web File System Access API, we need to ask user to pick the directory
-      // Since we can't get parent directory directly, we'll ask for directory picker
-      console.log("Looking for config files for automatic schema loading...");
-
-      // First try to pick a directory that might contain config files
-      const dirHandle = await (window as any).showDirectoryPicker({
-        id: "lintx-config-dir",
-        startIn: "downloads",
-      });
-
-      if (!dirHandle) return;
-
-      // Look for lintx config files in the directory
-      const lintxFiles: string[] = [];
-      for await (const [name, handle] of dirHandle.entries()) {
-        if (
-          handle.kind === "file" &&
-          (name.toLowerCase().endsWith(".lintx") ||
-            name.toLowerCase() === "lintx.txt" ||
-            name.toLowerCase() === "lintx.binpb")
-        ) {
-          lintxFiles.push(name);
-        }
+      const bytes = editor.getEncodedBytes();
+      if (vscode) {
+        await postMessageWithResponse("saveData", {
+          name: dataFileName,
+          content: Array.from(bytes),
+        });
+      } else {
+        // Web environment save logic would go here
+        alert("Save functionality not implemented for web yet.");
       }
-
-      // Try binary configs first, then text configs
-      const binaryConfigs = lintxFiles.filter(
-        (n) =>
-          n.toLowerCase().endsWith(".binpb") ||
-          n.toLowerCase() === "lintx.binpb" ||
-          (n.toLowerCase().includes(".lintx") &&
-            !n.toLowerCase().endsWith(".txt"))
-      );
-      const textConfigs = lintxFiles.filter(
-        (n) => n.toLowerCase() === "lintx.txt"
-      );
-
-      const candidates = [...binaryConfigs, ...textConfigs];
-
-      for (const configFileName of candidates) {
-        const configHandle = await dirHandle.getFileHandle(configFileName);
-        const configFile = await configHandle.getFile();
-        const configBytes = new Uint8Array(await configFile.arrayBuffer());
-
-        let mappings: LintxFileMapping[] | null = null;
-
-        if (!configFileName.toLowerCase().endsWith(".txt")) {
-          // Try binary format first
-          mappings = await parseBinaryLintx(configBytes);
-
-          // If binary parsing failed, try text format
-          if (!mappings) {
-            try {
-              const content = new TextDecoder().decode(configBytes);
-              const kv = parseKeyValueConfig(content);
-              const mapping: LintxFileMapping = {
-                data: kv["data"] || kv["file"] || kv["binary"],
-                schema: kv["schema"],
-                type: kv["type"],
-              };
-              if (mapping.schema) mappings = [mapping];
-            } catch {
-              // ignore
-            }
-          }
-        } else {
-          // Text format
-          const content = new TextDecoder().decode(configBytes);
-          const kv = parseKeyValueConfig(content);
-          const mapping: LintxFileMapping = {
-            data: kv["data"] || kv["file"] || kv["binary"],
-            schema: kv["schema"],
-            type: kv["type"],
-          };
-          if (mapping.schema) mappings = [mapping];
-        }
-
-        if (mappings && mappings.length > 0) {
-          const matchedConfig = findMatchingConfig(
-            mappings,
-            dataFileHandle.name
-          );
-          if (matchedConfig?.schema) {
-            // Load the schema file
-            try {
-              const foundSchemaHandle = await dirHandle.getFileHandle(
-                matchedConfig.schema
-              );
-              const schemaFile = await foundSchemaHandle.getFile();
-              schemaText = await schemaFile.text();
-              schemaHandle = foundSchemaHandle;
-              schemaFileName = foundSchemaHandle.name;
-              typeNameOverride = matchedConfig.type || null;
-              console.log(
-                `Auto-loaded schema: ${schemaFileName} with type: ${typeNameOverride || "auto"}`
-              );
-              break; // Found and loaded schema, stop searching
-            } catch (schemaErr) {
-              console.warn(
-                `Could not load schema file ${matchedConfig.schema}:`,
-                schemaErr
-              );
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.warn("Error during auto schema loading:", err);
-      // Don't set errorMessage as this is just auto-loading, user can still manually load
+    } catch (err: any) {
+      errorMessage = err?.message || String(err);
     }
   }
 
-  const onSave: SaveCallback = async (bytes, suggestedName) => {
+  // --- Editor State Management ---
+
+  function updateState() {
+    editorState = {
+      decodedData: editor.getDecodedData(),
+      availableTypes: editor.getAvailableTypes(),
+      currentType: editor.getCurrentType(),
+      hexView: editor.getHexView("encoded"),
+      originalHexView: editor.getHexView("original"),
+      isReady: !!editor.getDecodedData(),
+    };
+  }
+
+  editor.on("change", () => {
+    errorMessage = "";
+    updateState();
+  });
+
+  editor.on("error", (event) => {
+    errorMessage = event.payload?.message || "An unknown error occurred.";
+    updateState();
+  });
+
+  // --- VS Code Communication ---
+
+  onMount(() => {
     if (vscode) {
-      await postRequest("saveData", {
-        name: suggestedName || dataFileName || "data.bin",
-        content: Array.from(bytes),
+      vscode.postMessage({ type: "ready" });
+      window.addEventListener("message", handleVsCodeMessage);
+    }
+  });
+
+  async function handleVsCodeMessage(event: MessageEvent) {
+    const msg = event.data || {};
+    if (msg.type === "initWithConfig" && msg.payload) {
+      const p = msg.payload as {
+        schema: string;
+        data: number[];
+        typeName?: string;
+        dataName?: string;
+        schemaName?: string;
+      };
+      await editor.initialize({
+        schemaText: p.schema,
+        data: new Uint8Array(p.data || []),
+        typeName: p.typeName,
       });
-      return;
+      schemaFileName = p.schemaName || "Schema";
+      dataFileName = p.dataName || "Data";
     }
-    if (!dataHandle) {
-      errorMessage =
-        "Cannot save: no file handle available. Load a data file first.";
-      throw new Error(errorMessage);
-    }
-    const writable = await dataHandle.createWritable();
-    await writable.write(new Uint8Array(bytes));
-    await writable.close();
-  };
+  }
+
+  let reqId = 0;
+  const pendingRequests = new Map<number, (data: any) => void>();
+  function postMessageWithResponse(type: string, payload?: any): Promise<any> {
+    if (!vscode) return Promise.reject(new Error("Not in VS Code"));
+    const id = ++reqId;
+    vscode.postMessage({ type, requestId: id, payload });
+    return new Promise((resolve) => pendingRequests.set(id, resolve));
+  }
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("message", (event: MessageEvent) => {
+      const msg = event.data || {};
+      if (msg.requestId && pendingRequests.has(msg.requestId)) {
+        pendingRequests.get(msg.requestId)!(msg.payload);
+        pendingRequests.delete(msg.requestId);
+      }
+    });
+  }
 </script>
 
 <div class="p-4 sm:p-6 lg:p-8">
@@ -318,7 +176,7 @@
     <header class="text-center mb-8">
       <h1 class="text-4xl font-bold">Structural Editor</h1>
       <p class="text-lg mt-2">
-        Load a Protobuf schema (.proto) and a binary data file (.bin) to begin
+        Load a Protobuf schema (.proto) and a binary data file (.binpb) to begin
         editing.
       </p>
     </header>
@@ -350,22 +208,21 @@
 
     {#if errorMessage}
       <div role="alert" class="alert alert-error mb-4">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="stroke-current shrink-0 h-6 w-6"
-          fill="none"
-          viewBox="0 0 24 24"
-          ><path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-          /></svg
-        >
         <span>Error: {errorMessage}</span>
       </div>
     {/if}
 
-    <StructuralViewer init={current} {onSave} />
+    {#if editorState?.isReady}
+      <StructuralViewer
+        decodedData={editorState.decodedData}
+        availableTypes={editorState.availableTypes}
+        currentType={editorState.currentType}
+        hexView={editorState.hexView}
+        originalHexView={editorState.originalHexView}
+        on:save={onSave}
+        on:change={(e) => editor.updateDecodedData(e.detail)}
+        on:typechange={(e) => editor.setCurrentType(e.detail)}
+      />
+    {/if}
   </div>
 </div>

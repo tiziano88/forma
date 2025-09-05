@@ -15,8 +15,21 @@ importers:
         specifier: ^5.4.0
         version: 5.8.3
 
+  core:
+    dependencies:
+      protobufjs:
+        specifier: ^7.5.3
+        version: 7.5.4
+    devDependencies:
+      typescript:
+        specifier: ^5.4.0
+        version: 5.8.3
+
   structural-editor:
     dependencies:
+      core:
+        specifier: workspace:*
+        version: link:../core
       protobufjs:
         specifier: ^7.5.3
         version: 7.5.4
@@ -71,7 +84,7 @@ importers:
         specifier: ^3.2.0
         version: 3.6.0
       fs-extra:
-        specifier: ^11.3.1
+        specifier: ^11.2.0
         version: 11.3.1
       typescript:
         specifier: ^5.4.0
