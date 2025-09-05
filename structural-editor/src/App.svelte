@@ -241,6 +241,25 @@
         on:change={(e) => editor.updateDecodedData(e.detail)}
         on:typechange={(e) => editor.setCurrentType(e.detail)}
       />
+    {:else if !errorMessage}
+      <div class="card bg-base-200 shadow-xl">
+        <div class="card-body items-center text-center">
+          <h2 class="card-title">Editor Not Ready</h2>
+          <p class="opacity-70">Load both a schema and data file to begin editing.</p>
+          <div class="mt-4 space-y-2 text-left">
+            {#if schemaFileName === 'No schema loaded'}
+              <p>❌ <span class="font-semibold">Schema:</span> Missing</p>
+            {:else}
+              <p>✅ <span class="font-semibold">Schema:</span> {schemaFileName}</p>
+            {/if}
+            {#if dataFileName === 'No data loaded'}
+              <p>❌ <span class="font-semibold">Data:</span> Missing</p>
+            {:else}
+              <p>✅ <span class="font-semibold">Data:</span> {dataFileName}</p>
+            {/if}
+          </div>
+        </div>
+      </div>
     {/if}
   </div>
 </div>
