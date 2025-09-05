@@ -58,10 +58,9 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "pnpm run build",
+    "vscode:prepublish": "pnpm -r build",
     "compile": "tsc -watch -p ./",
     "build": "tsc -p ./",
-    "build:webview": "pnpm --filter structural-editor build",
     "package": "pnpm -r build && vsce package",
     "publish": "pnpm run package && vsce publish",
     "clean": "rm -rf out media"
@@ -70,7 +69,6 @@
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.2.0",
-    "fs-extra": "^11.2.0",
     "typescript": "^5.4.0"
   },
   "dependencies": {

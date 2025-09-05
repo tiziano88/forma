@@ -104,6 +104,7 @@
   function updateState() {
     editorState = {
       decodedData: editor.getDecodedData(),
+      rootMessageType: editor.getRootMessageType(),
       availableTypes: editor.getAvailableTypes(),
       currentType: editor.getCurrentType(),
       hexView: editor.getHexView("encoded"),
@@ -124,12 +125,28 @@
 
   // --- VS Code Communication ---
 
+  let messageQueue: any[] = [];
+  let isReady = false;
+
   onMount(() => {
     if (vscode) {
-      vscode.postMessage({ type: "ready" });
+      isReady = true;
+      // Process any messages that arrived before we were ready
+      while(messageQueue.length > 0) {
+        handleVsCodeMessage(messageQueue.shift());
+      }
       window.addEventListener("message", handleVsCodeMessage);
+      vscode.postMessage({ type: "ready" });
     }
   });
+
+  // Listen for messages immediately
+  if (typeof window !== 'undefined' && !isReady) {
+    window.addEventListener('message', (event: MessageEvent) => {
+      if (isReady) return;
+      messageQueue.push(event);
+    });
+  }
 
   async function handleVsCodeMessage(event: MessageEvent) {
     const msg = event.data || {};
@@ -215,6 +232,7 @@
     {#if editorState?.isReady}
       <StructuralViewer
         decodedData={editorState.decodedData}
+        rootMessageType={editorState.rootMessageType}
         availableTypes={editorState.availableTypes}
         currentType={editorState.currentType}
         hexView={editorState.hexView}

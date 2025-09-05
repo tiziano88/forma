@@ -2,24 +2,11 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build:webview",
-      "type": "npm",
-      "script": "build:webview",
-      "options": { "cwd": "${workspaceFolder}/vscode-extension" }
-    },
-    {
-      "label": "compile:ext",
-      "type": "npm",
-      "script": "compile",
-      "options": { "cwd": "${workspaceFolder}/vscode-extension" },
-      "problemMatcher": ["$tsc-watch"],
-      "isBackground": true
-    },
-    {
-      "label": "dev:prep",
-      "dependsOn": ["build:webview", "compile:ext"],
-      "dependsOrder": "sequence",
-      "problemMatcher": []
+      "label": "Build Svelte Webview",
+      "type": "shell",
+      "command": "pnpm --filter structural-editor build",
+      "problemMatcher": [],
+      "detail": "Builds the structural-editor Svelte app directly into the extension's media directory."
     }
   ]
 }

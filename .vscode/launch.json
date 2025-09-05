@@ -2,16 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run Lintx Extension (root)",
+      "name": "Run Extension",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/vscode-extension"
-      ],
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/vscode-extension"],
       "outFiles": ["${workspaceFolder}/vscode-extension/out/**/*.js"],
-      "preLaunchTask": "dev:prep"
+      "preLaunchTask": "Build Svelte Webview"
     }
   ]
 }
-

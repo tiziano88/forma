@@ -111,6 +111,10 @@ export class StructuralEditor {
     }
   }
 
+  public getRootMessageType(): protobuf.Type | null {
+    return this.rootMessageType;
+  }
+
   public getHexView(source: 'original' | 'encoded' = 'encoded'): string {
     const bytes = source === 'encoded' ? this.getEncodedBytes() : (this.dataBytes || new Uint8Array());
     return this.formatHex(bytes);
