@@ -1,5 +1,5 @@
 syntax = "proto3";
-package lintx;
+package forma.config;
 
 // A mapping between a data file and the schema/type to decode it.
 message FileMapping {

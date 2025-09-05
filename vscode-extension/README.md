@@ -1,10 +1,10 @@
-# Lintx Structural Editor (VS Code)
+# Forma Structural Editor (VS Code)
 
 This extension hosts the Svelte-based structural editor inside a VS Code webview. It lets you:
 
-- Open a panel via the command: "Open Structural Editor" (command id: `lintx.openStructuralEditor`).
-- Load a `.proto` schema and a `.bin` data file via buttons in the UI.
-- Edit values and save the encoded `.bin` back to disk.
+- Open a panel via the command: "Open Structural Editor" (command id: `forma.openStructuralEditor`).
+- Load a `.proto` schema and a `.binpb` data file via buttons in the UI.
+- Edit values and save the encoded `.binpb` back to disk.
 
 ## Development Setup
 

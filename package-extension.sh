@@ -26,7 +26,7 @@ print_error() {
 
 # 1. Ensure we are in the root directory
 if [ ! -f "pnpm-workspace.yaml" ]; then
-  print_error "This script must be run from the root of the lintx monorepo."
+  print_error "This script must be run from the root of the monorepo."
 fi
 
 # 2. Check if vsce is installed

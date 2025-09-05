@@ -1,5 +1,5 @@
 {
-  "name": "lintx-monorepo",
+  "name": "forma-monorepo",
   "private": true,
   "scripts": {
     "install:all": "pnpm install",

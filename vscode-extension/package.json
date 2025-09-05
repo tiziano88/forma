@@ -1,16 +1,16 @@
 {
-  "name": "lintx-structural-editor",
-  "displayName": "Lintx Structural Editor",
+  "name": "forma-structural-editor",
+  "displayName": "Forma Structural Editor",
   "description": "View and edit Protobuf-encoded binary files with a schema using a Svelte-based webview.",
   "version": "0.0.2",
   "publisher": "tiziano88",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/lintx"
+    "url": "https://github.com/tiziano88/forma"
   },
-  "homepage": "https://github.com/your-username/lintx",
+  "homepage": "https://github.com/tiziano88/forma",
   "bugs": {
-    "url": "https://github.com/your-username/lintx/issues"
+    "url": "https://github.com/tiziano88/forma/issues"
   },
   "license": "MIT",
   "keywords": [
@@ -18,7 +18,7 @@
     "binary",
     "editor",
     "structural",
-    "lintx"
+    "forma"
   ],
   "engines": {
     "vscode": "^1.85.0"
@@ -33,7 +33,7 @@
   "contributes": {
     "customEditors": [
       {
-        "viewType": "lintx.structuralEditor",
+        "viewType": "forma.structuralEditor",
         "displayName": "Structural Editor",
         "selector": [
           {
@@ -48,11 +48,11 @@
     ],
     "commands": [
       {
-        "command": "lintx.openStructuralEditor",
+        "command": "forma.openStructuralEditor",
         "title": "Open Structural Editor"
       },
       {
-        "command": "lintx.openForActiveFile",
+        "command": "forma.openForActiveFile",
         "title": "Open Structural Editor for Active File"
       }
     ]
