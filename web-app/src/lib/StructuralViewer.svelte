@@ -3,6 +3,7 @@
   import ObjectViewer from './ObjectViewer.svelte';
   import type * as protobuf from 'protobufjs';
 
+  export let rootMessageType: protobuf.Type | null;
   export let decodedData: any;
   export let availableTypes: string[];
   export let currentType: string | null;
@@ -41,7 +42,7 @@
 
 <div class="card bg-base-100 shadow-xl">
   <div class="card-body">
-    <ObjectViewer object={decodedData} on:change={handleDataChange} />
+    <ObjectViewer object={decodedData} type={rootMessageType} on:change={handleDataChange} />
   </div>
 </div>
 

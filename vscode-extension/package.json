@@ -2,7 +2,7 @@
   "name": "lintx-structural-editor",
   "displayName": "Lintx Structural Editor",
   "description": "View and edit Protobuf-encoded binary files with a schema using a Svelte-based webview.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "tiziano88",
   "repository": {
     "type": "git",
@@ -72,6 +72,6 @@
   },
   "dependencies": {
     "protobufjs": "^7.5.3",
-        "vscode-extension-webview": "workspace:*"
+    "vscode-extension-webview": "workspace:*"
   }
 }

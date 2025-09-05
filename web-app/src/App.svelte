@@ -89,12 +89,14 @@
   function updateState() {
     editorState = {
       decodedData: editor.getDecodedData(),
+      rootMessageType: editor.getRootMessageType(),
       availableTypes: editor.getAvailableTypes(),
       currentType: editor.getCurrentType(),
       hexView: editor.getHexView('encoded'),
       originalHexView: editor.getHexView('original'),
       isReady: !!editor.getDecodedData(),
     };
+    console.log('[WebApp] Editor state updated:', editorState);
   }
 
   editor.on('change', () => {
@@ -108,6 +110,7 @@
   });
 
   onMount(() => {
+    console.log("xxxyyyzzz: Web App Component Mounted");
     // Create a public directory in the web-app package and copy sample files
     // This is a workaround for Vite dev server to serve these files.
     const setupSampleFiles = async () => {
@@ -160,6 +163,7 @@
     {#if editorState?.isReady}
       <StructuralViewer
         decodedData={editorState.decodedData}
+        rootMessageType={editorState.rootMessageType}
         availableTypes={editorState.availableTypes}
         currentType={editorState.currentType}
         hexView={editorState.hexView}
