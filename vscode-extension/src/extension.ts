@@ -302,7 +302,7 @@ async function getWebviewHtml(
         <meta http-equiv="Content-Security-Policy" content="
           default-src 'none';
           style-src ${cspSource};
-          script-src ${cspSource};
+          script-src ${cspSource} 'unsafe-eval';
           img-src ${cspSource} blob: data:;
           font-src ${cspSource};
         ">

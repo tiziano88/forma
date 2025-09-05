@@ -28,11 +28,7 @@
     "Programming Languages",
     "Visualization"
   ],
-  "activationEvents": [
-    "onCommand:lintx.openStructuralEditor",
-    "onCommand:lintx.openForActiveFile",
-    "onCustomEditor:lintx.structuralEditor"
-  ],
+  "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "customEditors": [
