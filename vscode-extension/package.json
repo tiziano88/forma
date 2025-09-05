@@ -60,7 +60,8 @@
   "scripts": {
     "vscode:prepublish": "pnpm -r build",
     "compile": "tsc -watch -p ./",
-    "build": "pnpm --filter vscode-extension-webview build && tsc -p ./",
+    "build": "pnpm --filter vscode-extension-webview build && tsc -p ./ && pnpm run copy-schemas",
+    "copy-schemas": "mkdir -p media/schemas && cp -r schemas/* media/schemas/",
     "package": "pnpm -r build && vsce package",
     "clean": "rm -rf out media"
   },

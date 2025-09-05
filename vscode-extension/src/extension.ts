@@ -130,7 +130,8 @@ class StructuralEditorProvider
         case "ready": {
           const session = await resolveSessionFromConfig(
             document.uri,
-            this._outputChannel
+            this._outputChannel,
+            this._context
           );
           const initPayload = await prepareInitPayload(document, session);
           this._outputChannel.appendLine(
@@ -263,13 +264,24 @@ async function prepareInitPayload(
 
 async function resolveSessionFromConfig(
   target: vscode.Uri,
-  outputChannel: vscode.OutputChannel
+  outputChannel: vscode.OutputChannel,
+  context: vscode.ExtensionContext
 ): Promise<{ schemaUri?: vscode.Uri; typeName?: string }> {
   outputChannel.appendLine(`[CONFIG] Resolving session for: ${target.fsPath}`);
+  const baseName = path.basename(target.fsPath);
 
+  // Special case: if the file is named config.forma.binpb, use the bundled schema.
+  if (baseName === "config.forma.binpb") {
+    outputChannel.appendLine("[CONFIG] Matched special config file. Using bundled schema.");
+    return {
+      schemaUri: vscode.Uri.joinPath(context.extensionUri, "media", "schemas", "config.proto"),
+      typeName: "forma.config.Config",
+    };
+  }
+
+  // Best-effort: look for a .proto file with the same base name next to the data file.
   const dir = vscode.Uri.joinPath(target, "..");
-  const baseName = path.basename(target.fsPath, path.extname(target.fsPath));
-  const protoFileName = `${baseName}.proto`;
+  const protoFileName = `${path.basename(target.fsPath, path.extname(target.fsPath))}.proto`;
   const protoUri = vscode.Uri.joinPath(dir, protoFileName);
 
   try {
