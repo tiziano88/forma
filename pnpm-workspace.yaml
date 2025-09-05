@@ -2,3 +2,4 @@ packages:
   - 'structural-editor'
   - 'vscode-extension'
   - 'core'
+  - 'web-app'
