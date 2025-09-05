@@ -1,17 +1,17 @@
 syntax = "proto3";
-
 package forma.config;
 
-// A placeholder configuration schema for Forma.
-// You can edit this file to define the expected structure of config.forma.binpb.
-
-message Setting {
-  string key = 1;
-  string value = 2;
+// A mapping between a data file and the schema/type to decode it.
+message FileMapping {
+  // Path to the binary data file (relative to config location or absolute)
+  string data = 1;
+  // Path to the .proto schema (relative to config location or absolute)
+  string schema = 2;
+  // Fully-qualified Protobuf message type to decode (optional)
+  string type = 3;
 }
 
+// Workspace-level configuration: multiple mappings supported only.
 message Config {
-  repeated Setting settings = 1;
-  bool enabled = 2;
-  int32 version = 3;
+  repeated FileMapping files = 1;
 }

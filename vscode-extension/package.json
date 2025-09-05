@@ -61,7 +61,7 @@
     "vscode:prepublish": "pnpm -r build",
     "compile": "tsc -watch -p ./",
     "build": "pnpm --filter vscode-extension-webview build && tsc -p ./ && pnpm run copy-schemas",
-    "copy-schemas": "mkdir -p media/schemas && cp -r schemas/* media/schemas/",
+    "copy-schemas": "mkdir -p media/schemas && cp ../config/forma.proto media/schemas/config.proto",
     "package": "pnpm -r build && vsce package",
     "clean": "rm -rf out media"
   },
