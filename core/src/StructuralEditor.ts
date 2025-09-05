@@ -130,7 +130,11 @@ export class StructuralEditor {
   }
 
   private async decodeData(): Promise<void> {
-    if (!this.schemaText || !this.dataBytes) return;
+    if (!this.schemaText || !this.dataBytes) {
+      this.rootMessageType = null;
+      this.decodedData = null;
+      return;
+    }
 
     try {
       const { root } = protobuf.parse(this.schemaText);
@@ -150,6 +154,7 @@ export class StructuralEditor {
       this.rootMessageType = target;
       this.decodedData = (message as any).toJSON({ enums: String, defaults: true });
     } catch (error) {
+      console.error("Error decoding data:", error);
       this.rootMessageType = null;
       this.decodedData = null;
       this.emit({ type: 'error', payload: error });

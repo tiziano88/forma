@@ -15,6 +15,8 @@
   let dataFileName = 'No data loaded';
   let errorMessage = '';
   let editorState: any = null;
+  let isInitialized = false;
+  let isSaving = false;
 
   // --- Editor State Management ---
   function updateState() {
@@ -29,9 +31,9 @@
     };
   }
 
-  let isInitialized = false;
   editor.on('change', () => {
     updateState();
+    console.log('[Webview] Editor change event fired. New state:', editorState);
     if (isInitialized) {
       vscode?.postMessage({
         type: 'contentChanged',
@@ -39,49 +41,39 @@
       });
     }
   });
+
   editor.on('error', (event) => {
     errorMessage = event.payload?.message || 'An unknown error occurred.';
     updateState();
   });
 
   // --- VS Code Communication ---
-  onMount(() => {
-    if (vscode) {
-      window.addEventListener('message', handleVsCodeMessage);
-      vscode.postMessage({ type: 'ready' });
-    }
-  });
-
-  let isSaving = false;
-
   async function handleVsCodeMessage(event: MessageEvent) {
     const msg = event.data || {};
+    console.log('[Webview] Received message:', msg);
+
     switch (msg.type) {
       case 'initWithConfig': {
-        const p = msg.payload;
+        console.log('[Webview] Initializing with payload:', msg.payload);
         await editor.initialize({
-          schemaText: p.schema,
-          data: new Uint8Array(p.data || []),
-          typeName: p.typeName,
+          schemaText: msg.payload.schema,
+          data: new Uint8Array(msg.payload.data || []),
+          typeName: msg.payload.typeName,
         });
-        schemaFileName = p.schemaName || 'Schema';
-        dataFileName = p.dataName || 'Data';
+        schemaFileName = msg.payload.schemaName || 'Schema';
+        dataFileName = msg.payload.dataName || 'Data';
         isInitialized = true;
         break;
       }
       case 'updateContent': {
-        // This happens on a revert. We set isInitialized to false temporarily
-        // to prevent the subsequent 'change' event from firing a 'contentChanged' message.
         isInitialized = false;
         await editor.setData(new Uint8Array(msg.payload));
         isInitialized = true;
         break;
       }
       case 'getEncodedBytes': {
-        console.log('[Webview] Received getEncodedBytes request');
         isSaving = true;
-        setTimeout(() => { isSaving = false; }, 1000); // Flash the message for 1 second
-
+        setTimeout(() => { isSaving = false; }, 1000);
         try {
           const content = editor.getEncodedBytes();
           vscode?.postMessage({ requestId: msg.requestId, payload: Array.from(content) });
@@ -91,6 +83,12 @@
         break;
       }
     }
+  }
+
+  // Setup message listener immediately
+  if (vscode) {
+    window.addEventListener('message', handleVsCodeMessage);
+    vscode.postMessage({ type: 'ready' });
   }
 </script>
 
@@ -110,8 +108,6 @@
         Load a Protobuf schema (.proto) and a binary data file (.binpb) to begin editing.
       </p>
     </header>
-
-    <!-- File loading buttons are removed as this is now handled by the extension context -->
 
     {#if errorMessage}
       <div role="alert" class="alert alert-error mb-4">

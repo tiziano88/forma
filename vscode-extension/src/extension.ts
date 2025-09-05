@@ -54,8 +54,8 @@ class StructuralDocument implements vscode.CustomDocument {
 
 // The provider, which acts as the controller connecting the document model and the webview.
 class StructuralEditorProvider implements vscode.CustomEditorProvider<StructuralDocument> {
-  public static register(context: vscode.ExtensionContext): vscode.Disposable {
-    const provider = new StructuralEditorProvider(context);
+  public static register(context: vscode.ExtensionContext, outputChannel: vscode.OutputChannel): vscode.Disposable {
+    const provider = new StructuralEditorProvider(context, outputChannel);
     return vscode.window.registerCustomEditorProvider(
       "lintx.structuralEditor",
       provider,
@@ -66,7 +66,10 @@ class StructuralEditorProvider implements vscode.CustomEditorProvider<Structural
     );
   }
 
-  constructor(private readonly _context: vscode.ExtensionContext) {}
+  constructor(
+    private readonly _context: vscode.ExtensionContext,
+    private readonly _outputChannel: vscode.OutputChannel
+  ) {}
 
   public readonly onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<StructuralDocument>>().event;
 
@@ -98,8 +101,9 @@ class StructuralEditorProvider implements vscode.CustomEditorProvider<Structural
     webviewPanel.webview.onDidReceiveMessage(async (msg) => {
       switch (msg.type) {
         case "ready": {
-          const session = await resolveSessionFromConfig(document.uri);
+          const session = await resolveSessionFromConfig(document.uri, this._outputChannel);
           const initPayload = await prepareInitPayload(document, session);
+          this._outputChannel.appendLine(`[INIT] Sending initWithConfig with data size: ${initPayload.data.length}`);
           webviewPanel.webview.postMessage({
             type: "initWithConfig",
             payload: initPayload,
@@ -115,6 +119,7 @@ class StructuralEditorProvider implements vscode.CustomEditorProvider<Structural
   }
 
   async saveCustomDocument(doc: StructuralDocument, cancel: vscode.CancellationToken): Promise<void> {
+    this._outputChannel.appendLine(`[SAVE] Triggered for: ${doc.uri.toString()}`);
     await this.saveCustomDocumentAs(doc, doc.uri, cancel);
   }
 
@@ -142,7 +147,7 @@ export function activate(context: vscode.ExtensionContext) {
   outputChannel.appendLine("xxxyyyzzz: Lintx extension is activating.");
   context.subscriptions.push(outputChannel);
 
-  context.subscriptions.push(StructuralEditorProvider.register(context));
+  context.subscriptions.push(StructuralEditorProvider.register(context, outputChannel));
 }
 
 // --- Helper Functions ---
@@ -202,8 +207,24 @@ async function prepareInitPayload(document: StructuralDocument, session: { schem
   };
 }
 
-async function resolveSessionFromConfig(target: vscode.Uri): Promise<{ schemaUri?: vscode.Uri; typeName?: string }> {
-  // This is a placeholder for the logic that finds a matching .proto file.
-  // For now, it just returns an empty session.
+async function resolveSessionFromConfig(target: vscode.Uri, outputChannel: vscode.OutputChannel): Promise<{ schemaUri?: vscode.Uri; typeName?: string }> {
+  outputChannel.appendLine(`[CONFIG] Resolving session for: ${target.fsPath}`);
+  
+  // Best-effort: look for a .proto file with the same base name next to the data file.
+  const dir = vscode.Uri.joinPath(target, "..");
+  const baseName = path.basename(target.fsPath, path.extname(target.fsPath));
+  const protoFileName = `${baseName}.proto`;
+  const protoUri = vscode.Uri.joinPath(dir, protoFileName);
+
+  try {
+    await vscode.workspace.fs.stat(protoUri);
+    outputChannel.appendLine(`[CONFIG] Found matching schema: ${protoUri.fsPath}`);
+    return { schemaUri: protoUri };
+  } catch {
+    outputChannel.appendLine(`[CONFIG] No matching schema found at: ${protoUri.fsPath}`);
+  }
+
+  // Placeholder for future lintx.binpb config file logic
+  outputChannel.appendLine(`[CONFIG] No configuration found. User will need to load schema manually.`);
   return {};
 }
