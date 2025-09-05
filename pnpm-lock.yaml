@@ -92,10 +92,16 @@ importers:
       core:
         specifier: workspace:*
         version: link:../core
+      protobufjs:
+        specifier: ^7.5.3
+        version: 7.5.4
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^5.1.0
         version: 5.1.1(svelte@5.38.6)(vite@6.3.5(@types/node@20.19.13)(jiti@1.21.7)(yaml@2.8.1))
+      '@tsconfig/svelte':
+        specifier: ^5.0.4
+        version: 5.0.5
       autoprefixer:
         specifier: ^10.4.21
         version: 10.4.21(postcss@8.5.6)

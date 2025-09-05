@@ -1,66 +1,64 @@
 import * as vscode from "vscode";
 import * as path from "path";
-// Note: avoid importing protobufjs at top-level to prevent activation failures
 
+// The CustomDocument model that holds the binary data for a file.
 class StructuralDocument implements vscode.CustomDocument {
-  constructor(public readonly uri: vscode.Uri) {}
-  dispose(): void {}
+  private readonly _uri: vscode.Uri;
+  private _documentData: Uint8Array;
+
+  // An event emitter that fires when the document's content changes.
+  private readonly _onDidChangeContent = new vscode.EventEmitter<void>();
+  public readonly onDidChangeContent = this._onDidChangeContent.event;
+
+  // An event emitter that fires for VS Code's internal dirty tracking.
+  private readonly _onDidChange = new vscode.EventEmitter<{
+    readonly label: string;
+    undo(): void;
+    redo(): void;
+  }>();
+  public readonly onDidChange = this._onDidChange.event;
+
+  constructor(uri: vscode.Uri, initialContent: Uint8Array) {
+    this._uri = uri;
+    this._documentData = initialContent;
+  }
+
+  public get uri() { return this._uri; }
+  public get documentData(): Uint8Array { return this._documentData; }
+
+  // This is called by the provider when the webview sends updated content.
+  public makeEdit(newContent: Uint8Array) {
+    const oldContent = this._documentData;
+    this._documentData = newContent;
+
+    // Fire the event that tells VS Code the file is dirty.
+    this._onDidChange.fire({
+      label: "Update",
+      undo: () => { this.makeEdit(oldContent); },
+      redo: () => { this.makeEdit(newContent); },
+    });
+  }
+
+  // This is called by the provider when VS Code reverts the file.
+  public revert(newContent: Uint8Array) {
+    this._documentData = newContent;
+    // Fire the event that tells the webview to update itself.
+    this._onDidChangeContent.fire();
+  }
+
+  dispose(): void {
+    this._onDidChange.dispose();
+    this._onDidChangeContent.dispose();
+  }
 }
 
-interface WebviewMessage {
-  type: string;
-  requestId?: number;
-  payload?: any;
-}
-
-let outputChannel: vscode.OutputChannel;
-
-export function activate(context: vscode.ExtensionContext) {
-  outputChannel = vscode.window.createOutputChannel("lintx");
-  context.subscriptions.push(outputChannel);
-
-  context.subscriptions.push(StructuralEditorProvider.register(context));
-
-  const openBlank = vscode.commands.registerCommand(
-    "lintx.openStructuralEditor",
-    async () => {
-      await vscode.commands.executeCommand(
-        "vscode.openWith",
-        vscode.Uri.from({ scheme: "untitled", path: "new.binpb" }),
-        "lintx.structuralEditor"
-      );
-    }
-  );
-
-  const openForActive = vscode.commands.registerCommand(
-    "lintx.openForActiveFile",
-    async () => {
-      const target =
-        getActiveResourceUri() || vscode.window.activeTextEditor?.document.uri;
-      if (target) {
-        await vscode.commands.executeCommand(
-          "vscode.openWith",
-          target,
-          "lintx.structuralEditor"
-        );
-      }
-    }
-  );
-
-  context.subscriptions.push(openBlank, openForActive);
-}
-
-export function deactivate() {}
-
-class StructuralEditorProvider
-  implements vscode.CustomEditorProvider<StructuralDocument>
-{
-  private readonly webviews = new Map<string, vscode.WebviewPanel>();
-
+// The provider, which acts as the controller connecting the document model and the webview.
+class StructuralEditorProvider implements vscode.CustomEditorProvider<StructuralDocument> {
   public static register(context: vscode.ExtensionContext): vscode.Disposable {
+    const provider = new StructuralEditorProvider(context);
     return vscode.window.registerCustomEditorProvider(
       "lintx.structuralEditor",
-      new StructuralEditorProvider(context),
+      provider,
       {
         webviewOptions: { retainContextWhenHidden: true },
         supportsMultipleEditorsPerDocument: false,
@@ -68,161 +66,94 @@ class StructuralEditorProvider
     );
   }
 
-  private readonly _context: vscode.ExtensionContext;
-  private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<
-    vscode.CustomDocumentEditEvent<StructuralDocument>
-  >();
-  public readonly onDidChangeCustomDocument =
-    this._onDidChangeCustomDocument.event;
+  constructor(private readonly _context: vscode.ExtensionContext) {}
 
-  constructor(context: vscode.ExtensionContext) {
-    this._context = context;
+  public readonly onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<StructuralDocument>>().event;
+
+  async openCustomDocument(uri: vscode.Uri): Promise<StructuralDocument> {
+    const data = await vscode.workspace.fs.readFile(uri).then(res => res, () => new Uint8Array());
+    return new StructuralDocument(uri, data);
   }
 
-  async openCustomDocument(
-    uri: vscode.Uri
-  ): Promise<StructuralDocument> {
-    return new StructuralDocument(uri);
-  }
+  async resolveCustomEditor(document: StructuralDocument, webviewPanel: vscode.WebviewPanel): Promise<void> {
+    webviewPanel.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.joinPath(this._context.extensionUri, "media")],
+    };
+    webviewPanel.webview.html = await getWebviewHtml(webviewPanel.webview, this._context);
 
-  async resolveCustomEditor(
-    document: StructuralDocument,
-    webviewPanel: vscode.WebviewPanel
-  ): Promise<void> {
-    this.webviews.set(document.uri.toString(), webviewPanel);
-    webviewPanel.onDidDispose(() => {
-      this.webviews.delete(document.uri.toString());
+    // Listener for when the document's content is changed by an external action (like revert).
+    const changeSubscription = document.onDidChangeContent(() => {
+      webviewPanel.webview.postMessage({
+        type: "updateContent",
+        payload: Array.from(document.documentData),
+      });
     });
 
-    const webview = webviewPanel.webview;
-    webview.options = {
-      enableScripts: true,
-      localResourceRoots: [
-        vscode.Uri.joinPath(this._context.extensionUri, "media"),
-      ],
-    };
-    webview.html = await getWebviewHtml(webview, this._context);
+    webviewPanel.onDidDispose(() => {
+      changeSubscription.dispose();
+    });
 
-    webview.onDidReceiveMessage(async (msg: WebviewMessage) => {
+    // Handle messages from the webview.
+    webviewPanel.webview.onDidReceiveMessage(async (msg) => {
       switch (msg.type) {
         case "ready": {
           const session = await resolveSessionFromConfig(document.uri);
-          const initPayload = await prepareInitPayload(session);
-          webview.postMessage({
+          const initPayload = await prepareInitPayload(document, session);
+          webviewPanel.webview.postMessage({
             type: "initWithConfig",
             payload: initPayload,
           });
           break;
         }
         case "contentChanged": {
-          this._onDidChangeCustomDocument.fire({ document, undo: () => {}, redo: () => {} });
+          document.makeEdit(new Uint8Array(msg.payload));
           break;
         }
       }
     });
   }
 
-  async saveCustomDocument(
-    document: StructuralDocument,
-    cancellation: vscode.CancellationToken
-  ): Promise<void> {
-    await this.saveCustomDocumentAs(document, document.uri, cancellation);
+  async saveCustomDocument(doc: StructuralDocument, cancel: vscode.CancellationToken): Promise<void> {
+    await this.saveCustomDocumentAs(doc, doc.uri, cancel);
   }
 
-  async saveCustomDocumentAs(
-    document: StructuralDocument,
-    destination: vscode.Uri,
-    cancellation: vscode.CancellationToken
-  ): Promise<void> {
-    const webviewPanel = this.webviews.get(document.uri.toString());
-    if (!webviewPanel) {
-      throw new Error("Could not find webview for document");
-    }
-    const content = await this.getWebviewContent(webviewPanel);
-    if (cancellation.isCancellationRequested) {
+  async saveCustomDocumentAs(doc: StructuralDocument, dest: vscode.Uri, cancel: vscode.CancellationToken): Promise<void> {
+    if (cancel.isCancellationRequested) {
       return;
     }
-    await vscode.workspace.fs.writeFile(destination, Buffer.from(content));
+    await vscode.workspace.fs.writeFile(dest, doc.documentData);
   }
 
-  async revertCustomDocument(
-    document: StructuralDocument,
-    cancellation: vscode.CancellationToken
-  ): Promise<void> {
-    const webviewPanel = this.webviews.get(document.uri.toString());
-    if (!webviewPanel) {
-      throw new Error("Could not find webview for document");
-    }
-    const fileData = await vscode.workspace.fs.readFile(document.uri);
-    webviewPanel.webview.postMessage({
-      type: "revert",
-      payload: Array.from(fileData),
-    });
+  async revertCustomDocument(doc: StructuralDocument, cancel: vscode.CancellationToken): Promise<void> {
+    const fileData = await vscode.workspace.fs.readFile(doc.uri);
+    doc.revert(fileData);
   }
 
-  async backupCustomDocument(
-    document: StructuralDocument,
-    context: vscode.CustomDocumentBackupContext,
-    cancellation: vscode.CancellationToken
-  ): Promise<vscode.CustomDocumentBackup> {
-    const webviewPanel = this.webviews.get(document.uri.toString());
-    if (!webviewPanel) {
-      throw new Error("Could not find webview for document");
-    }
-    const content = await this.getWebviewContent(webviewPanel);
-    await vscode.workspace.fs.writeFile(
-      context.destination,
-      Buffer.from(content)
-    );
-    return { id: context.destination.toString(), delete: async () => {} };
-  }
-
-  private getWebviewContent(
-    webviewPanel: vscode.WebviewPanel
-  ): Promise<Uint8Array> {
-    const requestId = Date.now() + Math.random();
-    webviewPanel.webview.postMessage({ type: "getEncodedBytes", requestId });
-    return new Promise((resolve, reject) => {
-      const listener = webviewPanel.webview.onDidReceiveMessage((msg) => {
-        if (msg.requestId === requestId) {
-          listener.dispose();
-          if (msg.payload.error) {
-            reject(new Error(msg.payload.error));
-          } else {
-            resolve(new Uint8Array(msg.payload));
-          }
-        }
-      });
-    });
+  async backupCustomDocument(doc: StructuralDocument, ctx: vscode.CustomDocumentBackupContext, cancel: vscode.CancellationToken): Promise<vscode.CustomDocumentBackup> {
+    await this.saveCustomDocumentAs(doc, ctx.destination, cancel);
+    return { id: ctx.destination.toString(), delete: async () => {} };
   }
 }
 
-function getActiveResourceUri(): vscode.Uri | undefined {
-  const activeTab = vscode.window.tabGroups.activeTabGroup?.activeTab;
-  if (!activeTab) return undefined;
-  const input = activeTab.input;
-  if (input instanceof vscode.TabInputText) return input.uri;
-  if (input instanceof vscode.TabInputTextDiff) return input.modified;
-  if (input instanceof vscode.TabInputCustom) return input.uri;
-  if (input instanceof vscode.TabInputNotebook) return input.uri;
-  return undefined;
+// --- Activate Function ---
+export function activate(context: vscode.ExtensionContext) {
+  const outputChannel = vscode.window.createOutputChannel("lintx");
+  outputChannel.appendLine("xxxyyyzzz: Lintx extension is activating.");
+  context.subscriptions.push(outputChannel);
+
+  context.subscriptions.push(StructuralEditorProvider.register(context));
 }
 
-async function getWebviewHtml(
-  webview: vscode.Webview,
-  context: vscode.ExtensionContext
-): Promise<string> {
+// --- Helper Functions ---
+async function getWebviewHtml(webview: vscode.Webview, context: vscode.ExtensionContext): Promise<string> {
   const mediaRoot = vscode.Uri.joinPath(context.extensionUri, "media");
   const assetsRoot = vscode.Uri.joinPath(mediaRoot, "assets");
-
   const files = await vscode.workspace.fs.readDirectory(assetsRoot);
   const cssFile = files.find(([name]) => name.endsWith(".css"))?.[0];
   const jsFile = files.find(([name]) => name.endsWith(".js"))?.[0];
 
   if (!cssFile || !jsFile) {
-    vscode.window.showErrorMessage(
-      "Could not find built webview assets. Please run the 'build:webview' task."
-    );
     return "<body>Error: Could not find built webview assets.</body>";
   }
 
@@ -254,11 +185,7 @@ async function getWebviewHtml(
   `;
 }
 
-async function prepareInitPayload(session: {
-  dataUri?: vscode.Uri;
-  schemaUri?: vscode.Uri;
-  typeName?: string;
-}): Promise<any> {
+async function prepareInitPayload(document: StructuralDocument, session: { schemaUri?: vscode.Uri; typeName?: string }): Promise<any> {
   let schemaText = "";
   let schemaName: string | undefined;
   if (session.schemaUri) {
@@ -266,31 +193,17 @@ async function prepareInitPayload(session: {
     schemaText = Buffer.from(bytes).toString("utf-8");
     schemaName = path.basename(session.schemaUri.fsPath);
   }
-  let dataBytes: Uint8Array = new Uint8Array();
-  let dataName: string | undefined;
-  if (session.dataUri) {
-    try {
-      const bytes = await vscode.workspace.fs.readFile(session.dataUri);
-      dataBytes = new Uint8Array(bytes);
-      dataName = path.basename(session.dataUri.fsPath);
-    } catch (e) {
-      // Ignore if file doesn't exist (e.g. untitled file)
-    }
-  }
   return {
     schema: schemaText,
-    data: Array.from(dataBytes),
+    data: Array.from(document.documentData),
     typeName: session.typeName,
-    dataName,
+    dataName: path.basename(document.uri.fsPath),
     schemaName,
   };
 }
 
-async function resolveSessionFromConfig(target: vscode.Uri): Promise<{
-  dataUri?: vscode.Uri;
-  schemaUri?: vscode.Uri;
-  typeName?: string;
-}> {
-  // ... implementation from previous steps
-  return { dataUri: target }; // Simplified for brevity
+async function resolveSessionFromConfig(target: vscode.Uri): Promise<{ schemaUri?: vscode.Uri; typeName?: string }> {
+  // This is a placeholder for the logic that finds a matching .proto file.
+  // For now, it just returns an empty session.
+  return {};
 }

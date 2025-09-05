@@ -8,7 +8,7 @@
       "runtimeExecutable": "${execPath}",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}/vscode-extension"],
       "outFiles": ["${workspaceFolder}/vscode-extension/out/**/*.js"],
-      "preLaunchTask": "Build Svelte Webview"
+      "preLaunchTask": "Build Extension and Webview"
     }
   ]
 }

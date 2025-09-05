@@ -2,11 +2,11 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build Svelte Webview",
+      "label": "Build Extension and Webview",
       "type": "shell",
-      "command": "pnpm --filter vscode-extension-webview build",
+      "command": "pnpm run build",
       "problemMatcher": [],
-      "detail": "Builds the Svelte webview app directly into the extension's media directory."
+      "detail": "Builds all packages in the correct order."
     }
   ]
 }

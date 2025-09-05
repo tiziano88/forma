@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "install:all": "pnpm install",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "clean": "pnpm -r clean"
   },
   "devDependencies": {
     "fs-extra": "^11.1.1",

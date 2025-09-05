@@ -29,11 +29,14 @@
     };
   }
 
+  let isInitialized = false;
   editor.on('change', () => {
     updateState();
-    // Only send contentChanged message after the initial data has been loaded
     if (isInitialized) {
-      vscode?.postMessage({ type: 'contentChanged' });
+      vscode?.postMessage({
+        type: 'contentChanged',
+        payload: Array.from(editor.getEncodedBytes()),
+      });
     }
   });
   editor.on('error', (event) => {
@@ -48,6 +51,8 @@
       vscode.postMessage({ type: 'ready' });
     }
   });
+
+  let isSaving = false;
 
   async function handleVsCodeMessage(event: MessageEvent) {
     const msg = event.data || {};
@@ -64,11 +69,19 @@
         isInitialized = true;
         break;
       }
-      case 'revert': {
+      case 'updateContent': {
+        // This happens on a revert. We set isInitialized to false temporarily
+        // to prevent the subsequent 'change' event from firing a 'contentChanged' message.
+        isInitialized = false;
         await editor.setData(new Uint8Array(msg.payload));
+        isInitialized = true;
         break;
       }
       case 'getEncodedBytes': {
+        console.log('[Webview] Received getEncodedBytes request');
+        isSaving = true;
+        setTimeout(() => { isSaving = false; }, 1000); // Flash the message for 1 second
+
         try {
           const content = editor.getEncodedBytes();
           vscode?.postMessage({ requestId: msg.requestId, payload: Array.from(content) });
@@ -81,7 +94,15 @@
   }
 </script>
 
-<div class="p-4 sm:p-6 lg:p-8">
+<div class="p-4 sm:p-6 lg:p-8 relative">
+  {#if isSaving}
+    <div class="toast toast-top toast-center">
+      <div class="alert alert-info">
+        <span>Saving...</span>
+      </div>
+    </div>
+  {/if}
+
   <div class="max-w-4xl mx-auto">
     <header class="text-center mb-8">
       <h1 class="text-4xl font-bold">Structural Editor</h1>
