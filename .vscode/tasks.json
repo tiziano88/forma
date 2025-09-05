@@ -4,9 +4,9 @@
     {
       "label": "Build Svelte Webview",
       "type": "shell",
-      "command": "pnpm --filter structural-editor build",
+      "command": "pnpm --filter vscode-extension-webview build",
       "problemMatcher": [],
-      "detail": "Builds the structural-editor Svelte app directly into the extension's media directory."
+      "detail": "Builds the Svelte webview app directly into the extension's media directory."
     }
   ]
 }

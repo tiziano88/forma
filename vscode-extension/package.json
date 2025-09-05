@@ -73,6 +73,6 @@
   },
   "dependencies": {
     "protobufjs": "^7.5.3",
-    "structural-editor": "workspace:*"
+        "vscode-extension-webview": "workspace:*"
   }
 }

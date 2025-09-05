@@ -1,5 +1,5 @@
 packages:
-  - 'structural-editor'
+  - 'vscode-extension-webview'
   - 'vscode-extension'
   - 'core'
   - 'web-app'

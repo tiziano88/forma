@@ -36,9 +36,7 @@
   </div>
 </div>
 
-<div class="mb-4">
-  <button class="btn btn-success w-full" on:click={() => dispatch('save')}>Save Changes</button>
-</div>
+
 
 <div class="card bg-base-100 shadow-xl">
   <div class="card-body">
