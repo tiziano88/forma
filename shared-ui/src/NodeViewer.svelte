@@ -2,20 +2,17 @@
   import { createEventDispatcher } from 'svelte';
   import * as protobuf from 'protobufjs';
   import ObjectViewer from './ObjectViewer.svelte';
+  import PrimitiveInput from './PrimitiveInput.svelte';
 
   export let parent: any;
   export let key: string | number;
-  export let type: protobuf.Type | undefined; // This is the protobuf.Type for the PARENT object
+  export let type: protobuf.Type | undefined;
 
   const dispatch = createEventDispatcher();
 
   $: value = parent[key];
-
-  // Based on the parent's type, find the definition for the CURRENT value
   $: field = type ? type.fields[key.toString()] : undefined;
   $: valueType = (field?.resolvedType) as protobuf.Type | undefined;
-
-  const numericTypes = new Set(['double', 'float', 'int32', 'uint32', 'sint32', 'fixed32', 'sfixed32', 'int64', 'uint64', 'sint64', 'fixed64', 'sfixed64']);
 
   function isObject(val: any) {
     return val !== null && typeof val === 'object' && !Array.isArray(val);
@@ -33,7 +30,6 @@
 
   function addToArray() {
     if (!field) return;
-
     let newItem;
     if (field.resolvedType instanceof protobuf.Type) {
       newItem = createDefaultObject(field.resolvedType);
@@ -58,12 +54,8 @@
     if (!value || !Array.isArray(value)) return;
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= value.length) return;
-
     const newArray = [...value];
-    const temp = newArray[index];
-    newArray[index] = newArray[newIndex];
-    newArray[newIndex] = temp;
-    
+    [newArray[index], newArray[newIndex]] = [newArray[newIndex], newArray[index]];
     parent[key] = newArray;
     dispatch('change');
   }
@@ -73,47 +65,43 @@
   }
 </script>
 
-<div class="form-control">
-  <label class="label py-1 cursor-pointer" for={key.toString()}>
-    <span class="label-text font-semibold">{key}</span>
-  </label>
-
-  {#if field?.repeated}
-    <div class="pl-3 border-l-2 border-base-300 space-y-2">
-      {#if value && Array.isArray(value)}
-        {#each value as item, i}
-          <div class="bg-base-200/50 p-2 rounded-md">
-            <div class="flex justify-between items-center mb-1">
-              <span class="font-mono text-xs opacity-60">Item {i}</span>
-              <div class="btn-group">
-                <button class="btn btn-xs btn-ghost" title="Move Up" on:click={() => moveItem(i, 'up')} disabled={i === 0}>↑</button>
-                <button class="btn btn-xs btn-ghost" title="Move Down" on:click={() => moveItem(i, 'down')} disabled={i === value.length - 1}>↓</button>
-                <button class="btn btn-xs btn-ghost text-error" title="Remove Item" on:click={() => removeItem(i)}>✕</button>
+<div class="rounded-md border-2 border-base-300/40 overflow-hidden">
+  <div class="bg-base-300/40 px-3 py-1">
+    <label class="label-text font-bold text-base-content/80" for={key.toString()}>{key}</label>
+  </div>
+  <div class="p-2 bg-base-100/40">
+    {#if field?.repeated}
+      <div class="space-y-2">
+        {#if value && Array.isArray(value)}
+          {#each value as item, i}
+            <div class="bg-base-200/50 p-2 rounded-md relative group border border-base-300">
+               <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="btn-group">
+                  <button class="btn btn-xs btn-ghost" title="Move Up" on:click={() => moveItem(i, 'up')} disabled={i === 0}>▲</button>
+                  <button class="btn btn-xs btn-ghost" title="Move Down" on:click={() => moveItem(i, 'down')} disabled={i === value.length - 1}>▼</button>
+                  <button class="btn btn-xs btn-ghost text-error/70 hover:text-error" title="Remove Item" on:click={() => removeItem(i)}>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
               </div>
+              <ObjectViewer bind:object={item} type={valueType} on:change={handleChange} />
             </div>
-            <ObjectViewer bind:object={item} type={valueType} on:change={handleChange} />
-          </div>
-        {/each}
-      {/if}
-      <button class="btn btn-xs btn-outline" on:click={addToArray}>+ Add Item</button>
-    </div>
-  {:else if valueType && isObject(value)}
-    <div class="pl-3 border-l-2 border-base-300">
+          {/each}
+        {/if}
+        <button class="btn btn-xs btn-outline btn-accent" on:click={addToArray}>+ Add</button>
+      </div>
+    {:else if valueType && isObject(value)}
       <ObjectViewer bind:object={value} type={valueType} on:change={handleChange} />
-    </div>
-  {:else if valueType && value === undefined}
-    <button class="btn btn-xs btn-outline" on:click={addOptionalField}>+ Add {key}</button>
-  {:else if field?.resolvedType instanceof protobuf.Enum}
-    <select class="select select-sm select-bordered w-full" bind:value={parent[key]} id={key.toString()} on:change={handleChange}>
-      {#each Object.keys(field.resolvedType.values) as enumName}
-        <option value={enumName}>{enumName}</option>
-      {/each}
-    </select>
-  {:else if typeof value === 'boolean'}
-    <input type="checkbox" class="checkbox checkbox-sm checkbox-primary" bind:checked={parent[key]} id={key.toString()} on:change={handleChange} />
-  {:else if typeof value === 'number'}
-    <input type="number" class="input input-sm input-bordered w-full" bind:value={parent[key]} id={key.toString()} on:input={handleChange} />
-  {:else}
-    <input type="text" class="input input-sm input-bordered w-full" bind:value={parent[key]} id={key.toString()} on:input={handleChange} />
-  {/if}
+    {:else if valueType && value === undefined}
+      <button class="btn btn-xs btn-outline btn-accent" on:click={addOptionalField}>+ Add {key}</button>
+    {:else if field?.resolvedType instanceof protobuf.Enum}
+      <select class="select select-sm select-bordered w-full" bind:value={parent[key]} id={key.toString()} on:change={handleChange}>
+        {#each Object.keys(field.resolvedType.values) as enumName}
+          <option value={enumName}>{enumName}</option>
+        {/each}
+      </select>
+    {:else if field}
+      <PrimitiveInput bind:value={parent[key]} type={field.type} id={key.toString()} on:change={handleChange} />
+    {/if}
+  </div>
 </div>

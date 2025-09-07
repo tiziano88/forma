@@ -10,7 +10,7 @@
       "svelte": "./dist/index.js",
       "import": "./dist/index.js"
     },
-    "./src/app.css": "./src/app.css"
+    "./style.css": "./src/app.css"
   },
   "scripts": {
     "clean": "rm -rf dist",
