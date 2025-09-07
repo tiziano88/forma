@@ -74,49 +74,46 @@
 </script>
 
 <div class="form-control">
-  <label class="label cursor-pointer" for={key.toString()}>
-    <span class="label-text font-bold">{key}</span>
+  <label class="label py-1 cursor-pointer" for={key.toString()}>
+    <span class="label-text font-semibold">{key}</span>
   </label>
 
   {#if field?.repeated}
-    <div class="pl-4 border-l-2 border-base-300 space-y-4">
+    <div class="pl-3 border-l-2 border-base-300 space-y-2">
       {#if value && Array.isArray(value)}
         {#each value as item, i}
-          <div class="card bg-base-200 shadow-inner">
-            <div class="card-body p-4">
-              <div class="flex justify-between items-center">
-                <span class="font-mono text-xs">Item {i}</span>
-                <div class="btn-group">
-                  <button class="btn btn-xs btn-ghost" title="Move Up" on:click={() => moveItem(i, 'up')} disabled={i === 0}>↑</button>
-                  <button class="btn btn-xs btn-ghost" title="Move Down" on:click={() => moveItem(i, 'down')} disabled={i === value.length - 1}>↓</button>
-                  <button class="btn btn-xs btn-ghost text-error" title="Remove Item" on:click={() => removeItem(i)}>✕</button>
-                </div>
+          <div class="bg-base-200/50 p-2 rounded-md">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-mono text-xs opacity-60">Item {i}</span>
+              <div class="btn-group">
+                <button class="btn btn-xs btn-ghost" title="Move Up" on:click={() => moveItem(i, 'up')} disabled={i === 0}>↑</button>
+                <button class="btn btn-xs btn-ghost" title="Move Down" on:click={() => moveItem(i, 'down')} disabled={i === value.length - 1}>↓</button>
+                <button class="btn btn-xs btn-ghost text-error" title="Remove Item" on:click={() => removeItem(i)}>✕</button>
               </div>
-              <div class="divider my-1"></div>
-              <ObjectViewer bind:object={item} type={valueType} on:change={handleChange} />
             </div>
+            <ObjectViewer bind:object={item} type={valueType} on:change={handleChange} />
           </div>
         {/each}
       {/if}
-      <button class="btn btn-sm btn-outline" on:click={addToArray}>+ Add Item</button>
+      <button class="btn btn-xs btn-outline" on:click={addToArray}>+ Add Item</button>
     </div>
   {:else if valueType && isObject(value)}
-    <div class="pl-4 border-l-2 border-base-300">
+    <div class="pl-3 border-l-2 border-base-300">
       <ObjectViewer bind:object={value} type={valueType} on:change={handleChange} />
     </div>
   {:else if valueType && value === undefined}
-    <button class="btn btn-sm btn-outline" on:click={addOptionalField}>+ Add {key}</button>
+    <button class="btn btn-xs btn-outline" on:click={addOptionalField}>+ Add {key}</button>
   {:else if field?.resolvedType instanceof protobuf.Enum}
-    <select class="select select-bordered w-full" bind:value={parent[key]} id={key.toString()} on:change={handleChange}>
+    <select class="select select-sm select-bordered w-full" bind:value={parent[key]} id={key.toString()} on:change={handleChange}>
       {#each Object.keys(field.resolvedType.values) as enumName}
         <option value={enumName}>{enumName}</option>
       {/each}
     </select>
   {:else if typeof value === 'boolean'}
-    <input type="checkbox" class="checkbox checkbox-primary" bind:checked={parent[key]} id={key.toString()} on:change={handleChange} />
+    <input type="checkbox" class="checkbox checkbox-sm checkbox-primary" bind:checked={parent[key]} id={key.toString()} on:change={handleChange} />
   {:else if typeof value === 'number'}
-    <input type="number" class="input input-bordered w-full" bind:value={parent[key]} id={key.toString()} on:input={handleChange} />
+    <input type="number" class="input input-sm input-bordered w-full" bind:value={parent[key]} id={key.toString()} on:input={handleChange} />
   {:else}
-    <input type="text" class="input input-bordered w-full" bind:value={parent[key]} id={key.toString()} on:input={handleChange} />
+    <input type="text" class="input input-sm input-bordered w-full" bind:value={parent[key]} id={key.toString()} on:input={handleChange} />
   {/if}
 </div>

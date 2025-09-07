@@ -1,0 +1,21 @@
+{
+  "name": "shared-ui",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "svelte": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "svelte-package -i src -o dist"
+  },
+  "dependencies": {
+    "protobufjs": "^7.5.3"
+  },
+  "devDependencies": {
+    "@sveltejs/package": "^2.3.2",
+    "@tsconfig/svelte": "^5.0.4",
+    "svelte": "^5.34.7",
+    "typescript": "~5.8.3"
+  }
+}

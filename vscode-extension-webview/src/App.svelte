@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import StructuralViewer from './lib/StructuralViewer.svelte';
-  import { StructuralEditor } from 'core/src/StructuralEditor';
+  import { StructuralViewer } from 'shared-ui';
+  import { StructuralEditor } from 'core';
 
   // Standard VS Code webview API
   type VSCodeAPI = { postMessage: (msg: any) => void };
@@ -102,12 +102,19 @@
   {/if}
 
   <div class="max-w-4xl mx-auto">
-    <header class="text-center mb-8">
-      <h1 class="text-4xl font-bold">Structural Editor</h1>
-      <p class="text-lg mt-2">
-        Load a Protobuf schema (.proto) and a binary data file (.binpb) to begin editing.
-      </p>
-    </header>
+    <div class="navbar bg-base-200 rounded-box mb-4">
+      <div class="flex-1">
+        <span class="text-xl font-bold">Forma Editor</span>
+      </div>
+      <div class="flex-none gap-2">
+        <div class="tooltip" data-tip={schemaFileName}>
+          <span class="text-sm opacity-70">{schemaFileName}</span>
+        </div>
+        <div class="tooltip" data-tip={dataFileName}>
+          <span class="text-sm opacity-70">{dataFileName}</span>
+        </div>
+      </div>
+    </div>
 
     {#if errorMessage}
       <div role="alert" class="alert alert-error mb-4">

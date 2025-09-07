@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import StructuralViewer from './lib/StructuralViewer.svelte';
-  import { StructuralEditor } from 'core/src/StructuralEditor';
+  import { StructuralViewer } from 'shared-ui';
+  import { StructuralEditor } from 'core';
 
   const editor = new StructuralEditor();
 
@@ -128,30 +128,19 @@
 
 <div class="p-4 sm:p-6 lg:p-8">
   <div class="max-w-4xl mx-auto">
-    <header class="text-center mb-8">
-      <h1 class="text-4xl font-bold">Structural Editor (Web)</h1>
-      <p class="text-lg mt-2">
-        Load a Protobuf schema (.proto) and a binary data file (.binpb) to begin editing.
-      </p>
-    </header>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-      <div class="card bg-base-200 shadow-xl">
-        <div class="card-body">
-          <button class="btn btn-primary" on:click={() => loadFile('schema')}>Load Schema (.proto)</button>
-          <span class="text-sm mt-2">{schemaFileName}</span>
-        </div>
+    <div class="navbar bg-base-200 rounded-box mb-4">
+      <div class="flex-1">
+        <a href="/" class="btn btn-ghost text-xl">Forma</a>
       </div>
-      <div class="card bg-base-200 shadow-xl">
-        <div class="card-body">
-          <button class="btn btn-secondary" on:click={() => loadFile('data')}>Load Data (.binpb)</button>
-          <span class="text-sm mt-2">{dataFileName}</span>
+      <div class="flex-none gap-2">
+        <div class="tooltip" data-tip={schemaFileName}>
+          <button class="btn btn-sm btn-outline" on:click={() => loadFile('schema')}>Load Schema</button>
         </div>
+        <div class="tooltip" data-tip={dataFileName}>
+          <button class="btn btn-sm btn-outline" on:click={() => loadFile('data')}>Load Data</button>
+        </div>
+        <button class="btn btn-sm btn-accent" on:click={loadSampleData}>Load Sample</button>
       </div>
-    </div>
-
-    <div class="mb-8">
-      <button class="btn btn-accent w-full" on:click={loadSampleData}>Load Sample Data</button>
     </div>
 
     {#if errorMessage}
@@ -172,6 +161,13 @@
         on:change={(e) => editor.updateDecodedData(e.detail)}
         on:typechange={(e) => editor.setCurrentType(e.detail)}
       />
+    {:else if !errorMessage}
+      <div class="card bg-base-200 shadow-xl">
+        <div class="card-body items-center text-center">
+          <h2 class="card-title">Editor Not Ready</h2>
+          <p class="opacity-70">Load both a schema and data file to begin editing.</p>
+        </div>
+      </div>
     {/if}
   </div>
 </div>

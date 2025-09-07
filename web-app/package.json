@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "core": "workspace:*",
-    "protobufjs": "^7.5.3"
+    "protobufjs": "^7.5.3",
+    "shared-ui": "workspace:*"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.1.0",

@@ -3,3 +3,4 @@ packages:
   - 'vscode-extension'
   - 'core'
   - 'web-app'
+  - 'shared-ui'
