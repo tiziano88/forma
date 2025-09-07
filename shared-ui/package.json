@@ -2,20 +2,32 @@
   "name": "shared-ui",
   "version": "1.0.0",
   "type": "module",
-  "main": "./src/index.ts",
-  "svelte": "./src/index.ts",
-  "types": "./src/index.ts",
+  "svelte": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
+    "./src/app.css": "./src/app.css"
+  },
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "svelte-package -i src -o dist"
+    "build": "svelte-package"
   },
   "dependencies": {
     "protobufjs": "^7.5.3"
   },
   "devDependencies": {
+    "@sveltejs/kit": "^2.5.18",
     "@sveltejs/package": "^2.3.2",
+    "@sveltejs/vite-plugin-svelte": "^5.1.0",
     "@tsconfig/svelte": "^5.0.4",
     "svelte": "^5.34.7",
     "typescript": "~5.8.3"
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
   }
 }
