@@ -65,16 +65,16 @@
   }
 </script>
 
-<div class="rounded-md border-2 border-base-300/40 overflow-hidden">
-  <div class="bg-base-300/40 px-3 py-1">
-    <label class="label-text font-bold text-base-content/80" for={key.toString()}>{key}</label>
+<div class="rounded-lg border-2 border-primary/20 overflow-hidden">
+  <div class="bg-base-300 px-3 py-1">
+    <label class="label-text font-bold text-primary" for={key.toString()}>{key}</label>
   </div>
-  <div class="p-2 bg-base-100/40">
+  <div class="p-2 bg-base-100">
     {#if field?.repeated}
       <div class="space-y-2">
         {#if value && Array.isArray(value)}
           {#each value as item, i}
-            <div class="bg-base-200/50 p-2 rounded-md relative group border border-base-300">
+            <div class="bg-base-200 p-2 rounded-md relative group border border-base-300">
                <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <div class="btn-group">
                   <button class="btn btn-xs btn-ghost" title="Move Up" on:click={() => moveItem(i, 'up')} disabled={i === 0}>▲</button>
