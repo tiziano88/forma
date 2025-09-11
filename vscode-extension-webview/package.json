@@ -24,7 +24,7 @@
   "dependencies": {
     "protobufjs": "^7.5.3",
     "vite": "^6.3.5",
-    "core": "workspace:*",
+    "@lintx/core": "workspace:*",
     "shared-ui": "workspace:*"
   }
 }

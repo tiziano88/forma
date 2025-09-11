@@ -10,7 +10,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "core": "workspace:*",
+    "@lintx/core": "workspace:*",
     "protobufjs": "^7.5.3",
     "shared-ui": "workspace:*"
   },

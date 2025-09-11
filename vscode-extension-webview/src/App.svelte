@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { StructuralViewer } from 'shared-ui';
-  import { StructuralEditor } from 'core';
+  import { StructuralEditor } from '@lintx/core';
 
   // Standard VS Code webview API
   type VSCodeAPI = { postMessage: (msg: any) => void };
@@ -20,15 +20,25 @@
 
   // --- Editor State Management ---
   function updateState() {
+    const availableTypes = editor.getAvailableTypes();
+    const decodedData = editor.getDecodedData();
+    
     editorState = {
-      decodedData: editor.getDecodedData(),
+      decodedData: decodedData,
       rootMessageType: editor.getRootMessageType(),
-      availableTypes: editor.getAvailableTypes(),
+      availableTypes: availableTypes,
       currentType: editor.getCurrentType(),
       hexView: editor.getHexView('encoded'),
       originalHexView: editor.getHexView('original'),
-      isReady: !!editor.getDecodedData(),
+      isReady: !!decodedData,
     };
+    
+    console.log('[Webview] State updated:');
+    console.log('  - availableTypes:', availableTypes);
+    console.log('  - availableTypes.length:', availableTypes?.length);
+    console.log('  - decodedData:', decodedData);
+    console.log('  - currentType:', editor.getCurrentType());
+    console.log('  - rootMessageType:', editor.getRootMessageType());
   }
 
   editor.on('change', () => {
@@ -49,19 +59,35 @@
 
   // --- VS Code Communication ---
   async function handleVsCodeMessage(event: MessageEvent) {
-    const msg = event.data || {};
-    console.log('[Webview] Received message:', msg);
+    try {
+      console.log('[Webview] handleVsCodeMessage called');
+      const msg = event.data || {};
+      console.log('[Webview] Received message:', msg);
 
-    switch (msg.type) {
+      switch (msg.type) {
       case 'initWithConfig': {
         console.log('[Webview] Initializing with payload:', msg.payload);
-        await editor.initialize({
-          schemaText: msg.payload.schema,
-          schemaDescriptor: new Uint8Array(msg.payload.schemaDescriptor || []),
+        console.log('[Webview] Payload keys:', Object.keys(msg.payload));
+        console.log('[Webview] Data length:', msg.payload.data?.length);
+        console.log('[Webview] Type name:', msg.payload.typeName);
+        console.log('[Webview] Schema descriptor length:', msg.payload.schemaDescriptor?.length);
+        
+        const initData = {
           data: new Uint8Array(msg.payload.data || []),
           typeName: msg.payload.typeName,
-        });
-        schemaFileName = msg.payload.schemaName || 'Schema';
+          schemaDescriptor: msg.payload.schemaDescriptor ? new Uint8Array(msg.payload.schemaDescriptor) : undefined,
+        };
+        console.log('[Webview] About to call editor.initialize with:', initData);
+        
+        try {
+          await editor.initialize(initData);
+          console.log('[Webview] editor.initialize completed successfully');
+        } catch (error) {
+          console.error('[Webview] Error during editor.initialize:', error);
+          console.error('[Webview] Error stack:', error.stack);
+        }
+        
+        schemaFileName = msg.payload.schemaName || 'Pre-compiled Schema';
         dataFileName = msg.payload.dataName || 'Data';
         isInitialized = true;
         break;
@@ -83,6 +109,10 @@
         }
         break;
       }
+      }
+    } catch (error) {
+      console.error('[Webview] Error in handleVsCodeMessage:', error);
+      console.error('[Webview] Error stack:', error.stack);
     }
   }
 
@@ -123,7 +153,7 @@
       </div>
     {/if}
 
-    {#if editorState?.isReady}
+    {#if editorState?.availableTypes && editorState.availableTypes.length > 0}
       <StructuralViewer
         decodedData={editorState.decodedData}
         rootMessageType={editorState.rootMessageType}
@@ -134,11 +164,21 @@
         on:change={(e) => editor.updateDecodedData(e.detail)}
         on:typechange={(e) => editor.setCurrentType(e.detail)}
       />
-    {:else if !errorMessage}
+    {:else}
       <div class="card bg-base-200 shadow-xl">
         <div class="card-body items-center text-center">
           <h2 class="card-title">Editor Not Ready</h2>
-          <p class="opacity-70">Please wait for data to be loaded.</p>
+          <p class="opacity-70">
+            {#if errorMessage}
+              Error: {errorMessage}
+            {:else}
+              Debug Info:<br/>
+              availableTypes: {JSON.stringify(editorState?.availableTypes)}<br/>
+              availableTypes.length: {editorState?.availableTypes?.length}<br/>
+              decodedData: {JSON.stringify(editorState?.decodedData)}<br/>
+              currentType: {editorState?.currentType}
+            {/if}
+          </p>
         </div>
       </div>
     {/if}

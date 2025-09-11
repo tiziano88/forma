@@ -3,13 +3,30 @@
     "module": "commonjs",
     "target": "es2020",
     "outDir": "out",
-    "lib": ["es2020"],
+    "lib": [
+      "es2020"
+    ],
     "sourceMap": true,
     "rootDir": "src",
     "strict": true,
-    "types": ["vscode", "node"]
+    "baseUrl": ".",
+    "paths": {
+      "core/*": ["../core/src/*"]
+    },
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
   },
-  "include": ["src"],
-  "exclude": ["node_modules", ".vscode-test"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    ".vscode-test"
+  ]
 }
+
+
+
+
+
 

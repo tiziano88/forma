@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { StructuralViewer } from 'shared-ui';
-  import { StructuralEditor } from 'core';
+  import { StructuralEditor } from '@lintx/core';
 
   const editor = new StructuralEditor();
 

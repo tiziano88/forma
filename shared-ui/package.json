@@ -17,6 +17,7 @@
     "build": "svelte-package"
   },
   "dependencies": {
+    "@lintx/core": "workspace:*",
     "protobufjs": "^7.5.3"
   },
   "devDependencies": {

@@ -61,7 +61,7 @@
     "vscode:prepublish": "pnpm -r build",
     "compile": "tsc -watch -p ./",
     "build": "pnpm --filter vscode-extension-webview build && tsc -p ./ && pnpm run copy-schemas",
-    "copy-schemas": "mkdir -p media/schemas && cp ../config/forma.proto media/schemas/config.proto",
+    "copy-schemas": "mkdir -p media/schemas && cp ../config/forma.proto media/schemas/config.proto && cd media/schemas && protoc --descriptor_set_out=config.desc --include_imports config.proto",
     "package": "pnpm -r build && vsce package",
     "clean": "rm -rf out media"
   },
@@ -73,6 +73,7 @@
   },
   "dependencies": {
     "protobufjs": "^7.5.3",
-    "vscode-extension-webview": "workspace:*"
+    "vscode-extension-webview": "workspace:*",
+    "@lintx/core": "workspace:*"
   }
 }

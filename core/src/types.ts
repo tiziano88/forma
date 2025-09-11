@@ -1,10 +1,9 @@
 export type Bytes = Uint8Array;
 
 export interface EditorData {
-  schemaText?: string | null;
-  schemaDescriptor?: Bytes | null;
   data: Bytes;
   typeName?: string | null;
+  schemaDescriptor?: Bytes;
 }
 
 // Events the editor can emit for the UI to listen to
