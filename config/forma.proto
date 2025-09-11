@@ -7,6 +7,8 @@ message FileMapping {
   string data = 1;
   // Path to the .proto schema (relative to config location or absolute)
   string schema = 2;
+  // Path to the binary descriptor file (relative to config location or absolute)
+  string schema_descriptor = 4;
   // Fully-qualified Protobuf message type to decode (optional)
   string type = 3;
 }

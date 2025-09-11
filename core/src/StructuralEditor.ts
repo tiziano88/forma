@@ -6,6 +6,7 @@ export class StructuralEditor {
 
   // Core state
   private schemaText: string | null = null;
+  private schemaDescriptor: Bytes | null = null;
   private dataBytes: Bytes | null = null;
   private rootMessageType: protobuf.Type | null = null;
   private decodedData: any = null;
@@ -34,6 +35,7 @@ export class StructuralEditor {
 
   public async initialize(data: EditorData): Promise<void> {
     this.schemaText = data.schemaText;
+    this.schemaDescriptor = data.schemaDescriptor;
     this.dataBytes = data.data;
     this.selectedTypeName = data.typeName || null;
     await this.decodeData();
@@ -42,6 +44,19 @@ export class StructuralEditor {
 
   public async setSchema(schemaText: string): Promise<void> {
     this.schemaText = schemaText;
+    this.schemaDescriptor = null;
+    this.rootMessageType = null;
+    this.decodedData = null;
+    this.selectedTypeName = null; // Reset type name on new schema
+    if (this.dataBytes) {
+      await this.decodeData();
+    }
+    this.emit({ type: 'change' });
+  }
+
+  public async setSchemaDescriptor(schemaDescriptor: Bytes): Promise<void> {
+    this.schemaDescriptor = schemaDescriptor;
+    this.schemaText = null;
     this.rootMessageType = null;
     this.decodedData = null;
     this.selectedTypeName = null; // Reset type name on new schema
@@ -54,16 +69,20 @@ export class StructuralEditor {
   public async setData(dataBytes: Bytes, typeName?: string | null): Promise<void> {
     this.dataBytes = dataBytes;
     this.selectedTypeName = typeName || this.selectedTypeName;
-    if (this.schemaText) {
+    if (this.schemaText || this.schemaDescriptor) {
       await this.decodeData();
     }
     this.emit({ type: 'change' });
   }
 
   public getAvailableTypes(): string[] {
-    if (!this.schemaText) return [];
+    if (!this.schemaText && !this.schemaDescriptor) return [];
     try {
-      const { root } = protobuf.parse(this.schemaText);
+      const root = this.schemaDescriptor
+        ? protobuf.Root.fromDescriptor(
+            protobuf.descriptor.FileDescriptorSet.decode(this.schemaDescriptor)
+          )
+        : protobuf.parse(this.schemaText!).root;
       const all = this.findAllMessageTypes(root);
       return all.map(t => t.fullName.replace(/^\./, ''));
     } catch {
@@ -78,7 +97,7 @@ export class StructuralEditor {
   public async setCurrentType(typeName: string): Promise<void> {
     if (this.selectedTypeName === typeName) return;
     this.selectedTypeName = typeName;
-    if (this.schemaText && this.dataBytes) {
+    if ((this.schemaText || this.schemaDescriptor) && this.dataBytes) {
       await this.decodeData();
       this.emit({ type: 'change' });
     }
@@ -130,14 +149,19 @@ export class StructuralEditor {
   }
 
   private async decodeData(): Promise<void> {
-    if (!this.schemaText || !this.dataBytes) {
+    if ((!this.schemaText && !this.schemaDescriptor) || !this.dataBytes) {
       this.rootMessageType = null;
       this.decodedData = null;
       return;
     }
 
     try {
-      const { root } = protobuf.parse(this.schemaText);
+      const root = this.schemaDescriptor
+        ? protobuf.Root.fromDescriptor(
+            protobuf.descriptor.FileDescriptorSet.decode(this.schemaDescriptor)
+          )
+        : protobuf.parse(this.schemaText!).root;
+
       const target = this.findTargetType(root, this.selectedTypeName);
 
       let message;

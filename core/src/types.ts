@@ -1,7 +1,8 @@
 export type Bytes = Uint8Array;
 
 export interface EditorData {
-  schemaText: string;
+  schemaText?: string | null;
+  schemaDescriptor?: Bytes | null;
   data: Bytes;
   typeName?: string | null;
 }

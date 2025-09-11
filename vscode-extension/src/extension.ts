@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
+import * as protobuf from "protobufjs";
 
 class StructuralDocument implements vscode.CustomDocument {
   private readonly _uri: vscode.Uri;
@@ -246,15 +247,23 @@ async function prepareInitPayload(
   document: StructuralDocument,
   session: { schemaUri?: vscode.Uri; typeName?: string }
 ): Promise<any> {
-  let schemaText = "";
+  let schemaText: string | undefined;
+  let schemaDescriptor: Uint8Array | undefined;
   let schemaName: string | undefined;
+
   if (session.schemaUri) {
     const bytes = await vscode.workspace.fs.readFile(session.schemaUri);
-    schemaText = Buffer.from(bytes).toString("utf-8");
+    if (session.schemaUri.fsPath.endsWith('.desc')) {
+      schemaDescriptor = bytes;
+    } else {
+      schemaText = Buffer.from(bytes).toString("utf-8");
+    }
     schemaName = path.basename(session.schemaUri.fsPath);
   }
+
   return {
     schema: schemaText,
+    schemaDescriptor: schemaDescriptor ? Array.from(schemaDescriptor) : undefined,
     data: Array.from(document.documentData),
     typeName: session.typeName,
     dataName: path.basename(document.uri.fsPath),
@@ -270,6 +279,42 @@ async function resolveSessionFromConfig(
   outputChannel.appendLine(`[CONFIG] Resolving session for: ${target.fsPath}`);
   const baseName = path.basename(target.fsPath);
 
+  // Look for a config.forma.binpb file in the workspace root.
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (workspaceFolders) {
+    const workspaceRoot = workspaceFolders[0].uri;
+    const configUri = vscode.Uri.joinPath(workspaceRoot, "config.forma.binpb");
+    try {
+      const configBytes = await vscode.workspace.fs.readFile(configUri);
+      outputChannel.appendLine(`[CONFIG] Found config file: ${configUri.fsPath}`);
+
+      const protoPath = vscode.Uri.joinPath(context.extensionUri, "media", "schemas", "config.proto").fsPath;
+      const root = await protobuf.load(protoPath);
+      const configType = root.lookupType("forma.config.Config");
+      const decodedConfig = configType.decode(configBytes);
+      const config = decodedConfig.toJSON();
+
+      if (config.files) {
+        for (const mapping of config.files) {
+          const dataUri = vscode.Uri.joinPath(workspaceRoot, mapping.data);
+          if (dataUri.fsPath === target.fsPath) {
+            outputChannel.appendLine(`[CONFIG] Found mapping for: ${target.fsPath}`);
+            let schemaUri: vscode.Uri | undefined;
+            if (mapping.schema) {
+              schemaUri = vscode.Uri.joinPath(workspaceRoot, mapping.schema);
+            } else if (mapping.schema_descriptor) {
+              schemaUri = vscode.Uri.joinPath(workspaceRoot, mapping.schema_descriptor);
+            }
+            return { schemaUri, typeName: mapping.type };
+          }
+        }
+      }
+    } catch (e) {
+      outputChannel.appendLine(`[CONFIG] Error reading or parsing config file: ${e}`);
+    }
+  }
+
+
   // Special case: if the file is named config.forma.binpb, use the bundled schema.
   if (baseName === "config.forma.binpb") {
     outputChannel.appendLine("[CONFIG] Matched special config file. Using bundled schema.");
@@ -279,10 +324,13 @@ async function resolveSessionFromConfig(
     };
   }
 
-  // Best-effort: look for a .proto file with the same base name next to the data file.
+  // Best-effort: look for a .proto or .desc file with the same base name next to the data file.
   const dir = vscode.Uri.joinPath(target, "..");
-  const protoFileName = `${path.basename(target.fsPath, path.extname(target.fsPath))}.proto`;
+  const baseFileName = path.basename(target.fsPath, path.extname(target.fsPath));
+  const protoFileName = `${baseFileName}.proto`;
+  const descFileName = `${baseFileName}.desc`;
   const protoUri = vscode.Uri.joinPath(dir, protoFileName);
+  const descUri = vscode.Uri.joinPath(dir, descFileName);
 
   try {
     await vscode.workspace.fs.stat(protoUri);
@@ -292,7 +340,19 @@ async function resolveSessionFromConfig(
     return { schemaUri: protoUri };
   } catch {
     outputChannel.appendLine(
-      `[CONFIG] No matching schema found at: ${protoUri.fsPath}`
+      `[CONFIG] No matching .proto schema found at: ${protoUri.fsPath}`
+    );
+  }
+
+  try {
+    await vscode.workspace.fs.stat(descUri);
+    outputChannel.appendLine(
+      `[CONFIG] Found matching schema: ${descUri.fsPath}`
+    );
+    return { schemaUri: descUri };
+  } catch {
+    outputChannel.appendLine(
+      `[CONFIG] No matching .desc schema found at: ${descUri.fsPath}`
     );
   }
 

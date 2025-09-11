@@ -57,6 +57,7 @@
         console.log('[Webview] Initializing with payload:', msg.payload);
         await editor.initialize({
           schemaText: msg.payload.schema,
+          schemaDescriptor: new Uint8Array(msg.payload.schemaDescriptor || []),
           data: new Uint8Array(msg.payload.data || []),
           typeName: msg.payload.typeName,
         });

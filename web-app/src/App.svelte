@@ -21,15 +21,20 @@
       const [handle] = await (window as any).showOpenFilePicker({
         types: [{
           description: kind === 'schema' ? 'Protobuf Schema' : 'Protobuf Data',
-          accept: { 'application/octet-stream': kind === 'schema' ? ['.proto'] : ['.bin', '.binpb'] },
+          accept: { 'application/octet-stream': kind === 'schema' ? ['.proto', '.desc'] : ['.bin', '.binpb'] },
         }],
         multiple: false,
       });
 
       const file = await handle.getFile();
       if (kind === 'schema') {
-        const text = await file.text();
-        await editor.setSchema(text);
+        if (file.name.endsWith('.desc')) {
+          const buffer = await file.arrayBuffer();
+          await editor.setSchemaDescriptor(new Uint8Array(buffer));
+        } else {
+          const text = await file.text();
+          await editor.setSchema(text);
+        }
         schemaFileName = file.name;
         schemaFileHandle = handle;
       } else {
