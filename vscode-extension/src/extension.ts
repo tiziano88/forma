@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
+// @ts-ignore
 import * as protobuf from "protobufjs";
-const root = require("../../core/src/schema.js");
 
 class StructuralDocument implements vscode.CustomDocument {
   private readonly _uri: vscode.Uri;
@@ -273,9 +273,27 @@ async function resolveSessionFromConfig(
     outputChannel.appendLine(
       "[CONFIG] Matched special config file. Using bundled schema."
     );
-    return {
-      typeName: "forma.config.Config",
-    };
+    try {
+      const descriptorUri = vscode.Uri.joinPath(
+        context.extensionUri,
+        "media",
+        "schemas",
+        "config.desc"
+      );
+      const schemaDescriptor = await vscode.workspace.fs.readFile(descriptorUri);
+      outputChannel.appendLine(
+        `[CONFIG] Loaded bundled schema descriptor: ${descriptorUri.fsPath}`
+      );
+      return {
+        typeName: "forma.config.Config",
+        schemaDescriptor,
+      };
+    } catch (e) {
+      outputChannel.appendLine(
+        `[CONFIG] Error loading bundled schema descriptor: ${e}`
+      );
+      return {};
+    }
   }
 
   // Look for a config.forma.binpb file in the workspace root for mappings.
@@ -289,14 +307,27 @@ async function resolveSessionFromConfig(
         `[CONFIG] Found config file: ${configUri.fsPath}`
       );
 
-      const configType = root.forma.config.Config;
-      outputChannel.appendLine(`[CONFIG] Config type: ${configType}`);
-      outputChannel.appendLine(`[CONFIG] Config bytes length: ${configBytes.length}`);
-      
+      // To decode the config, we need its schema. Load the bundled descriptor.
+      const descriptorUri = vscode.Uri.joinPath(
+        context.extensionUri,
+        "media",
+        "schemas",
+        "config.desc"
+      );
+      const configDescriptorBytes = await vscode.workspace.fs.readFile(
+        descriptorUri
+      );
+      const root = (protobuf.Root as any).fromDescriptor(
+        configDescriptorBytes
+      );
+      const configType = root.lookupType("forma.config.Config");
+
       let decodedConfig;
       try {
         decodedConfig = configType.decode(configBytes);
-        outputChannel.appendLine(`[CONFIG] Decoded config: ${JSON.stringify(decodedConfig, null, 2)}`);
+        outputChannel.appendLine(
+          `[CONFIG] Decoded config: ${JSON.stringify(decodedConfig, null, 2)}`
+        );
       } catch (decodeError) {
         outputChannel.appendLine(`[CONFIG] Decode error: ${decodeError}`);
         return {};
@@ -304,18 +335,26 @@ async function resolveSessionFromConfig(
 
       if (decodedConfig && decodedConfig.files) {
         for (const mapping of decodedConfig.files) {
-          const dataUri = vscode.Uri.joinPath(workspaceRoot, mapping.data || "");
+          const dataUri = vscode.Uri.joinPath(
+            workspaceRoot,
+            mapping.data || ""
+          );
           if (dataUri.fsPath === target.fsPath) {
             outputChannel.appendLine(
               `[CONFIG] Found mapping for: ${target.fsPath}`
             );
-            
+
             // Load binary schema descriptor if specified
             let schemaDescriptor: Uint8Array | undefined;
             if (mapping.schemaDescriptor) {
               try {
-                const descriptorUri = vscode.Uri.joinPath(workspaceRoot, mapping.schemaDescriptor);
-                schemaDescriptor = await vscode.workspace.fs.readFile(descriptorUri);
+                const descriptorUri = vscode.Uri.joinPath(
+                  workspaceRoot,
+                  mapping.schemaDescriptor
+                );
+                schemaDescriptor = await vscode.workspace.fs.readFile(
+                  descriptorUri
+                );
                 outputChannel.appendLine(
                   `[CONFIG] Loaded schema descriptor: ${descriptorUri.fsPath}`
                 );
@@ -325,10 +364,10 @@ async function resolveSessionFromConfig(
                 );
               }
             }
-            
-            return { 
-              typeName: mapping.type || undefined, 
-              schemaDescriptor 
+
+            return {
+              typeName: mapping.type || undefined,
+              schemaDescriptor,
             };
           }
         }

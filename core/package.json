@@ -3,8 +3,14 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
-    "prebuild": "pnpm exec pbjs -t static-module -w commonjs -o src/schema.js ../config/forma.proto && pnpm exec pbts -o src/schema.d.ts src/schema.js",
     "build": "tsc",
     "clean": "rm -rf dist"
   },
