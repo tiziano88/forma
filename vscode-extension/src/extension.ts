@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
-// @ts-ignore
 import * as protobuf from "protobufjs";
+import "protobufjs/ext/descriptor";
 
 class StructuralDocument implements vscode.CustomDocument {
   private readonly _uri: vscode.Uri;
@@ -87,10 +87,14 @@ class StructuralEditorProvider
   ) {}
 
   async openCustomDocument(uri: vscode.Uri): Promise<StructuralDocument> {
-    const data = await vscode.workspace.fs.readFile(uri).then(
-      (res) => res,
-      () => new Uint8Array()
-    );
+    let data: Uint8Array;
+    try {
+      data = await vscode.workspace.fs.readFile(uri);
+    } catch (e) {
+      this._outputChannel.appendLine(`[ERROR] Could not read file: ${uri.fsPath}. ${e}`);
+      data = new Uint8Array();
+    }
+    
     const document = new StructuralDocument(uri, data);
 
     const listener = document.onDidChange((e) => {
@@ -346,11 +350,11 @@ async function resolveSessionFromConfig(
 
             // Load binary schema descriptor if specified
             let schemaDescriptor: Uint8Array | undefined;
-            if (mapping.schemaDescriptor) {
+            if (mapping.schema_descriptor) {
               try {
                 const descriptorUri = vscode.Uri.joinPath(
                   workspaceRoot,
-                  mapping.schemaDescriptor
+                  mapping.schema_descriptor
                 );
                 schemaDescriptor = await vscode.workspace.fs.readFile(
                   descriptorUri
