@@ -9,6 +9,7 @@
   export let currentType: string | null;
   export let hexView: string;
   export let originalHexView: string;
+  export let editor: any; // StructuralEditor instance
 
   const dispatch = createEventDispatcher();
 
@@ -49,6 +50,7 @@
         <ObjectViewer
           object={decodedData}
           messageSchema={rootMessageType}
+          editor={editor}
           on:change={handleDataChange}
         />
       {/if}

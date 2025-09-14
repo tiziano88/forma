@@ -1,53 +1,61 @@
-import { StructuralEditor } from '../StructuralEditor';
-import { loadDescriptor, loadBinaryData, createTestPersonData, assertMessageValue } from '../test-utils';
+import { StructuralEditor } from "../StructuralEditor";
+import {
+  loadDescriptor,
+  loadBinaryData,
+  createTestPersonData,
+  assertMessageValue,
+} from "../test-utils";
 
 // Import generated protobuf bindings for canonical objects
 // Note: The generated files use a nested path structure
-import * as sampleProto from '../generated/test/web-app/public/sample_pb';
+import * as sampleProto from "../generated/test/web-app/public/sample_pb";
 const { Person, Address, PhoneNumber, Article } = sampleProto;
 
-describe('MessageValue System', () => {
+describe("MessageValue System", () => {
   let editor: StructuralEditor;
 
   beforeEach(() => {
     editor = new StructuralEditor();
   });
 
-  describe('Schema Loading', () => {
-    test('loads sample.desc binary descriptor correctly', async () => {
-      const descriptorBytes = loadDescriptor('sample.desc');
+  describe("Schema Loading", () => {
+    test("loads sample.desc binary descriptor correctly", async () => {
+      const descriptorBytes = loadDescriptor("sample.desc");
       expect(descriptorBytes.length).toBeGreaterThan(0);
 
-      await editor.initialize({ schemaDescriptor: descriptorBytes, data: new Uint8Array(0) });
+      await editor.initialize({
+        schemaDescriptor: descriptorBytes,
+        data: new Uint8Array(0),
+      });
       const typeRegistry = editor.getTypeRegistry();
 
       // Verify expected message types are loaded
-      expect(typeRegistry.has('.example.Person')).toBe(true);
-      expect(typeRegistry.has('.example.Address')).toBe(true);
-      expect(typeRegistry.has('.example.PhoneNumber')).toBe(true);
-      expect(typeRegistry.has('.example.Article')).toBe(true);
+      expect(typeRegistry.has(".example.Person")).toBe(true);
+      expect(typeRegistry.has(".example.Address")).toBe(true);
+      expect(typeRegistry.has(".example.PhoneNumber")).toBe(true);
+      expect(typeRegistry.has(".example.Article")).toBe(true);
 
       // Verify Person message structure
-      const personType = typeRegistry.get('.example.Person')!;
-      expect(personType.fullName).toBe('.example.Person');
+      const personType = typeRegistry.get(".example.Person")!;
+      expect(personType.fullName).toBe(".example.Person");
       expect(personType.fields.size).toBe(7);
 
       // Check specific fields
-      expect(personType.fields.get(1)?.name).toBe('name');
-      expect(personType.fields.get(2)?.name).toBe('id');
-      expect(personType.fields.get(3)?.name).toBe('is_verified');
-      expect(personType.fields.get(4)?.name).toBe('eye_color');
-      expect(personType.fields.get(5)?.name).toBe('address');
-      expect(personType.fields.get(6)?.name).toBe('phones');
-      expect(personType.fields.get(7)?.name).toBe('articles');
+      expect(personType.fields.get(1)?.name).toBe("name");
+      expect(personType.fields.get(2)?.name).toBe("id");
+      expect(personType.fields.get(3)?.name).toBe("is_verified");
+      expect(personType.fields.get(4)?.name).toBe("eye_color");
+      expect(personType.fields.get(5)?.name).toBe("address");
+      expect(personType.fields.get(6)?.name).toBe("phones");
+      expect(personType.fields.get(7)?.name).toBe("articles");
     });
   });
 
-  describe('Existing Test Data Parsing', () => {
-    test('parses sample-data.binpb correctly', async () => {
+  describe("Existing Test Data Parsing", () => {
+    test("parses sample-data.binpb correctly", async () => {
       // Load schema and data
-      const schemaBytes = loadDescriptor('sample.desc');
-      const dataBytes = loadBinaryData('sample-data.binpb');
+      const schemaBytes = loadDescriptor("sample.desc");
+      const dataBytes = loadBinaryData("sample-data.binpb");
 
       expect(dataBytes.length).toBe(143); // Known size from browser logs
 
@@ -55,29 +63,29 @@ describe('MessageValue System', () => {
       await editor.initialize({
         schemaDescriptor: schemaBytes,
         data: dataBytes,
-        typeName: '.example.Person'
+        typeName: ".example.Person",
       });
 
       const decodedData = editor.getDecodedData();
       expect(decodedData).toBeDefined();
-      expect(decodedData?.type.fullName).toBe('.example.Person');
+      expect(decodedData?.type.fullName).toBe(".example.Person");
 
       // Validate specific field values from known test data
       assertMessageValue(decodedData!, {
-        1: 'xxx',           // name
-        2: 1234,            // id
-        3: true,            // is_verified
-        4: 1,               // eye_color (BLUE)
+        1: "xxx", // name
+        2: 1234, // id
+        3: true, // is_verified
+        4: 1, // eye_color (BLUE)
       });
 
       // Check nested address
       const address = decodedData!.getField(5);
       expect(address).toBeDefined();
-      expect((address as any).type.fullName).toBe('.example.Address');
+      expect((address as any).type.fullName).toBe(".example.Address");
       assertMessageValue(address, {
-        1: '123 Main St',   // street
-        2: 'Anytown',       // city
-        3: '12345'          // zip_code
+        1: "123 Main St", // street
+        2: "Anytown", // city
+        3: "12345", // zip_code
       });
 
       // Check repeated phones
@@ -85,18 +93,18 @@ describe('MessageValue System', () => {
       expect(phones).toHaveLength(3);
 
       assertMessageValue(phones[0], {
-        1: '555-1234',      // number
-        2: 2                // type (HOME)
+        1: "555-1234", // number
+        2: 2, // type (HOME)
       });
 
       assertMessageValue(phones[1], {
-        1: '111222',        // number
-        2: 2                // type (HOME)
+        1: "111222", // number
+        2: 2, // type (HOME)
       });
 
       assertMessageValue(phones[2], {
-        1: '555-5678',      // number
-        2: 1                // type (MOBILE)
+        1: "555-5678", // number
+        2: 1, // type (MOBILE)
       });
 
       // Check repeated articles
@@ -104,23 +112,26 @@ describe('MessageValue System', () => {
       expect(articles).toHaveLength(2);
 
       assertMessageValue(articles[0], {
-        1: 'ttt',           // title
-        2: 'xxx',           // content
-        3: 'ddd',           // url
-        5: 222              // published_at
+        1: "ttt", // title
+        2: "xxx", // content
+        3: "ddd", // url
+        5: 222, // published_at
       });
 
       // Check first article tags
       const firstArticleTags = (articles[0] as any).getRepeatedField(4);
-      expect(firstArticleTags).toEqual(['aaa', 'bbb', 'ccc', 'ddd']);
+      expect(firstArticleTags).toEqual(["aaa", "bbb", "ccc", "ddd"]);
     });
   });
 
-  describe('Round-trip Serialization', () => {
-    test('creates, serializes, and parses back a comprehensive Person object', async () => {
+  describe("Round-trip Serialization", () => {
+    test("creates, serializes, and parses back a comprehensive Person object", async () => {
       // Load schema
-      const schemaBytes = loadDescriptor('sample.desc');
-      await editor.initialize({ schemaDescriptor: schemaBytes, data: new Uint8Array(0) });
+      const schemaBytes = loadDescriptor("sample.desc");
+      await editor.initialize({
+        schemaDescriptor: schemaBytes,
+        data: new Uint8Array(0),
+      });
 
       // Create a test Person using generated TypeScript bindings
       const testData = createTestPersonData();
@@ -139,7 +150,7 @@ describe('MessageValue System', () => {
       person.setAddress(address);
 
       // Create and set phone numbers
-      testData.phones.forEach(phoneData => {
+      testData.phones.forEach((phoneData) => {
         const phone = new PhoneNumber();
         phone.setNumber(phoneData.number);
         phone.setType(phoneData.type);
@@ -147,7 +158,7 @@ describe('MessageValue System', () => {
       });
 
       // Create and set articles
-      testData.articles.forEach(articleData => {
+      testData.articles.forEach((articleData) => {
         const article = new Article();
         article.setTitle(articleData.title);
         article.setContent(articleData.content);
@@ -164,11 +175,11 @@ describe('MessageValue System', () => {
 
       // Parse with our MessageValue system
       await editor.setData(serializedBytes);
-      editor.setCurrentType('.example.Person');
+      editor.setCurrentType(".example.Person");
 
       const messageValue = editor.getDecodedData();
       expect(messageValue).toBeDefined();
-      expect(messageValue?.type.fullName).toBe('.example.Person');
+      expect(messageValue?.type.fullName).toBe(".example.Person");
 
       // Validate all fields match our test data
       assertMessageValue(messageValue!, {
@@ -216,45 +227,45 @@ describe('MessageValue System', () => {
     });
   });
 
-  describe('MessageValue Methods', () => {
+  describe("MessageValue Methods", () => {
     let messageValue: any;
 
     beforeEach(async () => {
-      const schemaBytes = loadDescriptor('sample.desc');
-      const dataBytes = loadBinaryData('sample-data.binpb');
+      const schemaBytes = loadDescriptor("sample.desc");
+      const dataBytes = loadBinaryData("sample-data.binpb");
 
       await editor.initialize({
         schemaDescriptor: schemaBytes,
         data: dataBytes,
-        typeName: '.example.Person'
+        typeName: ".example.Person",
       });
 
       messageValue = editor.getDecodedData();
     });
 
-    test('getField() returns correct values', () => {
-      expect(messageValue.getField(1)).toBe('xxx');
+    test("getField() returns correct values", () => {
+      expect(messageValue.getField(1)).toBe("xxx");
       expect(messageValue.getField(2)).toBe(1234);
       expect(messageValue.getField(3)).toBe(true);
       expect(messageValue.getField(999)).toBeUndefined();
     });
 
-    test('getRepeatedField() returns correct arrays', () => {
+    test("getRepeatedField() returns correct arrays", () => {
       const phones = messageValue.getRepeatedField(6);
       expect(phones).toHaveLength(3);
-      expect(phones[0].getField(1)).toBe('555-1234');
+      expect(phones[0].getField(1)).toBe("555-1234");
 
       const nonExistentArray = messageValue.getRepeatedField(999);
       expect(nonExistentArray).toEqual([]);
     });
 
-    test('hasField() works correctly', () => {
+    test("hasField() works correctly", () => {
       expect(messageValue.hasField(1)).toBe(true);
       expect(messageValue.hasField(2)).toBe(true);
       expect(messageValue.hasField(999)).toBe(false);
     });
 
-    test('getSetFields() returns set field numbers', () => {
+    test("getSetFields() returns set field numbers", () => {
       const fieldNumbers = messageValue.getSetFields();
       expect(fieldNumbers).toContain(1);
       expect(fieldNumbers).toContain(2);
@@ -266,12 +277,12 @@ describe('MessageValue System', () => {
       expect(fieldNumbers).toHaveLength(7);
     });
 
-    test('modification tracking works', () => {
+    test("modification tracking works", () => {
       // Reset tracking first since parsing sets modified state
       messageValue.resetModifiedTracking();
       expect(messageValue.isModified()).toBe(false);
 
-      messageValue.setField(1, 'new name');
+      messageValue.setField(1, "new name");
       expect(messageValue.isModified()).toBe(true);
 
       const modifiedFields = messageValue.getModifiedFieldNumbers();
@@ -282,22 +293,25 @@ describe('MessageValue System', () => {
       expect(messageValue.isModified()).toBe(false);
     });
 
-    test('toObject() returns plain JavaScript object', () => {
+    test("toObject() returns plain JavaScript object", () => {
       const obj = messageValue.toObject();
-      expect(obj).toHaveProperty('name', 'xxx');
-      expect(obj).toHaveProperty('id', 1234);
-      expect(obj).toHaveProperty('is_verified', true);
-      expect(obj.address).toHaveProperty('street', '123 Main St');
+      expect(obj).toHaveProperty("name", "xxx");
+      expect(obj).toHaveProperty("id", 1234);
+      expect(obj).toHaveProperty("is_verified", true);
+      expect(obj.address).toHaveProperty("street", "123 Main St");
       expect(obj.phones).toHaveLength(3);
       expect(obj.articles).toHaveLength(2);
     });
   });
 
-  describe('Error Handling', () => {
-    test('handles invalid schema gracefully', async () => {
+  describe("Error Handling", () => {
+    test("handles invalid schema gracefully", async () => {
       const invalidBytes = new Uint8Array([1, 2, 3, 4]);
       try {
-        await editor.initialize({ schemaDescriptor: invalidBytes, data: new Uint8Array(0) });
+        await editor.initialize({
+          schemaDescriptor: invalidBytes,
+          data: new Uint8Array(0),
+        });
         // If no error, check if schema was actually loaded correctly
         const typeRegistry = editor.getTypeRegistry();
         expect(typeRegistry.size).toBe(0); // Should have no valid types
@@ -307,14 +321,17 @@ describe('MessageValue System', () => {
       }
     });
 
-    test('handles invalid data gracefully', async () => {
-      const schemaBytes = loadDescriptor('sample.desc');
-      await editor.initialize({ schemaDescriptor: schemaBytes, data: new Uint8Array(0) });
+    test("handles invalid data gracefully", async () => {
+      const schemaBytes = loadDescriptor("sample.desc");
+      await editor.initialize({
+        schemaDescriptor: schemaBytes,
+        data: new Uint8Array(0),
+      });
 
       const invalidBytes = new Uint8Array([1, 2, 3, 4]);
       try {
         await editor.setData(invalidBytes);
-        editor.setCurrentType('.example.Person');
+        editor.setCurrentType(".example.Person");
         // If no error thrown, check that decoding still works safely
         const decoded = editor.getDecodedData();
         // Should either be null or have minimal fields
@@ -324,9 +341,9 @@ describe('MessageValue System', () => {
       }
     });
 
-    test('handles missing type gracefully', () => {
+    test("handles missing type gracefully", () => {
       // setCurrentType may not throw, but just set the type without validation
-      editor.setCurrentType('.nonexistent.Type');
+      editor.setCurrentType(".nonexistent.Type");
       const decoded = editor.getDecodedData();
       // Should be null or undefined since the type doesn't exist
       expect(decoded).toBeNull();

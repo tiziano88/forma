@@ -1,11 +1,13 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import type { MessageValue, FieldDef } from '@lintx/core';
+  import { FieldType } from '@lintx/core';
   import ObjectViewer from './ObjectViewer.svelte';
   import PrimitiveInput from './PrimitiveInput.svelte';
 
   export let parent: MessageValue;
   export let fieldSchema: FieldDef;
+  export let editor: any; // StructuralEditor instance
 
   const dispatch = createEventDispatcher();
   const valueType = fieldSchema.typeName; // For message types
@@ -13,7 +15,10 @@
   $: items = parent.getRepeatedField(fieldSchema.number);
 
   function createDefaultObject() {
-    return {}; // Simple object for google-protobuf
+    if (valueType && editor) {
+      return editor.createEmptyMessage(valueType);
+    }
+    return null;
   }
 
   function addToArray() {
@@ -22,8 +27,25 @@
       newItem = createDefaultObject();
     } else {
       switch (fieldSchema.type) {
-        case 'TYPE_STRING': newItem = ''; break;
-        case 'TYPE_BOOL': newItem = false; break;
+        case FieldType.TYPE_STRING:
+          newItem = ''; break;
+        case FieldType.TYPE_BYTES:
+          newItem = new Uint8Array(); break;
+        case FieldType.TYPE_BOOL:
+          newItem = false; break;
+        case FieldType.TYPE_DOUBLE:
+        case FieldType.TYPE_FLOAT:
+        case FieldType.TYPE_INT64:
+        case FieldType.TYPE_UINT64:
+        case FieldType.TYPE_INT32:
+        case FieldType.TYPE_FIXED64:
+        case FieldType.TYPE_FIXED32:
+        case FieldType.TYPE_UINT32:
+        case FieldType.TYPE_SFIXED32:
+        case FieldType.TYPE_SFIXED64:
+        case FieldType.TYPE_SINT32:
+        case FieldType.TYPE_SINT64:
+          newItem = 0; break;
         default: newItem = 0; break;
       }
     }
@@ -70,7 +92,7 @@
           </div>
         </div>
         {#if valueType}
-          <ObjectViewer bind:object={items[i]} messageSchema={items[i].type} on:change={handleChange} />
+          <ObjectViewer bind:object={items[i]} messageSchema={items[i].type} editor={editor} on:change={handleChange} />
         {:else}
           <PrimitiveInput bind:value={items[i]} type={fieldSchema.type} id={`${fieldSchema.name}-${i}`} on:change={handleChange} />
         {/if}

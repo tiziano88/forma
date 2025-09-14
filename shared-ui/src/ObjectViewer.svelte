@@ -5,6 +5,7 @@
 
   export let object: MessageValue;
   export let messageSchema: MessageType;
+  export let editor: any; // StructuralEditor instance
 
   const dispatch = createEventDispatcher();
 
@@ -18,6 +19,7 @@
     <NodeViewer
       bind:parent={object}
       fieldSchema={field}
+      editor={editor}
       on:change={handleChange}
     />
   {/each}

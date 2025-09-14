@@ -31,6 +31,12 @@ export interface MessageType {
   fieldNameToNumber: Map<string, number>;
 }
 
+export interface EnumType {
+  fullName: string;
+  values: Map<number, string>; // number -> name mapping
+  valuesByName: Map<string, number>; // name -> number mapping
+}
+
 export type InterpretedValue = string | number | boolean | MessageValue;
 
 export interface MessageValue {

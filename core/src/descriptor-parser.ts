@@ -9,12 +9,14 @@ export interface ParsedFileDescriptorProto {
   name: string;
   packageName: string;
   messageTypes: ParsedDescriptorProto[];
+  enumTypes: ParsedEnumDescriptorProto[];
 }
 
 export interface ParsedDescriptorProto {
   name: string;
   fields: ParsedFieldDescriptorProto[];
   nestedTypes: ParsedDescriptorProto[];
+  enumTypes: ParsedEnumDescriptorProto[];
 }
 
 export interface ParsedFieldDescriptorProto {
@@ -23,6 +25,16 @@ export interface ParsedFieldDescriptorProto {
   label: FieldLabel;
   type: FieldType;
   typeName?: string;
+}
+
+export interface ParsedEnumDescriptorProto {
+  name: string;
+  values: ParsedEnumValueDescriptorProto[];
+}
+
+export interface ParsedEnumValueDescriptorProto {
+  name: string;
+  number: number;
 }
 
 export enum FieldType {
@@ -161,6 +173,7 @@ function parseFileDescriptorProto(bytes: Uint8Array): ParsedFileDescriptorProto 
   let name = '';
   let packageName = '';
   const messageTypes: ParsedDescriptorProto[] = [];
+  const enumTypes: ParsedEnumDescriptorProto[] = [];
 
   while (reader.hasMore()) {
     const tag = reader.readVarint();
@@ -190,13 +203,21 @@ function parseFileDescriptorProto(bytes: Uint8Array): ParsedFileDescriptorProto 
           reader.skipField(wireType);
         }
         break;
+      case 5: // enum_type
+        if (wireType === 2) {
+          const enumBytes = reader.readBytes();
+          enumTypes.push(parseEnumDescriptorProto(enumBytes));
+        } else {
+          reader.skipField(wireType);
+        }
+        break;
       default:
         reader.skipField(wireType);
         break;
     }
   }
 
-  return { name, packageName, messageTypes };
+  return { name, packageName, messageTypes, enumTypes };
 }
 
 function parseDescriptorProto(bytes: Uint8Array): ParsedDescriptorProto {
@@ -204,6 +225,7 @@ function parseDescriptorProto(bytes: Uint8Array): ParsedDescriptorProto {
   let name = '';
   const fields: ParsedFieldDescriptorProto[] = [];
   const nestedTypes: ParsedDescriptorProto[] = [];
+  const enumTypes: ParsedEnumDescriptorProto[] = [];
 
   while (reader.hasMore()) {
     const tag = reader.readVarint();
@@ -234,13 +256,21 @@ function parseDescriptorProto(bytes: Uint8Array): ParsedDescriptorProto {
           reader.skipField(wireType);
         }
         break;
+      case 4: // enum_type
+        if (wireType === 2) {
+          const enumBytes = reader.readBytes();
+          enumTypes.push(parseEnumDescriptorProto(enumBytes));
+        } else {
+          reader.skipField(wireType);
+        }
+        break;
       default:
         reader.skipField(wireType);
         break;
     }
   }
 
-  return { name, fields, nestedTypes };
+  return { name, fields, nestedTypes, enumTypes };
 }
 
 function parseFieldDescriptorProto(bytes: Uint8Array): ParsedFieldDescriptorProto {
@@ -299,4 +329,73 @@ function parseFieldDescriptorProto(bytes: Uint8Array): ParsedFieldDescriptorProt
   }
 
   return { name, number, label, type, typeName };
+}
+
+function parseEnumDescriptorProto(bytes: Uint8Array): ParsedEnumDescriptorProto {
+  const reader = new ProtobufReader(bytes);
+  let name = '';
+  const values: ParsedEnumValueDescriptorProto[] = [];
+
+  while (reader.hasMore()) {
+    const tag = reader.readVarint();
+    const fieldNumber = tag >>> 3;
+    const wireType = tag & 0x7;
+
+    switch (fieldNumber) {
+      case 1: // name
+        if (wireType === 2) {
+          name = reader.readString();
+        } else {
+          reader.skipField(wireType);
+        }
+        break;
+      case 2: // value
+        if (wireType === 2) {
+          const valueBytes = reader.readBytes();
+          values.push(parseEnumValueDescriptorProto(valueBytes));
+        } else {
+          reader.skipField(wireType);
+        }
+        break;
+      default:
+        reader.skipField(wireType);
+        break;
+    }
+  }
+
+  return { name, values };
+}
+
+function parseEnumValueDescriptorProto(bytes: Uint8Array): ParsedEnumValueDescriptorProto {
+  const reader = new ProtobufReader(bytes);
+  let name = '';
+  let number = 0;
+
+  while (reader.hasMore()) {
+    const tag = reader.readVarint();
+    const fieldNumber = tag >>> 3;
+    const wireType = tag & 0x7;
+
+    switch (fieldNumber) {
+      case 1: // name
+        if (wireType === 2) {
+          name = reader.readString();
+        } else {
+          reader.skipField(wireType);
+        }
+        break;
+      case 2: // number
+        if (wireType === 0) {
+          number = reader.readVarint();
+        } else {
+          reader.skipField(wireType);
+        }
+        break;
+      default:
+        reader.skipField(wireType);
+        break;
+    }
+  }
+
+  return { name, number };
 }

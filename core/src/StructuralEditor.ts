@@ -1,5 +1,5 @@
 import { parseFileDescriptorSet, ParsedDescriptorProto, ParsedFieldDescriptorProto, FieldType, FieldLabel } from './descriptor-parser';
-import { Bytes, EditorData, EditorEvent, EditorEventType, EventListener } from './types';
+import { Bytes, EditorData, EditorEvent, EditorEventType, EventListener, EnumType } from './types';
 import * as jspb from 'google-protobuf';
 
 // New two-layer IR system
@@ -18,6 +18,7 @@ interface MessageType {
 }
 
 type TypeRegistry = Map<string, MessageType>; // "full.name" -> MessageType
+type EnumRegistry = Map<string, EnumType>; // "full.name" -> EnumType
 
 type InterpretedValue = 
   | string 
@@ -284,6 +285,7 @@ export class StructuralEditor {
   private decodedData: MessageValue | null = null;
   private selectedTypeName: string | null = null;
   private typeRegistry: TypeRegistry = new Map();
+  private enumRegistry: EnumRegistry = new Map();
   private schemaLoaded: boolean = false;
 
   constructor() {
@@ -377,6 +379,10 @@ export class StructuralEditor {
     return this.typeRegistry;
   }
 
+  public getEnumRegistry = (): EnumRegistry => {
+    return this.enumRegistry;
+  }
+
   public getHexView = (source: 'original' | 'encoded' = 'encoded'): string => {
     const bytes = source === 'encoded' ? this.getEncodedBytes() : (this.dataBytes || new Uint8Array());
     return this.formatHex(bytes);
@@ -397,8 +403,10 @@ export class StructuralEditor {
     try {
       const descriptorSet = parseFileDescriptorSet(descriptorBytes);
       this.typeRegistry = this.buildFlatTypeRegistry(descriptorSet);
+      this.enumRegistry = this.buildEnumRegistry(descriptorSet);
       
       console.log('[Editor Core] Successfully loaded schema from descriptor. Found types:', Array.from(this.typeRegistry.keys()));
+      console.log('[Editor Core] Found enums:', Array.from(this.enumRegistry.keys()));
       
       // Debug: Print the TypeRegistry structure
       this.printTypeRegistry();
@@ -453,6 +461,64 @@ export class StructuralEditor {
       }
     }
     
+    return registry;
+  }
+
+  private buildEnumRegistry = (descriptorSet: any): EnumRegistry => {
+    const registry = new Map<string, EnumType>();
+
+    for (const file of descriptorSet.files) {
+      const packageName = file.packageName || '';
+
+      // Process top-level enums
+      for (const enumProto of file.enumTypes || []) {
+        const fullName = `.${packageName}.${enumProto.name}`;
+        const enumType: EnumType = {
+          fullName,
+          values: new Map(),
+          valuesByName: new Map()
+        };
+
+        for (const value of enumProto.values) {
+          enumType.values.set(value.number, value.name);
+          enumType.valuesByName.set(value.name, value.number);
+        }
+
+        registry.set(fullName, enumType);
+      }
+
+      // Recursively process nested enums in messages
+      const processMessage = (msg: ParsedDescriptorProto, parentName: string) => {
+        const fullName = parentName ? `${parentName}.${msg.name}` : `${packageName}.${msg.name}`;
+
+        // Process nested enums
+        for (const enumProto of msg.enumTypes || []) {
+          const enumFullName = `.${fullName}.${enumProto.name}`;
+          const enumType: EnumType = {
+            fullName: enumFullName,
+            values: new Map(),
+            valuesByName: new Map()
+          };
+
+          for (const value of enumProto.values) {
+            enumType.values.set(value.number, value.name);
+            enumType.valuesByName.set(value.name, value.number);
+          }
+
+          registry.set(enumFullName, enumType);
+        }
+
+        // Recursively process nested types
+        for (const nested of msg.nestedTypes) {
+          processMessage(nested, fullName);
+        }
+      };
+
+      for (const message of file.messageTypes) {
+        processMessage(message, packageName);
+      }
+    }
+
     return registry;
   }
 
@@ -612,6 +678,14 @@ export class StructuralEditor {
       }
     }
     console.log('=== End MessageValue ===\n');
+  }
+
+  createEmptyMessage(typeName: string): MessageValue | null {
+    const messageType = this.typeRegistry.get(typeName);
+    if (!messageType) {
+      return null;
+    }
+    return new MessageValueImpl(messageType);
   }
 
   private formatHex = (data: Uint8Array, cols = 16): string => {
