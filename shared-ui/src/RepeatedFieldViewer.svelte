@@ -10,7 +10,7 @@
   const dispatch = createEventDispatcher();
   const valueType = fieldSchema.typeName; // For message types
 
-  $: items = parent.getFieldArray(fieldSchema.number);
+  $: items = parent.getRepeatedField(fieldSchema.number);
 
   function createDefaultObject() {
     return {}; // Simple object for google-protobuf
@@ -27,24 +27,27 @@
         default: newItem = 0; break;
       }
     }
-    const currentItems = parent.getFieldArray(fieldSchema.number);
-    parent.setFieldArray(fieldSchema.number, [...currentItems, newItem]);
+    const currentItems = parent.getRepeatedField(fieldSchema.number);
+    parent.addRepeatedField(fieldSchema.number, newItem);
     dispatch('change');
   }
 
   function removeItem(index: number) {
-    const currentItems = parent.getFieldArray(fieldSchema.number);
-    parent.setFieldArray(fieldSchema.number, currentItems.filter((_, i) => i !== index));
+    const currentItems = parent.getRepeatedField(fieldSchema.number);
+    const newItems = currentItems.filter((_, i) => i !== index);
+    parent.clearField(fieldSchema.number);
+    newItems.forEach(item => parent.addRepeatedField(fieldSchema.number, item));
     dispatch('change');
   }
 
   function moveItem(index: number, direction: 'up' | 'down') {
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= items.length) return;
-    const currentItems = parent.getFieldArray(fieldSchema.number);
+    const currentItems = parent.getRepeatedField(fieldSchema.number);
     const newArray = [...currentItems];
     [newArray[index], newArray[newIndex]] = [newArray[newIndex], newArray[index]];
-    parent.setFieldArray(fieldSchema.number, newArray);
+    parent.clearField(fieldSchema.number);
+    newArray.forEach(item => parent.addRepeatedField(fieldSchema.number, item));
     dispatch('change');
   }
 

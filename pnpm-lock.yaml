@@ -21,6 +21,9 @@ importers:
 
   core:
     dependencies:
+      '@types/mocha':
+        specifier: ^10.0.10
+        version: 10.0.10
       google-protobuf:
         specifier: ^3.21.2
         version: 3.21.4
@@ -32,7 +35,7 @@ importers:
         specifier: ^3.15.12
         version: 3.15.12
       '@types/jest':
-        specifier: ^29.5.12
+        specifier: ^29.5.14
         version: 29.5.14
       '@types/long':
         specifier: ^5.0.0
@@ -977,6 +980,9 @@ packages:
   '@types/long@5.0.0':
     resolution: {integrity: sha512-eQs9RsucA/LNjnMoJvWG/nXa7Pot/RbBzilF/QRIU/xRl+0ApxrSUFsV5lmf01SvSlqMzJ7Zwxe440wmz2SJGA==}
     deprecated: This is a stub types definition. long provides its own type definitions, so you do not need this installed.
+
+  '@types/mocha@10.0.10':
+    resolution: {integrity: sha512-xPyYSz1cMPnJQhl0CLMH68j3gprKZaTjG3s5Vi+fDgx+uhG9NOXwbVt52eFS8ECyXhyKcjDLCBEqBExKuiZb7Q==}
 
   '@types/node@20.19.13':
     resolution: {integrity: sha512-yCAeZl7a0DxgNVteXFHt9+uyFbqXGy/ShC4BlcHkoE0AfGXYv/BUiplV72DjMYXHDBXFjhvr6DD1NiRVfB4j8g==}
@@ -3953,6 +3959,8 @@ snapshots:
   '@types/long@5.0.0':
     dependencies:
       long: 5.3.2
+
+  '@types/mocha@10.0.10': {}
 
   '@types/node@20.19.13':
     dependencies:

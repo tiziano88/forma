@@ -3,7 +3,8 @@ import { loadDescriptor, loadBinaryData, createTestPersonData, assertMessageValu
 
 // Import generated protobuf bindings for canonical objects
 // Note: The generated files use a nested path structure
-const { Person, Address, PhoneNumber, Article } = require('../generated/test/web-app/public/sample_pb');
+import * as sampleProto from '../generated/test/web-app/public/sample_pb';
+const { Person, Address, PhoneNumber, Article } = sampleProto;
 
 describe('MessageValue System', () => {
   let editor: StructuralEditor;

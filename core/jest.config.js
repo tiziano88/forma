@@ -25,5 +25,7 @@ module.exports = {
   // Allow importing generated protobuf files
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1'
-  }
+  },
+  // Fix TypeScript configuration for Jest globals
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js']
 };

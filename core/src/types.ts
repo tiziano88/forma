@@ -39,12 +39,15 @@ export interface MessageValue {
   modifiedFields: Set<number>;
 
   getField<T extends InterpretedValue>(fieldNumber: number): T | undefined;
-  getFieldArray<T extends InterpretedValue>(fieldNumber: number): T[];
+  getRepeatedField<T extends InterpretedValue>(fieldNumber: number): T[];
   setField<T extends InterpretedValue>(fieldNumber: number, value: T): void;
-  setFieldArray<T extends InterpretedValue>(fieldNumber: number, values: T[]): void;
-  hasField(fieldNumber: number): boolean;
+  addRepeatedField<T extends InterpretedValue>(fieldNumber: number, value: T): void;
   clearField(fieldNumber: number): void;
-  getAllFieldNumbers(): number[];
-  isModified(fieldNumber: number): boolean;
+  hasField(fieldNumber: number): boolean;
+  getSetFields(): number[];
   toObject(): Record<string, any>;
+  toBytes(): Uint8Array;
+  isModified(): boolean;
+  getModifiedFieldNumbers(): number[];
+  resetModifiedTracking(): void;
 }

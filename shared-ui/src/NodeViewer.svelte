@@ -9,14 +9,24 @@
   export let fieldSchema: FieldDef;
 
   const dispatch = createEventDispatcher();
+  let value: any;
 
   // A set of well-known or custom types that require special UI handling.
   const SPECIAL_CASED_TYPES = new Set([
     '.google.protobuf.Timestamp',
   ]);
 
-  $: value = parent.getField(fieldSchema.number);
-  $: isRepeated = fieldSchema.label === 'repeated';
+  $: isRepeated = fieldSchema.label === 3; // LABEL_REPEATED
+  $: {
+    console.log(`[NodeViewer] Field ${fieldSchema.number} (${fieldSchema.name}): label=${fieldSchema.label}, isRepeated=${isRepeated}`);
+    if (isRepeated) {
+      console.log(`[NodeViewer] Using getRepeatedField for field ${fieldSchema.number}`);
+      value = parent.getRepeatedField(fieldSchema.number);
+    } else {
+      console.log(`[NodeViewer] Using getField for field ${fieldSchema.number}`);
+      value = parent.getField(fieldSchema.number);
+    }
+  }
   $: isSpecialCased = fieldSchema.typeName && SPECIAL_CASED_TYPES.has(fieldSchema.typeName);
 
   function handleChange() {
@@ -44,7 +54,7 @@
           fieldSchema={fieldSchema}
           on:change={handleChange}
         />
-      {:else if value}
+      {:else if value && value.type}
         <ObjectViewer
           bind:object={value}
           messageSchema={value.type}
