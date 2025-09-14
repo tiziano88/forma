@@ -1,50 +1,55 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import * as protobuf from 'protobufjs';
+  import type { MessageValue, FieldDef } from '@lintx/core';
   import ObjectViewer from './ObjectViewer.svelte';
   import PrimitiveInput from './PrimitiveInput.svelte';
 
-  export let items: any[];
-  export let field: protobuf.Field;
+  export let parent: MessageValue;
+  export let fieldSchema: FieldDef;
 
   const dispatch = createEventDispatcher();
-  const valueType = field.resolvedType as protobuf.Type | undefined;
+  const valueType = fieldSchema.typeName; // For message types
 
-  function createDefaultObject(messageType: protobuf.Type) {
-    return (messageType as any).toObject({}, { defaults: true, enums: String });
+  $: items = parent.getFieldArray(fieldSchema.number);
+
+  function createDefaultObject() {
+    return {}; // Simple object for google-protobuf
   }
 
   function addToArray() {
     let newItem;
     if (valueType) {
-      newItem = createDefaultObject(valueType);
+      newItem = createDefaultObject();
     } else {
-      switch (field.type) {
-        case 'string': newItem = ''; break;
-        case 'bool': newItem = false; break;
+      switch (fieldSchema.type) {
+        case 'TYPE_STRING': newItem = ''; break;
+        case 'TYPE_BOOL': newItem = false; break;
         default: newItem = 0; break;
       }
     }
-    items = [...(items || []), newItem];
-    dispatch('change', items);
+    const currentItems = parent.getFieldArray(fieldSchema.number);
+    parent.setFieldArray(fieldSchema.number, [...currentItems, newItem]);
+    dispatch('change');
   }
 
   function removeItem(index: number) {
-    items = items.filter((_, i) => i !== index);
-    dispatch('change', items);
+    const currentItems = parent.getFieldArray(fieldSchema.number);
+    parent.setFieldArray(fieldSchema.number, currentItems.filter((_, i) => i !== index));
+    dispatch('change');
   }
 
   function moveItem(index: number, direction: 'up' | 'down') {
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= items.length) return;
-    const newArray = [...items];
+    const currentItems = parent.getFieldArray(fieldSchema.number);
+    const newArray = [...currentItems];
     [newArray[index], newArray[newIndex]] = [newArray[newIndex], newArray[index]];
-    items = newArray;
-    dispatch('change', items);
+    parent.setFieldArray(fieldSchema.number, newArray);
+    dispatch('change');
   }
 
   function handleChange() {
-    dispatch('change', items);
+    dispatch('change');
   }
 </script>
 
@@ -62,9 +67,9 @@
           </div>
         </div>
         {#if valueType}
-          <ObjectViewer bind:object={items[i]} type={valueType} on:change={handleChange} />
+          <ObjectViewer bind:object={items[i]} messageSchema={items[i].type} on:change={handleChange} />
         {:else}
-          <PrimitiveInput bind:value={items[i]} type={field.type} id={`${field.name}-${i}`} on:change={handleChange} />
+          <PrimitiveInput bind:value={items[i]} type={fieldSchema.type} id={`${fieldSchema.name}-${i}`} on:change={handleChange} />
         {/if}
       </div>
     {/each}

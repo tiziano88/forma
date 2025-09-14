@@ -9,5 +9,8 @@
   "devDependencies": {
     "fs-extra": "^11.1.1",
     "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "ts-protoc-gen": "^0.15.0"
   }
 }

@@ -7,11 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "generate-wkt": "node scripts/generate-wkt-desc.cjs"
   },
   "dependencies": {
     "@lintx/core": "workspace:*",
-    "protobufjs": "^7.5.3",
+    "google-protobuf": "^3.21.2",
     "shared-ui": "workspace:*"
   },
   "devDependencies": {

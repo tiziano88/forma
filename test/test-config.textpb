@@ -1,6 +1,0 @@
-files {
-  data: "data.binpb"
-  schema: "lintx.proto"
-  schema_descriptor: "../vscode-extension/media/schemas/config.desc"
-  type: "forma.config.Config"
-}

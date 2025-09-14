@@ -1,3 +1,4 @@
+// DEPRECATED: This utility script still uses protobufjs
 const protobuf = require('protobufjs');
 const fs = require('fs');
 const path = require('path');

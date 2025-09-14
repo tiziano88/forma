@@ -1,37 +1,23 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import * as protobuf from 'protobufjs';
+  import type { MessageValue, FieldDef } from '@lintx/core';
   import ObjectViewer from './ObjectViewer.svelte';
   import PrimitiveInput from './PrimitiveInput.svelte';
   import RepeatedFieldViewer from './RepeatedFieldViewer.svelte';
 
-  export let parent: any;
-  export let key: string | number;
-  export let type: protobuf.Type | undefined;
+  export let parent: MessageValue;
+  export let fieldSchema: FieldDef;
 
   const dispatch = createEventDispatcher();
 
-  $: value = parent[key];
-  $: field = type && type.fields ? type.fields[key.toString()] : undefined;
-  $: valueType = (field?.resolvedType) as protobuf.Type | undefined;
-  
-  // For static types without field metadata, make educated guesses
-  $: isArray = Array.isArray(value);
-  $: isObjectValue = value !== null && typeof value === 'object' && !Array.isArray(value);
+  // A set of well-known or custom types that require special UI handling.
+  const SPECIAL_CASED_TYPES = new Set([
+    '.google.protobuf.Timestamp',
+  ]);
 
-  function isObject(val: any) {
-    return val !== null && typeof val === 'object' && !Array.isArray(val);
-  }
-
-  function createDefaultObject(messageType: protobuf.Type) {
-    return (messageType as any).toObject({}, { defaults: true, enums: String });
-  }
-
-  function addOptionalField() {
-    if (!valueType) return;
-    parent[key] = createDefaultObject(valueType);
-    dispatch('change');
-  }
+  $: value = parent.getField(fieldSchema.number);
+  $: isRepeated = fieldSchema.label === 'repeated';
+  $: isSpecialCased = fieldSchema.typeName && SPECIAL_CASED_TYPES.has(fieldSchema.typeName);
 
   function handleChange() {
     dispatch('change');
@@ -40,59 +26,44 @@
 
 <div class="rounded-lg border-2 border-primary/20 overflow-hidden">
   <div class="bg-base-300 px-3 py-1">
-    <label class="label-text font-bold text-primary" for={key.toString()}>{key}</label>
-    {#if field}
-      <span class="text-xs opacity-70 ml-2">
-        (type: {field.type}, repeated: {!!field.repeated}, resolved: {field.resolvedType?.name || 'none'})
-      </span>
-    {:else}
-      <span class="text-xs opacity-70 ml-2">(no field metadata)</span>
-    {/if}
+    <label class="label-text font-bold text-primary">{fieldSchema.name}</label>
+    <span class="text-xs opacity-70 ml-2">
+      (type: {fieldSchema.typeName || fieldSchema.type})
+    </span>
   </div>
   <div class="p-2 bg-base-100">
-    {#if field?.repeated}
-      <RepeatedFieldViewer bind:items={parent[key]} {field} on:change={handleChange} />
-    {:else if valueType && isObject(value)}
-      <ObjectViewer bind:object={value} type={valueType} on:change={handleChange} />
-    {:else if valueType && value === undefined}
-      <button class="btn btn-xs btn-outline btn-accent" on:click={addOptionalField}>+ Add {key}</button>
-    {:else if field?.resolvedType instanceof protobuf.Enum}
-      <select class="select select-sm select-bordered w-full" bind:value={parent[key]} id={key.toString()} on:change={handleChange}>
-        {#each Object.keys(field.resolvedType.values) as enumName}
-          <option value={enumName}>{enumName}</option>
-        {/each}
-      </select>
-    {:else if field}
-      <PrimitiveInput bind:value={parent[key]} type={field.type} id={key.toString()} on:change={handleChange} />
-    {:else if isArray}
-      <!-- Handle arrays without field metadata (for static types) -->
-      <div class="space-y-2">
-        {#each value as item, i}
-          <div class="card bg-base-200 shadow-sm">
-            <div class="card-body p-3">
-              <div class="flex justify-between items-center mb-2">
-                <span class="font-medium">{key}[{i}]</span>
-                <button class="btn btn-xs btn-error" on:click={() => { value.splice(i, 1); value = value; handleChange(); }}>Remove</button>
-              </div>
-              {#if isObject(item)}
-                <ObjectViewer bind:object={item} type={undefined} on:change={handleChange} />
-              {:else}
-                <input class="input input-sm input-bordered w-full" bind:value={item} on:input={handleChange} />
-              {/if}
-            </div>
-          </div>
-        {/each}
-        <button class="btn btn-xs btn-outline btn-primary" on:click={() => { value.push({}); value = value; handleChange(); }}>+ Add Item</button>
+    {#if isSpecialCased}
+      <div class="flex items-center gap-2 p-2 bg-base-200 rounded-md">
+        <span class="text-xl">⏰</span>
+        <span class="text-sm italic opacity-70">Timestamp (not yet editable)</span>
       </div>
-    {:else if isObjectValue}
-      <!-- Handle objects without field metadata (for static types) -->
-      <ObjectViewer bind:object={value} type={undefined} on:change={handleChange} />
-    {:else if value !== undefined}
-      <!-- Handle primitive values without field metadata -->
-      <input class="input input-sm input-bordered w-full" bind:value={parent[key]} on:input={handleChange} />
+    {:else if fieldSchema.typeName && fieldSchema.typeName.startsWith('.')}
+      {#if isRepeated}
+        <RepeatedFieldViewer
+          bind:parent={parent}
+          fieldSchema={fieldSchema}
+          on:change={handleChange}
+        />
+      {:else if value}
+        <ObjectViewer
+          bind:object={value}
+          messageSchema={value.type}
+          on:change={handleChange}
+        />
+      {:else}
+        <div class="text-sm opacity-70 italic">No value</div>
+      {/if}
     {:else}
-      <!-- No value and no field metadata -->
-      <div class="text-gray-500 italic">No data</div>
+      {#if isRepeated}
+        <RepeatedFieldViewer
+          bind:parent={parent}
+          fieldSchema={fieldSchema}
+          on:change={handleChange}
+        />
+      {:else}
+        <PrimitiveInput bind:value={value} type={fieldSchema.type} id={fieldSchema.name}
+                       on:change={(e) => { parent.setField(fieldSchema.number, e.detail); handleChange(); }} />
+      {/if}
     {/if}
   </div>
 </div>

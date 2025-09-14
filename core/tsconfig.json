@@ -15,6 +15,9 @@
     "src"
   ],
   "exclude": [
-    "src/schema.js"
+    "src/schema.js",
+    "src/generated/**/*.d.ts",
+    "src/__tests__/**/*.test.ts",
+    "src/test-utils.ts"
   ]
 }

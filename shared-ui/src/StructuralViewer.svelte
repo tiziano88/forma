@@ -1,10 +1,10 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import type { MessageValue, MessageType } from '@lintx/core';
   import ObjectViewer from './ObjectViewer.svelte';
-  import type * as protobuf from 'protobufjs';
 
-  export let rootMessageType: protobuf.Type | null;
-  export let decodedData: any;
+  export let decodedData: MessageValue | null;
+  export let rootMessageType: MessageType | null;
   export let availableTypes: string[];
   export let currentType: string | null;
   export let hexView: string;
@@ -45,7 +45,13 @@
 
   <div class="card bg-base-100 shadow-xl">
     <div class="card-body p-4">
-      <ObjectViewer object={decodedData} type={rootMessageType} on:change={handleDataChange} />
+      {#if decodedData && rootMessageType}
+        <ObjectViewer
+          object={decodedData}
+          messageSchema={rootMessageType}
+          on:change={handleDataChange}
+        />
+      {/if}
     </div>
   </div>
 

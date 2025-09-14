@@ -1,8 +1,8 @@
 import {
-  IFileDescriptorSet,
-  IDescriptorProto,
-  IFieldDescriptorProto,
-} from './proto-types';
+  ParsedFileDescriptorSet,
+  ParsedDescriptorProto,
+  ParsedFieldDescriptorProto,
+} from './descriptor-parser';
 
 /**
  * Extracts all message descriptors from a FileDescriptorSet.
@@ -12,20 +12,19 @@ import {
  * @returns A flat array of all message descriptors (IDescriptorProto).
  */
 export function getMessages(
-  fileDescriptorSet: IFileDescriptorSet
-): IDescriptorProto[] {
-  const messages: IDescriptorProto[] = [];
+  fileDescriptorSet: ParsedFileDescriptorSet
+): ParsedDescriptorProto[] {
+  const messages: ParsedDescriptorProto[] = [];
 
-  function findMessagesIn(items: IDescriptorProto[] | undefined | null) {
-    if (!items) return;
+  function findMessagesIn(items: ParsedDescriptorProto[]) {
     for (const message of items) {
       messages.push(message);
-      findMessagesIn(message.nestedType);
+      findMessagesIn(message.nestedTypes);
     }
   }
 
-  for (const file of fileDescriptorSet.file) {
-    findMessagesIn(file.messageType);
+  for (const file of fileDescriptorSet.files) {
+    findMessagesIn(file.messageTypes);
   }
 
   return messages;
@@ -37,6 +36,6 @@ export function getMessages(
  * @param message The message descriptor.
  * @returns An array of field descriptors (IFieldDescriptorProto).
  */
-export function getFields(message: IDescriptorProto): IFieldDescriptorProto[] {
-  return (message.field as IFieldDescriptorProto[]) || [];
+export function getFields(message: ParsedDescriptorProto): ParsedFieldDescriptorProto[] {
+  return message.fields || [];
 }

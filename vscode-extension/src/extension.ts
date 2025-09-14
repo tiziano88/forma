@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import * as protobuf from "protobufjs";
-import "protobufjs/ext/descriptor";
+import { Config } from "@lintx/core";
 
 class StructuralDocument implements vscode.CustomDocument {
   private readonly _uri: vscode.Uri;
@@ -270,36 +269,7 @@ async function resolveSessionFromConfig(
   context: vscode.ExtensionContext
 ): Promise<{ typeName?: string; schemaDescriptor?: Uint8Array }> {
   outputChannel.appendLine(`[CONFIG] Resolving session for: ${target.fsPath}`);
-  const baseName = path.basename(target.fsPath);
-
-  // Special case: if the file is named config.forma.binpb, use the bundled schema.
-  if (baseName === "config.forma.binpb") {
-    outputChannel.appendLine(
-      "[CONFIG] Matched special config file. Using bundled schema."
-    );
-    try {
-      const descriptorUri = vscode.Uri.joinPath(
-        context.extensionUri,
-        "media",
-        "schemas",
-        "config.desc"
-      );
-      const schemaDescriptor = await vscode.workspace.fs.readFile(descriptorUri);
-      outputChannel.appendLine(
-        `[CONFIG] Loaded bundled schema descriptor: ${descriptorUri.fsPath}`
-      );
-      return {
-        typeName: "forma.config.Config",
-        schemaDescriptor,
-      };
-    } catch (e) {
-      outputChannel.appendLine(
-        `[CONFIG] Error loading bundled schema descriptor: ${e}`
-      );
-      return {};
-    }
-  }
-
+  
   // Look for a config.forma.binpb file in the workspace root for mappings.
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (workspaceFolders) {
@@ -307,84 +277,38 @@ async function resolveSessionFromConfig(
     const configUri = vscode.Uri.joinPath(workspaceRoot, "config.forma.binpb");
     try {
       const configBytes = await vscode.workspace.fs.readFile(configUri);
-      outputChannel.appendLine(
-        `[CONFIG] Found config file: ${configUri.fsPath}`
-      );
+      outputChannel.appendLine(`[CONFIG] Found config file: ${configUri.fsPath}`);
 
-      // To decode the config, we need its schema. Load the bundled descriptor.
-      const descriptorUri = vscode.Uri.joinPath(
-        context.extensionUri,
-        "media",
-        "schemas",
-        "config.desc"
-      );
-      const configDescriptorBytes = await vscode.workspace.fs.readFile(
-        descriptorUri
-      );
-      const root = (protobuf.Root as any).fromDescriptor(
-        configDescriptorBytes
-      );
-      const configType = root.lookupType("forma.config.Config");
+      const decodedConfig = Config.decode(configBytes);
+      outputChannel.appendLine(`[CONFIG] Decoded config: ${JSON.stringify(decodedConfig, null, 2)}`);
 
-      let decodedConfig;
-      try {
-        decodedConfig = configType.decode(configBytes);
-        outputChannel.appendLine(
-          `[CONFIG] Decoded config: ${JSON.stringify(decodedConfig, null, 2)}`
-        );
-      } catch (decodeError) {
-        outputChannel.appendLine(`[CONFIG] Decode error: ${decodeError}`);
-        return {};
-      }
-
-      if (decodedConfig && decodedConfig.files) {
-        for (const mapping of decodedConfig.files) {
-          const dataUri = vscode.Uri.joinPath(
-            workspaceRoot,
-            mapping.data || ""
-          );
-          if (dataUri.fsPath === target.fsPath) {
-            outputChannel.appendLine(
-              `[CONFIG] Found mapping for: ${target.fsPath}`
-            );
-
-            // Load binary schema descriptor if specified
-            let schemaDescriptor: Uint8Array | undefined;
-            if (mapping.schema_descriptor) {
-              try {
-                const descriptorUri = vscode.Uri.joinPath(
-                  workspaceRoot,
-                  mapping.schema_descriptor
-                );
-                schemaDescriptor = await vscode.workspace.fs.readFile(
-                  descriptorUri
-                );
-                outputChannel.appendLine(
-                  `[CONFIG] Loaded schema descriptor: ${descriptorUri.fsPath}`
-                );
-              } catch (e) {
-                outputChannel.appendLine(
-                  `[CONFIG] Error loading schema descriptor: ${e}`
-                );
-              }
+      for (const mapping of decodedConfig.files) {
+        const dataUri = vscode.Uri.joinPath(workspaceRoot, mapping.data || "");
+        if (dataUri.fsPath === target.fsPath) {
+          outputChannel.appendLine(`[CONFIG] Found mapping for: ${target.fsPath}`);
+          
+          let schemaDescriptor: Uint8Array | undefined;
+          if (mapping.schemaDescriptor) {
+            try {
+              const descriptorUri = vscode.Uri.joinPath(workspaceRoot, mapping.schemaDescriptor);
+              schemaDescriptor = await vscode.workspace.fs.readFile(descriptorUri);
+              outputChannel.appendLine(`[CONFIG] Loaded schema descriptor: ${descriptorUri.fsPath}`);
+            } catch (e) {
+              outputChannel.appendLine(`[CONFIG] Error loading schema descriptor: ${e}`);
             }
-
-            return {
-              typeName: mapping.type || undefined,
-              schemaDescriptor,
-            };
           }
+          
+          return { 
+            typeName: mapping.type || undefined, 
+            schemaDescriptor 
+          };
         }
       }
     } catch (e) {
-      outputChannel.appendLine(
-        `[CONFIG] Error reading or parsing config file: ${e}`
-      );
+      outputChannel.appendLine(`[CONFIG] Error reading or parsing config file: ${e}`);
     }
   }
 
-  outputChannel.appendLine(
-    `[CONFIG] No configuration found. User will need to select type manually.`
-  );
+  outputChannel.appendLine(`[CONFIG] No configuration found. User will need to select type manually.`);
   return {};
 }

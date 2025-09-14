@@ -1,3 +1,4 @@
+// DEPRECATED: This utility script still uses protobufjs
 import protobuf from 'protobufjs';
 import fs from 'fs';
 import path from 'path';

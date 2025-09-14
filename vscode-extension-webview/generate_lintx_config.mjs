@@ -1,4 +1,5 @@
-// Generate a binary .lintx config using protobufjs
+// DEPRECATED: Generate a binary .lintx config using protobufjs
+// This script still uses protobufjs for utility purposes only
 // Usage examples:
 //  - Single mapping:
 //    node structural-editor/generate_lintx_config.mjs --data a.bin --schema a.proto --type pkg.Root --out lintx.lintx

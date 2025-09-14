@@ -11,10 +11,10 @@
     dispatch('change', value);
   }
 
-  const numericTypes = new Set(['double', 'float', 'int32', 'uint32', 'sint32', 'fixed32', 'sfixed32', 'int64', 'uint64', 'sint64', 'fixed64', 'sfixed64']);
+  const numericTypes = new Set(['TYPE_DOUBLE', 'TYPE_FLOAT', 'TYPE_INT32', 'TYPE_UINT32', 'TYPE_SINT32', 'TYPE_FIXED32', 'TYPE_SFIXED32', 'TYPE_INT64', 'TYPE_UINT64', 'TYPE_SINT64', 'TYPE_FIXED64', 'TYPE_SFIXED64']);
 </script>
 
-{#if type === 'bool'}
+{#if type === 'TYPE_BOOL'}
   <input type="checkbox" class="checkbox checkbox-sm checkbox-primary" bind:checked={value} id={id.toString()} on:change={handleChange} />
 {:else if numericTypes.has(type)}
   <input type="number" class="input input-sm input-bordered w-full" bind:value={value} id={id.toString()} on:input={handleChange} />

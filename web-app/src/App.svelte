@@ -1,13 +1,14 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { StructuralViewer } from 'shared-ui';
-  import { StructuralEditor } from '@lintx/core';
+  import { onMount } from "svelte";
+  import { StructuralViewer } from "shared-ui";
+  import { StructuralEditor } from "@lintx/core";
+  // Removed protobufjs imports - now using google-protobuf via core package
 
   const editor = new StructuralEditor();
 
-  let schemaFileName = 'No schema loaded';
-  let dataFileName = 'No data loaded';
-  let errorMessage = '';
+  let schemaFileName = "No schema loaded";
+  let dataFileName = "No data loaded";
+  let errorMessage = "";
   let editorState: any = null;
 
   let schemaFileHandle: FileSystemFileHandle | null = null;
@@ -15,20 +16,26 @@
 
   // --- UI Event Handlers ---
 
-  async function loadFile(kind: 'schema' | 'data') {
-    errorMessage = '';
+  async function loadFile(kind: "schema" | "data") {
+    errorMessage = "";
     try {
       const [handle] = await (window as any).showOpenFilePicker({
-        types: [{
-          description: kind === 'schema' ? 'Protobuf Schema' : 'Protobuf Data',
-          accept: { 'application/octet-stream': kind === 'schema' ? ['.proto', '.desc'] : ['.bin', '.binpb'] },
-        }],
+        types: [
+          {
+            description:
+              kind === "schema" ? "Protobuf Schema" : "Protobuf Data",
+            accept: {
+              "application/octet-stream":
+                kind === "schema" ? [".proto", ".desc"] : [".bin", ".binpb"],
+            },
+          },
+        ],
         multiple: false,
       });
 
       const file = await handle.getFile();
-      if (kind === 'schema') {
-        if (file.name.endsWith('.desc')) {
+      if (kind === "schema") {
+        if (file.name.endsWith(".desc")) {
           const buffer = await file.arrayBuffer();
           await editor.setSchemaDescriptor(new Uint8Array(buffer));
         } else {
@@ -44,27 +51,32 @@
         dataFileHandle = handle;
       }
     } catch (err: any) {
-      if (err.name !== 'AbortError') {
+      if (err.name !== "AbortError") {
         errorMessage = err?.message || String(err);
       }
     }
   }
 
-  async function loadSampleData() {
-    errorMessage = '';
+
+  async function loadTestSample() {
+    errorMessage = "";
     try {
-      const schemaRes = await fetch('/sample.proto');
-      const dataRes = await fetch('/sample.binpb');
-      const sample = {
-        schema: await schemaRes.text(),
-        data: new Uint8Array(await dataRes.arrayBuffer()),
-      };
+      const [schemaRes, dataRes] = await Promise.all([
+        fetch("/sample.desc"),
+        fetch("/sample-data.binpb"),
+      ]);
+
+      const schemaDesc = new Uint8Array(await schemaRes.arrayBuffer());
+      const dataBytes = new Uint8Array(await dataRes.arrayBuffer());
+
       await editor.initialize({
-        schemaText: sample.schema,
-        data: sample.data,
+        schemaDescriptor: schemaDesc,
+        data: dataBytes,
+        typeName: ".example.Person",
       });
-      schemaFileName = 'sample.proto';
-      dataFileName = 'sample.binpb';
+
+      schemaFileName = "sample.desc";
+      dataFileName = "sample-data.binpb";
       schemaFileHandle = null;
       dataFileHandle = null;
     } catch (err: any) {
@@ -73,9 +85,9 @@
   }
 
   async function onSave() {
-    errorMessage = '';
+    errorMessage = "";
     if (!dataFileHandle) {
-      alert('Please load a data file first to enable saving.');
+      alert("Please load a data file first to enable saving.");
       return;
     }
     try {
@@ -83,7 +95,7 @@
       const writable = await dataFileHandle.createWritable();
       await writable.write(bytes);
       await writable.close();
-      alert('File saved successfully!');
+      alert("File saved successfully!");
     } catch (err: any) {
       errorMessage = err?.message || String(err);
     }
@@ -97,20 +109,20 @@
       rootMessageType: editor.getRootMessageType(),
       availableTypes: editor.getAvailableTypes(),
       currentType: editor.getCurrentType(),
-      hexView: editor.getHexView('encoded'),
-      originalHexView: editor.getHexView('original'),
+      hexView: editor.getHexView("encoded"),
+      originalHexView: editor.getHexView("original"),
       isReady: !!editor.getDecodedData(),
     };
-    console.log('[WebApp] Editor state updated:', editorState);
+    console.log("[WebApp] Editor state updated:", editorState);
   }
 
-  editor.on('change', () => {
-    errorMessage = '';
+  editor.on("change", () => {
+    errorMessage = "";
     updateState();
   });
 
-  editor.on('error', (event) => {
-    errorMessage = event.payload?.message || 'An unknown error occurred.';
+  editor.on("error", (event) => {
+    errorMessage = event.payload?.message || "An unknown error occurred.";
     updateState();
   });
 
@@ -120,15 +132,16 @@
     // This is a workaround for Vite dev server to serve these files.
     const setupSampleFiles = async () => {
       try {
-        await fetch('/sample.proto');
-        await fetch('/sample.binpb');
+        await fetch("/sample.proto");
+        await fetch("/sample.binpb");
       } catch {
-        console.warn("Sample files not found. You may need to copy them to the 'public' directory of the 'web-app' package.");
+        console.warn(
+          "Sample files not found. You may need to copy them to the 'public' directory of the 'web-app' package."
+        );
       }
     };
     setupSampleFiles();
   });
-
 </script>
 
 <div class="p-4 sm:p-6 lg:p-8">
@@ -139,12 +152,20 @@
       </div>
       <div class="flex-none gap-2">
         <div class="tooltip" data-tip={schemaFileName}>
-          <button class="btn btn-sm btn-outline" on:click={() => loadFile('schema')}>Load Schema</button>
+          <button
+            class="btn btn-sm btn-outline"
+            on:click={() => loadFile("schema")}>Load Schema</button
+          >
         </div>
         <div class="tooltip" data-tip={dataFileName}>
-          <button class="btn btn-sm btn-outline" on:click={() => loadFile('data')}>Load Data</button>
+          <button
+            class="btn btn-sm btn-outline"
+            on:click={() => loadFile("data")}>Load Data</button
+          >
         </div>
-        <button class="btn btn-sm btn-accent" on:click={loadSampleData}>Load Sample</button>
+        <button class="btn btn-sm btn-secondary" on:click={loadTestSample}
+          >Load Test Sample</button
+        >
       </div>
     </div>
 
@@ -170,7 +191,9 @@
       <div class="card bg-base-200 shadow-xl">
         <div class="card-body items-center text-center">
           <h2 class="card-title">Editor Not Ready</h2>
-          <p class="opacity-70">Load both a schema and data file to begin editing.</p>
+          <p class="opacity-70">
+            Load both a schema and data file to begin editing.
+          </p>
         </div>
       </div>
     {/if}
