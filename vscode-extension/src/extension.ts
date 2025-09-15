@@ -269,7 +269,23 @@ async function resolveSessionFromConfig(
   context: vscode.ExtensionContext
 ): Promise<{ typeName?: string; schemaDescriptor?: Uint8Array }> {
   outputChannel.appendLine(`[CONFIG] Resolving session for: ${target.fsPath}`);
-  
+
+  // If the target file is exactly "config.forma.binpb", use the built-in schema
+  if (path.basename(target.fsPath) === "config.forma.binpb") {
+    outputChannel.appendLine(`[CONFIG] Target is config.forma.binpb, using built-in schema`);
+    try {
+      const schemaPath = vscode.Uri.joinPath(context.extensionUri, "media", "schemas", "config.desc");
+      const schemaDescriptor = await vscode.workspace.fs.readFile(schemaPath);
+      outputChannel.appendLine(`[CONFIG] Loaded built-in schema descriptor: ${schemaPath.fsPath}`);
+      return {
+        typeName: ".forma.config.Config",
+        schemaDescriptor
+      };
+    } catch (e) {
+      outputChannel.appendLine(`[CONFIG] Error loading built-in schema: ${e}`);
+    }
+  }
+
   // Look for a config.forma.binpb file in the workspace root for mappings.
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (workspaceFolders) {
