@@ -1,5 +1,5 @@
-import { parseFileDescriptorSet, ParsedDescriptorProto, ParsedFieldDescriptorProto, FieldType, FieldLabel } from './descriptor-parser';
-import { Bytes, EditorData, EditorEvent, EditorEventType, EventListener, EnumType } from './types';
+import { parseFileDescriptorSet, ParsedDescriptorProto, ParsedFieldDescriptorProto, FieldType, FieldLabel } from './descriptor-parser.js';
+import { Bytes, EditorData, EditorEvent, EditorEventType, EventListener, EnumType } from './types.js';
 import * as jspb from 'google-protobuf';
 
 // New two-layer IR system

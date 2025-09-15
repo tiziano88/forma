@@ -1,5 +1,8 @@
 export type Bytes = Uint8Array;
 
+// Runtime constant to ensure this module generates JS output
+export const TYPES_MODULE_VERSION = '1.0.0';
+
 export interface EditorData {
   data: Bytes;
   typeName?: string | null;
