@@ -1,13 +1,259 @@
-import { parseFileDescriptorSet, ParsedDescriptorProto, ParsedFieldDescriptorProto, FieldType, FieldLabel } from './descriptor-parser.js';
 import { Bytes, EditorData, EditorEvent, EditorEventType, EventListener, EnumType } from './types.js';
 import * as jspb from 'google-protobuf';
+
+// Field type and label enums (from protobuf descriptor.proto)
+export enum FieldType {
+  TYPE_DOUBLE = 1,
+  TYPE_FLOAT = 2,
+  TYPE_INT64 = 3,
+  TYPE_UINT64 = 4,
+  TYPE_INT32 = 5,
+  TYPE_FIXED64 = 6,
+  TYPE_FIXED32 = 7,
+  TYPE_BOOL = 8,
+  TYPE_STRING = 9,
+  TYPE_GROUP = 10,
+  TYPE_MESSAGE = 11,
+  TYPE_BYTES = 12,
+  TYPE_UINT32 = 13,
+  TYPE_ENUM = 14,
+  TYPE_SFIXED32 = 15,
+  TYPE_SFIXED64 = 16,
+  TYPE_SINT32 = 17,
+  TYPE_SINT64 = 18,
+}
+
+export enum FieldLabel {
+  LABEL_OPTIONAL = 1,
+  LABEL_REQUIRED = 2,
+  LABEL_REPEATED = 3,
+}
+
+export type FieldTypeEnum = FieldType;
+export type FieldLabelEnum = FieldLabel;
+
+// Simple interfaces for descriptor parsing
+interface ParsedFileDescriptorSet {
+  files: ParsedFileDescriptorProto[];
+}
+
+interface ParsedFileDescriptorProto {
+  name: string;
+  packageName: string;
+  messageTypes: ParsedDescriptorProto[];
+  enumTypes: ParsedEnumDescriptorProto[];
+}
+
+interface ParsedDescriptorProto {
+  name: string;
+  fields: ParsedFieldDescriptorProto[];
+  nestedTypes: ParsedDescriptorProto[];
+  enumTypes: ParsedEnumDescriptorProto[];
+}
+
+interface ParsedFieldDescriptorProto {
+  name: string;
+  number: number;
+  label: FieldLabel;
+  type: FieldType;
+  typeName?: string;
+}
+
+interface ParsedEnumDescriptorProto {
+  name: string;
+  values: ParsedEnumValueDescriptorProto[];
+}
+
+interface ParsedEnumValueDescriptorProto {
+  name: string;
+  number: number;
+}
+
+// Use google-protobuf BinaryReader to parse descriptor set
+function parseFileDescriptorSet(bytes: Uint8Array): ParsedFileDescriptorSet {
+  const reader = new jspb.BinaryReader(bytes);
+  const files: ParsedFileDescriptorProto[] = [];
+
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) break;
+
+    const fieldNumber = reader.getFieldNumber();
+    if (fieldNumber === 1) { // file field
+      const fileBytes = reader.readBytes();
+      files.push(parseFileDescriptorProto(fileBytes));
+    } else {
+      reader.skipField();
+    }
+  }
+
+  return { files };
+}
+
+function parseFileDescriptorProto(bytes: Uint8Array): ParsedFileDescriptorProto {
+  const reader = new jspb.BinaryReader(bytes);
+  let name = '';
+  let packageName = '';
+  const messageTypes: ParsedDescriptorProto[] = [];
+  const enumTypes: ParsedEnumDescriptorProto[] = [];
+
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) break;
+
+    const fieldNumber = reader.getFieldNumber();
+    switch (fieldNumber) {
+      case 1: // name
+        name = reader.readString();
+        break;
+      case 2: // package
+        packageName = reader.readString();
+        break;
+      case 4: // message_type
+        const msgBytes = reader.readBytes();
+        messageTypes.push(parseDescriptorProto(msgBytes));
+        break;
+      case 5: // enum_type
+        const enumBytes = reader.readBytes();
+        enumTypes.push(parseEnumDescriptorProto(enumBytes));
+        break;
+      default:
+        reader.skipField();
+        break;
+    }
+  }
+
+  return { name, packageName, messageTypes, enumTypes };
+}
+
+function parseDescriptorProto(bytes: Uint8Array): ParsedDescriptorProto {
+  const reader = new jspb.BinaryReader(bytes);
+  let name = '';
+  const fields: ParsedFieldDescriptorProto[] = [];
+  const nestedTypes: ParsedDescriptorProto[] = [];
+  const enumTypes: ParsedEnumDescriptorProto[] = [];
+
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) break;
+
+    const fieldNumber = reader.getFieldNumber();
+    switch (fieldNumber) {
+      case 1: // name
+        name = reader.readString();
+        break;
+      case 2: // field
+        const fieldBytes = reader.readBytes();
+        fields.push(parseFieldDescriptorProto(fieldBytes));
+        break;
+      case 3: // nested_type
+        const nestedBytes = reader.readBytes();
+        nestedTypes.push(parseDescriptorProto(nestedBytes));
+        break;
+      case 4: // enum_type
+        const enumBytes = reader.readBytes();
+        enumTypes.push(parseEnumDescriptorProto(enumBytes));
+        break;
+      default:
+        reader.skipField();
+        break;
+    }
+  }
+
+  return { name, fields, nestedTypes, enumTypes };
+}
+
+function parseFieldDescriptorProto(bytes: Uint8Array): ParsedFieldDescriptorProto {
+  const reader = new jspb.BinaryReader(bytes);
+  let name = '';
+  let number = 0;
+  let label = FieldLabel.LABEL_OPTIONAL;
+  let type = FieldType.TYPE_STRING;
+  let typeName: string | undefined;
+
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) break;
+
+    const fieldNumber = reader.getFieldNumber();
+    switch (fieldNumber) {
+      case 1: // name
+        name = reader.readString();
+        break;
+      case 3: // number
+        number = reader.readInt32();
+        break;
+      case 4: // label
+        label = reader.readEnum() as FieldLabel;
+        break;
+      case 5: // type
+        type = reader.readEnum() as FieldType;
+        break;
+      case 6: // type_name
+        typeName = reader.readString();
+        break;
+      default:
+        reader.skipField();
+        break;
+    }
+  }
+
+  return { name, number, label, type, typeName };
+}
+
+function parseEnumDescriptorProto(bytes: Uint8Array): ParsedEnumDescriptorProto {
+  const reader = new jspb.BinaryReader(bytes);
+  let name = '';
+  const values: ParsedEnumValueDescriptorProto[] = [];
+
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) break;
+
+    const fieldNumber = reader.getFieldNumber();
+    switch (fieldNumber) {
+      case 1: // name
+        name = reader.readString();
+        break;
+      case 2: // value
+        const valueBytes = reader.readBytes();
+        values.push(parseEnumValueDescriptorProto(valueBytes));
+        break;
+      default:
+        reader.skipField();
+        break;
+    }
+  }
+
+  return { name, values };
+}
+
+function parseEnumValueDescriptorProto(bytes: Uint8Array): ParsedEnumValueDescriptorProto {
+  const reader = new jspb.BinaryReader(bytes);
+  let name = '';
+  let number = 0;
+
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) break;
+
+    const fieldNumber = reader.getFieldNumber();
+    switch (fieldNumber) {
+      case 1: // name
+        name = reader.readString();
+        break;
+      case 2: // number
+        number = reader.readInt32();
+        break;
+      default:
+        reader.skipField();
+        break;
+    }
+  }
+
+  return { name, number };
+}
 
 // New two-layer IR system
 interface FieldDef {
   name: string;
   number: number;
-  type: FieldType;
-  label: FieldLabel;
+  type: FieldTypeEnum;
+  label: FieldLabelEnum;
   typeName?: string; // Always fully qualified for MESSAGE types
 }
 
@@ -417,24 +663,24 @@ export class StructuralEditor {
     }
   }
 
-  private buildFlatTypeRegistry = (descriptorSet: any): TypeRegistry => {
+  private buildFlatTypeRegistry = (descriptorSet: ParsedFileDescriptorSet): TypeRegistry => {
     const registry = new Map<string, MessageType>();
-    
+
     for (const file of descriptorSet.files) {
       const packageName = file.packageName || '';
-      
+
       // Recursively process all message types, flattening them
       const processMessage = (msg: ParsedDescriptorProto, parentName: string) => {
         const fullName = parentName ? `${parentName}.${msg.name}` : `${packageName}.${msg.name}`;
         // Add leading dot for consistency with protobuf naming convention
         const fullNameWithDot = `.${fullName}`;
-        
+
         const messageType: MessageType = {
           fullName: fullNameWithDot,
           fields: new Map(),
           fieldNameToNumber: new Map()
         };
-        
+
         // Process fields
         for (const field of msg.fields) {
           const fieldDef: FieldDef = {
@@ -444,27 +690,28 @@ export class StructuralEditor {
             label: field.label,
             typeName: field.typeName // Already fully qualified by protobuf parser
           };
+
           messageType.fields.set(field.number, fieldDef);
           messageType.fieldNameToNumber.set(field.name, field.number);
         }
-        
+
         registry.set(fullNameWithDot, messageType);
-        
+
         // Recursively process nested types (they become top-level in registry)
         for (const nested of msg.nestedTypes) {
           processMessage(nested, fullName);
         }
       };
-      
+
       for (const message of file.messageTypes) {
         processMessage(message, packageName);
       }
     }
-    
+
     return registry;
   }
 
-  private buildEnumRegistry = (descriptorSet: any): EnumRegistry => {
+  private buildEnumRegistry = (descriptorSet: ParsedFileDescriptorSet): EnumRegistry => {
     const registry = new Map<string, EnumType>();
 
     for (const file of descriptorSet.files) {
@@ -528,7 +775,7 @@ export class StructuralEditor {
       console.log(`\nMessageType: ${typeName}`);
       console.log('  Fields:');
       for (const [fieldNumber, fieldDef] of messageType.fields) {
-        const typeStr = fieldDef.typeName || `${FieldType[fieldDef.type]}`;
+        const typeStr = fieldDef.typeName || `TYPE_${fieldDef.type}`;
         const labelStr = fieldDef.label === FieldLabel.LABEL_REPEATED ? 'repeated ' : '';
         console.log(`    ${fieldNumber}: ${labelStr}${typeStr} ${fieldDef.name}`);
       }

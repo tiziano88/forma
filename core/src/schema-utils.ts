@@ -1,30 +1,31 @@
-import {
-  ParsedFileDescriptorSet,
-  ParsedDescriptorProto,
-  ParsedFieldDescriptorProto,
-} from './descriptor-parser';
+import * as descriptor_pb from './generated/config/descriptor_pb.js';
+import type {
+  FileDescriptorSet,
+  DescriptorProto,
+  FieldDescriptorProto,
+} from './generated/config/descriptor_pb.js';
 
 /**
  * Extracts all message descriptors from a FileDescriptorSet.
  * This function recursively finds nested messages.
  *
  * @param fileDescriptorSet The descriptor set, typically from a .desc file.
- * @returns A flat array of all message descriptors (IDescriptorProto).
+ * @returns A flat array of all message descriptors (DescriptorProto).
  */
 export function getMessages(
-  fileDescriptorSet: ParsedFileDescriptorSet
-): ParsedDescriptorProto[] {
-  const messages: ParsedDescriptorProto[] = [];
+  fileDescriptorSet: FileDescriptorSet
+): DescriptorProto[] {
+  const messages: DescriptorProto[] = [];
 
-  function findMessagesIn(items: ParsedDescriptorProto[]) {
+  function findMessagesIn(items: DescriptorProto[]) {
     for (const message of items) {
       messages.push(message);
-      findMessagesIn(message.nestedTypes);
+      findMessagesIn(message.getNestedTypeList());
     }
   }
 
-  for (const file of fileDescriptorSet.files) {
-    findMessagesIn(file.messageTypes);
+  for (const file of fileDescriptorSet.getFileList()) {
+    findMessagesIn(file.getMessageTypeList());
   }
 
   return messages;
@@ -34,8 +35,8 @@ export function getMessages(
  * Extracts all field descriptors from a message descriptor.
  *
  * @param message The message descriptor.
- * @returns An array of field descriptors (IFieldDescriptorProto).
+ * @returns An array of field descriptors (FieldDescriptorProto).
  */
-export function getFields(message: ParsedDescriptorProto): ParsedFieldDescriptorProto[] {
-  return message.fields || [];
+export function getFields(message: DescriptorProto): FieldDescriptorProto[] {
+  return message.getFieldList();
 }
