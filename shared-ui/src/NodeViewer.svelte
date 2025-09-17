@@ -23,12 +23,9 @@
 
   $: isRepeated = fieldSchema.label === FieldLabel.LABEL_REPEATED;
   $: {
-    console.log(`[NodeViewer] Field ${fieldSchema.number} (${fieldSchema.name}): label=${fieldSchema.label}, isRepeated=${isRepeated}`);
     if (isRepeated) {
-      console.log(`[NodeViewer] Using getRepeatedField for field ${fieldSchema.number}`);
       value = parent.getRepeatedField(fieldSchema.number);
     } else {
-      console.log(`[NodeViewer] Using getField for field ${fieldSchema.number}`);
       value = parent.getField(fieldSchema.number);
     }
   }
@@ -186,8 +183,6 @@
           <button
             class="btn btn-sm btn-outline btn-accent"
             on:click={() => {
-              console.log('[NodeViewer] Button clicked! Creating message for:', fieldSchema.typeName);
-
               if (!fieldSchema.typeName || !editor) {
                 console.error('Cannot create message: missing typeName or editor');
                 return;
@@ -201,9 +196,7 @@
               }
 
               parent.setField(fieldSchema.number, newMessage);
-              console.log('[NodeViewer] About to call handleChange from slot');
               handleChange();
-              console.log('[NodeViewer] handleChange called successfully');
             }}
             title="Create new {fieldSchema.typeName} message"
           >

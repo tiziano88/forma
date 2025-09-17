@@ -10,9 +10,7 @@
   const dispatch = createEventDispatcher();
 
   function handleChange() {
-    console.log('[FieldCard] handleChange called, dispatching change event');
     dispatch('change');
-    console.log('[FieldCard] change event dispatched');
   }
 </script>
 
