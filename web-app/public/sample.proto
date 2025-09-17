@@ -38,6 +38,10 @@ message Article {
   int64 published_at = 5; // Timestamp in seconds since epoch.
 }
 
+message CatDetails {
+  int64 age_years = 1;
+}
+
 // A person profile.
 message Person {
   string name = 1;
@@ -47,4 +51,6 @@ message Person {
   Address address = 5;
   repeated PhoneNumber phones = 6;
   repeated Article articles = 7;
+
+  map<string, CatDetails> cats = 8;
 }

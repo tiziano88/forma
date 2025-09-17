@@ -52,6 +52,28 @@
     parent.setField(fieldSchema.number, newValue);
     handleChange();
   }
+
+  function createMessageValue() {
+    if (!fieldSchema.typeName || !editor) {
+      console.error('Cannot create message: missing typeName or editor');
+      return;
+    }
+
+    const newMessage = editor.createEmptyMessage(fieldSchema.typeName);
+    if (newMessage === null) {
+      console.error(`Failed to create empty message for type: ${fieldSchema.typeName}`);
+      console.log('Available types:', editor.getAvailableTypes());
+      return;
+    }
+
+    parent.setField(fieldSchema.number, newMessage);
+    handleChange();
+  }
+
+  function clearMessageValue() {
+    parent.clearField(fieldSchema.number);
+    handleChange();
+  }
 </script>
 
 <div class="rounded-lg border-2 border-primary/20 overflow-hidden">
@@ -110,14 +132,32 @@
           on:change={handleChange}
         />
       {:else if value && value.type}
-        <ObjectViewer
-          bind:object={value}
-          messageSchema={value.type}
-          editor={editor}
-          on:change={handleChange}
-        />
+        <div class="space-y-2">
+          <ObjectViewer
+            bind:object={value}
+            messageSchema={value.type}
+            editor={editor}
+            on:change={handleChange}
+          />
+          <button
+            class="btn btn-xs btn-outline btn-error"
+            on:click={clearMessageValue}
+            title="Clear this message"
+          >
+            Clear
+          </button>
+        </div>
       {:else}
-        <div class="text-sm opacity-70 italic">No value</div>
+        <div class="flex items-center gap-2">
+          <div class="text-sm opacity-70 italic">No value</div>
+          <button
+            class="btn btn-xs btn-outline btn-accent"
+            on:click={createMessageValue}
+            title="Create new {fieldSchema.typeName} message"
+          >
+            + Create
+          </button>
+        </div>
       {/if}
     {:else}
       {#if isRepeated}

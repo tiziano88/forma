@@ -26,7 +26,9 @@
               kind === "schema" ? "Protobuf Schema" : "Protobuf Data",
             accept: {
               "application/octet-stream":
-                kind === "schema" ? [".proto", ".desc", ".proto.bin"] : [".bin", ".binpb"],
+                kind === "schema"
+                  ? [".proto", ".desc", ".proto.bin"]
+                  : [".bin", ".binpb"],
             },
           },
         ],
@@ -57,13 +59,14 @@
     }
   }
 
-
   async function loadTestSample() {
     errorMessage = "";
     try {
       const [schemaRes, dataRes] = await Promise.all([
-        fetch("/sample.desc"),
-        fetch("/sample-data.binpb"),
+        // fetch("/sample.desc"),
+        // fetch("/sample-data.binpb"),
+        fetch("/rv.binpb"),
+        fetch("/data.binpb"),
       ]);
 
       const schemaDesc = new Uint8Array(await schemaRes.arrayBuffer());
@@ -72,7 +75,8 @@
       await editor.initialize({
         schemaDescriptor: schemaDesc,
         data: dataBytes,
-        typeName: ".example.Person",
+        // typeName: ".example.Person",
+        typeName: ".oak.attestation.v1.ReferenceValues",
       });
 
       schemaFileName = "sample.desc";
@@ -183,7 +187,7 @@
         currentType={editorState.currentType}
         hexView={editorState.hexView}
         originalHexView={editorState.originalHexView}
-        editor={editor}
+        {editor}
         on:save={onSave}
         on:change={(e) => editor.updateDecodedData(e.detail)}
         on:typechange={(e) => editor.setCurrentType(e.detail)}

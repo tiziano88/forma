@@ -16,7 +16,12 @@
 
   function createDefaultObject() {
     if (valueType && editor) {
-      return editor.createEmptyMessage(valueType);
+      const message = editor.createEmptyMessage(valueType);
+      if (message === null) {
+        console.error(`Failed to create empty message for type: ${valueType}`);
+        console.log('Available types:', editor.getAvailableTypes());
+      }
+      return message;
     }
     return null;
   }
@@ -25,6 +30,10 @@
     let newItem;
     if (valueType) {
       newItem = createDefaultObject();
+      if (newItem === null) {
+        console.error(`Cannot add item: failed to create message of type ${valueType}`);
+        return;
+      }
     } else {
       switch (fieldSchema.type) {
         case FieldType.TYPE_STRING:

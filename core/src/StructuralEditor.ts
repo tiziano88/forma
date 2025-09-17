@@ -476,7 +476,7 @@ class MessageValueImpl implements MessageValue {
         }
         break;
       case FieldType.TYPE_MESSAGE:
-        if (typeof value !== 'object' || !('type' in value) || !('fields' in value)) {
+        if (typeof value !== 'object' || value === null || !('type' in value) || !('fields' in value)) {
           throw new Error(`Field ${fieldDef.name} expects MessageValue, got ${typeof value}`);
         }
         break;
