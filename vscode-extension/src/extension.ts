@@ -146,11 +146,7 @@ class StructuralEditorProvider
             );
             const initPayload = await prepareInitPayload(document, session);
             this._outputChannel.appendLine(
-              `[INIT] Sending initWithConfig with payload: ${JSON.stringify(
-                initPayload,
-                null,
-                2
-              )}`
+              `[INIT] Sending initWithConfig with typeName: ${initPayload.typeName}, schemaDescriptor: ${initPayload.schemaDescriptor ? `${initPayload.schemaDescriptor.length} bytes` : 'none'}, data: ${initPayload.data ? `${initPayload.data.length} bytes` : 'none'}`
             );
             webviewPanel.webview.postMessage({
               type: "initWithConfig",
