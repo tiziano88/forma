@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-  import type { MessageValue, FieldDef } from '@lintx/core';
-  import { FieldType } from '@lintx/core';
-  import ValueItem from './ValueItem.svelte';
-  import ObjectViewer from './ObjectViewer.svelte';
-  import PrimitiveInput from './PrimitiveInput.svelte';
+  import { createEventDispatcher } from "svelte";
+  import type { MessageValue, FieldDef } from "@lintx/core";
+  import { FieldType } from "@lintx/core";
+  import ValueItem from "./ValueItem.svelte";
+  import ObjectViewer from "./ObjectViewer.svelte";
+  import PrimitiveInput from "./PrimitiveInput.svelte";
 
   export let parent: MessageValue;
   export let fieldSchema: FieldDef;
@@ -24,11 +24,15 @@
       const message = editor.createEmptyMessage(valueType);
       if (message === null) {
         console.error(`Failed to create empty message for type: ${valueType}`);
-        console.log('Available types:', editor.getAvailableTypes());
+        console.log("Available types:", editor.getAvailableTypes());
       }
       return message;
+    } else {
+      console.log(
+        `cannot create default object: valueType: ${valueType}, editor: ${editor}`
+      );
+      return null;
     }
-    return null;
   }
 
   function addToArray() {
@@ -36,17 +40,22 @@
     if (valueType) {
       newItem = createDefaultObject();
       if (newItem === null) {
-        console.error(`Cannot add item: failed to create message of type ${valueType}`);
+        console.error(
+          `Cannot add item: failed to create message of type ${valueType}`
+        );
         return;
       }
     } else {
       switch (fieldSchema.type) {
         case FieldType.TYPE_STRING:
-          newItem = ''; break;
+          newItem = "";
+          break;
         case FieldType.TYPE_BYTES:
-          newItem = new Uint8Array(); break;
+          newItem = new Uint8Array();
+          break;
         case FieldType.TYPE_BOOL:
-          newItem = false; break;
+          newItem = false;
+          break;
         case FieldType.TYPE_DOUBLE:
         case FieldType.TYPE_FLOAT:
         case FieldType.TYPE_INT64:
@@ -59,21 +68,26 @@
         case FieldType.TYPE_SFIXED64:
         case FieldType.TYPE_SINT32:
         case FieldType.TYPE_SINT64:
-          newItem = 0; break;
-        default: newItem = 0; break;
+          newItem = 0;
+          break;
+        default:
+          newItem = 0;
+          break;
       }
     }
     const currentItems = parent.getRepeatedField(fieldSchema.number);
     parent.addRepeatedField(fieldSchema.number, newItem);
-    dispatch('change');
+    dispatch("change");
   }
 
   function removeItem(index: number) {
     const currentItems = parent.getRepeatedField(fieldSchema.number);
     const newItems = currentItems.filter((_, i) => i !== index);
     parent.clearField(fieldSchema.number);
-    newItems.forEach(item => parent.addRepeatedField(fieldSchema.number, item));
-    dispatch('change');
+    newItems.forEach((item) =>
+      parent.addRepeatedField(fieldSchema.number, item)
+    );
+    dispatch("change");
   }
 
   function handleRemoveItem(event: CustomEvent) {
@@ -83,27 +97,32 @@
 
   function handleMoveUp(event: CustomEvent) {
     const { index } = event.detail;
-    moveItem(index, 'up');
+    moveItem(index, "up");
   }
 
   function handleMoveDown(event: CustomEvent) {
     const { index } = event.detail;
-    moveItem(index, 'down');
+    moveItem(index, "down");
   }
 
-  function moveItem(index: number, direction: 'up' | 'down') {
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
+  function moveItem(index: number, direction: "up" | "down") {
+    const newIndex = direction === "up" ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= items.length) return;
     const currentItems = parent.getRepeatedField(fieldSchema.number);
     const newArray = [...currentItems];
-    [newArray[index], newArray[newIndex]] = [newArray[newIndex], newArray[index]];
+    [newArray[index], newArray[newIndex]] = [
+      newArray[newIndex],
+      newArray[index],
+    ];
     parent.clearField(fieldSchema.number);
-    newArray.forEach(item => parent.addRepeatedField(fieldSchema.number, item));
-    dispatch('change');
+    newArray.forEach((item) =>
+      parent.addRepeatedField(fieldSchema.number, item)
+    );
+    dispatch("change");
   }
 
   function handleChange() {
-    dispatch('change');
+    dispatch("change");
   }
 </script>
 
@@ -124,7 +143,7 @@
           <ObjectViewer
             bind:object={items[i]}
             messageSchema={items[i].type}
-            editor={editor}
+            {editor}
             on:change={handleChange}
           />
         {:else}
