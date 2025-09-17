@@ -64,9 +64,11 @@ class StructuralEditorProvider
     context: vscode.ExtensionContext,
     outputChannel: vscode.OutputChannel
   ): vscode.Disposable {
+    outputChannel.appendLine("[REGISTER] Registering custom editor provider for viewType: forma.structuralEditor");
+    const provider = new StructuralEditorProvider(context, outputChannel);
     return vscode.window.registerCustomEditorProvider(
       "forma.structuralEditor",
-      new StructuralEditorProvider(context, outputChannel),
+      provider,
       {
         webviewOptions: { retainContextWhenHidden: true },
         supportsMultipleEditorsPerDocument: false,
@@ -86,9 +88,11 @@ class StructuralEditorProvider
   ) {}
 
   async openCustomDocument(uri: vscode.Uri): Promise<StructuralDocument> {
+    this._outputChannel.appendLine(`[OPEN] Opening custom document: ${uri.fsPath}`);
     let data: Uint8Array;
     try {
       data = await vscode.workspace.fs.readFile(uri);
+      this._outputChannel.appendLine(`[OPEN] Successfully read ${data.length} bytes from ${uri.fsPath}`);
     } catch (e) {
       this._outputChannel.appendLine(`[ERROR] Could not read file: ${uri.fsPath}. ${e}`);
       data = new Uint8Array();
@@ -131,31 +135,37 @@ class StructuralEditorProvider
     });
 
     webviewPanel.webview.onDidReceiveMessage(async (msg) => {
-      switch (msg.type) {
-        case "ready": {
-          const session = await resolveSessionFromConfig(
-            document.uri,
-            this._outputChannel,
-            this._context
-          );
-          const initPayload = await prepareInitPayload(document, session);
-          this._outputChannel.appendLine(
-            `[INIT] Sending initWithConfig with payload: ${JSON.stringify(
-              initPayload,
-              null,
-              2
-            )}`
-          );
-          webviewPanel.webview.postMessage({
-            type: "initWithConfig",
-            payload: initPayload,
-          });
-          break;
-        }
+      try {
+        switch (msg.type) {
+          case "ready": {
+            this._outputChannel.appendLine(`[READY] Received ready message for ${document.uri.fsPath}`);
+            const session = await resolveSessionFromConfig(
+              document.uri,
+              this._outputChannel,
+              this._context
+            );
+            const initPayload = await prepareInitPayload(document, session);
+            this._outputChannel.appendLine(
+              `[INIT] Sending initWithConfig with payload: ${JSON.stringify(
+                initPayload,
+                null,
+                2
+              )}`
+            );
+            webviewPanel.webview.postMessage({
+              type: "initWithConfig",
+              payload: initPayload,
+            });
+            break;
+          }
         case "contentChanged": {
           document.makeEdit(new Uint8Array(msg.payload));
           break;
         }
+        }
+      } catch (error) {
+        this._outputChannel.appendLine(`[ERROR] Error handling message ${msg.type}: ${error}`);
+        console.error("Extension error:", error);
       }
     });
   }
@@ -200,13 +210,54 @@ class StructuralEditorProvider
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  const outputChannel = vscode.window.createOutputChannel("Forma");
+  const outputChannel = vscode.window.createOutputChannel("Forma Structural Editor");
   outputChannel.appendLine("Forma extension is activating.");
+  outputChannel.show(); // Show the output channel immediately
   context.subscriptions.push(outputChannel);
 
-  context.subscriptions.push(
-    StructuralEditorProvider.register(context, outputChannel)
-  );
+  try {
+    const provider = StructuralEditorProvider.register(context, outputChannel);
+    context.subscriptions.push(provider);
+
+    // Register command handlers
+    context.subscriptions.push(
+      vscode.commands.registerCommand('forma.openStructuralEditor', async () => {
+        outputChannel.appendLine("[COMMAND] Opening structural editor command triggered");
+        const uris = await vscode.window.showOpenDialog({
+          canSelectMany: false,
+          openLabel: 'Open with Structural Editor',
+          filters: {
+            'Binary Files': ['bin', 'binpb'],
+            'All Files': ['*']
+          }
+        });
+        if (uris && uris.length > 0) {
+          const uri = uris[0];
+          outputChannel.appendLine(`[COMMAND] Opening file: ${uri.fsPath}`);
+          await vscode.commands.executeCommand('vscode.openWith', uri, 'forma.structuralEditor');
+        }
+      })
+    );
+
+    context.subscriptions.push(
+      vscode.commands.registerCommand('forma.openForActiveFile', async () => {
+        outputChannel.appendLine("[COMMAND] Open for active file command triggered");
+        const activeEditor = vscode.window.activeTextEditor;
+        if (activeEditor) {
+          const uri = activeEditor.document.uri;
+          outputChannel.appendLine(`[COMMAND] Opening active file: ${uri.fsPath}`);
+          await vscode.commands.executeCommand('vscode.openWith', uri, 'forma.structuralEditor');
+        } else {
+          vscode.window.showInformationMessage('No active file to open with Structural Editor');
+        }
+      })
+    );
+
+    outputChannel.appendLine("Forma extension activated successfully.");
+  } catch (error) {
+    outputChannel.appendLine(`Error during activation: ${error}`);
+    throw error;
+  }
 }
 
 async function getWebviewHtml(
