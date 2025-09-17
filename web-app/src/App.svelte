@@ -28,7 +28,7 @@
               "application/octet-stream":
                 kind === "schema"
                   ? [".proto", ".desc", ".proto.bin"]
-                  : [".bin", ".binpb"],
+                  : [".bin", ".binpb", ".binarypb"],
             },
           },
         ],

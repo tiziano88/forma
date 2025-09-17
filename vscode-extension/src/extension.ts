@@ -64,7 +64,9 @@ class StructuralEditorProvider
     context: vscode.ExtensionContext,
     outputChannel: vscode.OutputChannel
   ): vscode.Disposable {
-    outputChannel.appendLine("[REGISTER] Registering custom editor provider for viewType: forma.structuralEditor");
+    outputChannel.appendLine(
+      "[REGISTER] Registering custom editor provider for viewType: forma.structuralEditor"
+    );
     const provider = new StructuralEditorProvider(context, outputChannel);
     return vscode.window.registerCustomEditorProvider(
       "forma.structuralEditor",
@@ -88,16 +90,22 @@ class StructuralEditorProvider
   ) {}
 
   async openCustomDocument(uri: vscode.Uri): Promise<StructuralDocument> {
-    this._outputChannel.appendLine(`[OPEN] Opening custom document: ${uri.fsPath}`);
+    this._outputChannel.appendLine(
+      `[OPEN] Opening custom document: ${uri.fsPath}`
+    );
     let data: Uint8Array;
     try {
       data = await vscode.workspace.fs.readFile(uri);
-      this._outputChannel.appendLine(`[OPEN] Successfully read ${data.length} bytes from ${uri.fsPath}`);
+      this._outputChannel.appendLine(
+        `[OPEN] Successfully read ${data.length} bytes from ${uri.fsPath}`
+      );
     } catch (e) {
-      this._outputChannel.appendLine(`[ERROR] Could not read file: ${uri.fsPath}. ${e}`);
+      this._outputChannel.appendLine(
+        `[ERROR] Could not read file: ${uri.fsPath}. ${e}`
+      );
       data = new Uint8Array();
     }
-    
+
     const document = new StructuralDocument(uri, data);
 
     const listener = document.onDidChange((e) => {
@@ -138,7 +146,9 @@ class StructuralEditorProvider
       try {
         switch (msg.type) {
           case "ready": {
-            this._outputChannel.appendLine(`[READY] Received ready message for ${document.uri.fsPath}`);
+            this._outputChannel.appendLine(
+              `[READY] Received ready message for ${document.uri.fsPath}`
+            );
             const session = await resolveSessionFromConfig(
               document.uri,
               this._outputChannel,
@@ -146,7 +156,15 @@ class StructuralEditorProvider
             );
             const initPayload = await prepareInitPayload(document, session);
             this._outputChannel.appendLine(
-              `[INIT] Sending initWithConfig with typeName: ${initPayload.typeName}, schemaDescriptor: ${initPayload.schemaDescriptor ? `${initPayload.schemaDescriptor.length} bytes` : 'none'}, data: ${initPayload.data ? `${initPayload.data.length} bytes` : 'none'}`
+              `[INIT] Sending initWithConfig with typeName: ${
+                initPayload.typeName
+              }, schemaDescriptor: ${
+                initPayload.schemaDescriptor
+                  ? `${initPayload.schemaDescriptor.length} bytes`
+                  : "none"
+              }, data: ${
+                initPayload.data ? `${initPayload.data.length} bytes` : "none"
+              }`
             );
             webviewPanel.webview.postMessage({
               type: "initWithConfig",
@@ -154,13 +172,15 @@ class StructuralEditorProvider
             });
             break;
           }
-        case "contentChanged": {
-          document.makeEdit(new Uint8Array(msg.payload));
-          break;
-        }
+          case "contentChanged": {
+            document.makeEdit(new Uint8Array(msg.payload));
+            break;
+          }
         }
       } catch (error) {
-        this._outputChannel.appendLine(`[ERROR] Error handling message ${msg.type}: ${error}`);
+        this._outputChannel.appendLine(
+          `[ERROR] Error handling message ${msg.type}: ${error}`
+        );
         console.error("Extension error:", error);
       }
     });
@@ -206,7 +226,9 @@ class StructuralEditorProvider
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  const outputChannel = vscode.window.createOutputChannel("Forma Structural Editor");
+  const outputChannel = vscode.window.createOutputChannel(
+    "Forma Structural Editor"
+  );
   outputChannel.appendLine("Forma extension is activating.");
   outputChannel.show(); // Show the output channel immediately
   context.subscriptions.push(outputChannel);
@@ -217,34 +239,53 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Register command handlers
     context.subscriptions.push(
-      vscode.commands.registerCommand('forma.openStructuralEditor', async () => {
-        outputChannel.appendLine("[COMMAND] Opening structural editor command triggered");
-        const uris = await vscode.window.showOpenDialog({
-          canSelectMany: false,
-          openLabel: 'Open with Structural Editor',
-          filters: {
-            'Binary Files': ['bin', 'binpb'],
-            'All Files': ['*']
+      vscode.commands.registerCommand(
+        "forma.openStructuralEditor",
+        async () => {
+          outputChannel.appendLine(
+            "[COMMAND] Opening structural editor command triggered"
+          );
+          const uris = await vscode.window.showOpenDialog({
+            canSelectMany: false,
+            openLabel: "Open with Structural Editor",
+            filters: {
+              "Binary Files": ["bin", "binpb", "binarypb"],
+              "All Files": ["*"],
+            },
+          });
+          if (uris && uris.length > 0) {
+            const uri = uris[0];
+            outputChannel.appendLine(`[COMMAND] Opening file: ${uri.fsPath}`);
+            await vscode.commands.executeCommand(
+              "vscode.openWith",
+              uri,
+              "forma.structuralEditor"
+            );
           }
-        });
-        if (uris && uris.length > 0) {
-          const uri = uris[0];
-          outputChannel.appendLine(`[COMMAND] Opening file: ${uri.fsPath}`);
-          await vscode.commands.executeCommand('vscode.openWith', uri, 'forma.structuralEditor');
         }
-      })
+      )
     );
 
     context.subscriptions.push(
-      vscode.commands.registerCommand('forma.openForActiveFile', async () => {
-        outputChannel.appendLine("[COMMAND] Open for active file command triggered");
+      vscode.commands.registerCommand("forma.openForActiveFile", async () => {
+        outputChannel.appendLine(
+          "[COMMAND] Open for active file command triggered"
+        );
         const activeEditor = vscode.window.activeTextEditor;
         if (activeEditor) {
           const uri = activeEditor.document.uri;
-          outputChannel.appendLine(`[COMMAND] Opening active file: ${uri.fsPath}`);
-          await vscode.commands.executeCommand('vscode.openWith', uri, 'forma.structuralEditor');
+          outputChannel.appendLine(
+            `[COMMAND] Opening active file: ${uri.fsPath}`
+          );
+          await vscode.commands.executeCommand(
+            "vscode.openWith",
+            uri,
+            "forma.structuralEditor"
+          );
         } else {
-          vscode.window.showInformationMessage('No active file to open with Structural Editor');
+          vscode.window.showInformationMessage(
+            "No active file to open with Structural Editor"
+          );
         }
       })
     );
@@ -306,7 +347,9 @@ async function prepareInitPayload(
     data: Array.from(document.documentData),
     typeName: session.typeName,
     dataName: path.basename(document.uri.fsPath),
-    schemaDescriptor: session.schemaDescriptor ? Array.from(session.schemaDescriptor) : undefined,
+    schemaDescriptor: session.schemaDescriptor
+      ? Array.from(session.schemaDescriptor)
+      : undefined,
   };
 }
 
@@ -319,14 +362,23 @@ async function resolveSessionFromConfig(
 
   // If the target file is exactly "config.forma.binpb", use the built-in schema
   if (path.basename(target.fsPath) === "config.forma.binpb") {
-    outputChannel.appendLine(`[CONFIG] Target is config.forma.binpb, using built-in schema`);
+    outputChannel.appendLine(
+      `[CONFIG] Target is config.forma.binpb, using built-in schema`
+    );
     try {
-      const schemaPath = vscode.Uri.joinPath(context.extensionUri, "media", "schemas", "config.desc");
+      const schemaPath = vscode.Uri.joinPath(
+        context.extensionUri,
+        "media",
+        "schemas",
+        "config.desc"
+      );
       const schemaDescriptor = await vscode.workspace.fs.readFile(schemaPath);
-      outputChannel.appendLine(`[CONFIG] Loaded built-in schema descriptor: ${schemaPath.fsPath}`);
+      outputChannel.appendLine(
+        `[CONFIG] Loaded built-in schema descriptor: ${schemaPath.fsPath}`
+      );
       return {
         typeName: ".forma.config.Config",
-        schemaDescriptor
+        schemaDescriptor,
       };
     } catch (e) {
       outputChannel.appendLine(`[CONFIG] Error loading built-in schema: ${e}`);
@@ -340,38 +392,57 @@ async function resolveSessionFromConfig(
     const configUri = vscode.Uri.joinPath(workspaceRoot, "config.forma.binpb");
     try {
       const configBytes = await vscode.workspace.fs.readFile(configUri);
-      outputChannel.appendLine(`[CONFIG] Found config file: ${configUri.fsPath}`);
+      outputChannel.appendLine(
+        `[CONFIG] Found config file: ${configUri.fsPath}`
+      );
 
       const decodedConfig = Config.decode(configBytes);
-      outputChannel.appendLine(`[CONFIG] Decoded config: ${JSON.stringify(decodedConfig, null, 2)}`);
+      outputChannel.appendLine(
+        `[CONFIG] Decoded config: ${JSON.stringify(decodedConfig, null, 2)}`
+      );
 
       for (const mapping of decodedConfig.files) {
         const dataUri = vscode.Uri.joinPath(workspaceRoot, mapping.data || "");
         if (dataUri.fsPath === target.fsPath) {
-          outputChannel.appendLine(`[CONFIG] Found mapping for: ${target.fsPath}`);
-          
+          outputChannel.appendLine(
+            `[CONFIG] Found mapping for: ${target.fsPath}`
+          );
+
           let schemaDescriptor: Uint8Array | undefined;
           if (mapping.schemaDescriptor) {
             try {
-              const descriptorUri = vscode.Uri.joinPath(workspaceRoot, mapping.schemaDescriptor);
-              schemaDescriptor = await vscode.workspace.fs.readFile(descriptorUri);
-              outputChannel.appendLine(`[CONFIG] Loaded schema descriptor: ${descriptorUri.fsPath}`);
+              const descriptorUri = vscode.Uri.joinPath(
+                workspaceRoot,
+                mapping.schemaDescriptor
+              );
+              schemaDescriptor = await vscode.workspace.fs.readFile(
+                descriptorUri
+              );
+              outputChannel.appendLine(
+                `[CONFIG] Loaded schema descriptor: ${descriptorUri.fsPath}`
+              );
             } catch (e) {
-              outputChannel.appendLine(`[CONFIG] Error loading schema descriptor: ${e}`);
+              outputChannel.appendLine(
+                `[CONFIG] Error loading schema descriptor: ${e}`
+              );
             }
           }
-          
-          return { 
-            typeName: mapping.type || undefined, 
-            schemaDescriptor 
+
+          return {
+            typeName: mapping.type || undefined,
+            schemaDescriptor,
           };
         }
       }
     } catch (e) {
-      outputChannel.appendLine(`[CONFIG] Error reading or parsing config file: ${e}`);
+      outputChannel.appendLine(
+        `[CONFIG] Error reading or parsing config file: ${e}`
+      );
     }
   }
 
-  outputChannel.appendLine(`[CONFIG] No configuration found. User will need to select type manually.`);
+  outputChannel.appendLine(
+    `[CONFIG] No configuration found. User will need to select type manually.`
+  );
   return {};
 }

@@ -48,16 +48,7 @@
             "filenamePattern": "*.binpb"
           },
           {
-            "filenamePattern": "*.forma.binpb"
-          },
-          {
-            "filenamePattern": "**/*.forma.binpb"
-          },
-          {
-            "filenamePattern": "*config*.binpb"
-          },
-          {
-            "filenamePattern": "config.*.binpb"
+            "filenamePattern": "*.binarypb"
           }
         ],
         "priority": "default"
