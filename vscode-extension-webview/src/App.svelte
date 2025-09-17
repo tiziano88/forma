@@ -161,6 +161,7 @@
         currentType={editorState.currentType}
         hexView={editorState.hexView}
         originalHexView={editorState.originalHexView}
+        {editor}
         on:change={(e) => editor.updateDecodedData(e.detail)}
         on:typechange={(e) => editor.setCurrentType(e.detail)}
       />
