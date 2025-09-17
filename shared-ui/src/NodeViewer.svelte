@@ -2,6 +2,8 @@
   import { createEventDispatcher } from 'svelte';
   import type { MessageValue, FieldDef, EnumType } from '@lintx/core';
   import { FieldLabel, FieldType } from '@lintx/core';
+  import FieldCard from './FieldCard.svelte';
+  import ValueItem from './ValueItem.svelte';
   import ObjectViewer from './ObjectViewer.svelte';
   import PrimitiveInput from './PrimitiveInput.svelte';
   import RepeatedFieldViewer from './RepeatedFieldViewer.svelte';
@@ -32,6 +34,12 @@
   }
   $: isSpecialCased = fieldSchema.typeName && SPECIAL_CASED_TYPES.has(fieldSchema.typeName);
 
+  // Unified add/remove logic with clear comments
+  $: isUnset = value === null || value === undefined ||
+               (Array.isArray(value) && value.length === 0);
+  $: showAddButton = isRepeated || isUnset; // Repeated fields always show add, singular only when unset
+  $: showRemoveButton = !isUnset; // Show remove when there's something to remove
+
   // Get enum type information if this field is an enum
   $: {
     if (fieldSchema.type === FieldType.TYPE_ENUM && fieldSchema.typeName && editor) {
@@ -42,7 +50,7 @@
     }
   }
 
-  function handleChange() {
+  function dispatchChange() {
     dispatch('change');
   }
 
@@ -50,7 +58,7 @@
     const target = event.target as HTMLSelectElement;
     const newValue = parseInt(target.value, 10);
     parent.setField(fieldSchema.number, newValue);
-    handleChange();
+    dispatchChange();
   }
 
   function createMessageValue() {
@@ -67,24 +75,30 @@
     }
 
     parent.setField(fieldSchema.number, newMessage);
-    handleChange();
+    dispatchChange();
   }
 
   function clearMessageValue() {
     parent.clearField(fieldSchema.number);
-    handleChange();
+    dispatchChange();
+  }
+
+  function handleRemoveValue() {
+    if (isRepeated) {
+      // For repeated fields, this shouldn't be called (RepeatedFieldViewer handles it)
+      console.warn('handleRemoveValue called on repeated field');
+    } else {
+      // For singular fields, clear the field
+      parent.clearField(fieldSchema.number);
+      dispatchChange();
+    }
   }
 </script>
 
-<div class="rounded-lg border-2 border-primary/20 overflow-hidden">
-  <div class="bg-base-300 px-3 py-1">
-    <label class="label-text font-bold text-primary">{fieldSchema.name}</label>
-    <span class="text-xs opacity-70 ml-2">
-      (type: {fieldSchema.typeName || fieldSchema.type})
-    </span>
-  </div>
-  <div class="p-2 bg-base-100">
+<FieldCard {fieldSchema} {parent} {editor} {isRepeated} on:change={dispatchChange}>
+  <svelte:fragment slot="default" let:handleChange>
     {#if isSpecialCased}
+      <!-- Special cased types (like Timestamps) -->
       <div class="flex items-center gap-2 p-2 bg-base-200 rounded-md">
         <span class="text-xl">⏰</span>
         <span class="text-sm italic opacity-70">Timestamp (not yet editable)</span>
@@ -98,29 +112,50 @@
           on:change={handleChange}
         />
       {:else}
-        {#if enumType}
-          <div class="form-control">
-            <select
-              class="select select-sm select-bordered w-full"
-              value={value ?? 0}
-              on:change={handleEnumChange}
-            >
-              {#each Array.from(enumType.values.entries()) as [number, name]}
-                <option value={number}>
-                  {name} ({number})
-                </option>
-              {/each}
-            </select>
-            <div class="text-xs opacity-70 mt-1">
-              Current: {enumType.values.get(value) || 'UNKNOWN'} = {value}
-            </div>
-          </div>
-        {:else}
-          <div class="flex items-center gap-2 p-2 bg-base-200 rounded-md">
-            <span class="text-xl">🔢</span>
-            <span class="text-sm">Enum value: {value ?? 'unset'}</span>
-            <span class="text-xs opacity-70">({fieldSchema.typeName})</span>
-          </div>
+        <!-- Singular enum field -->
+        {#if !isUnset}
+          <ValueItem
+            isRepeated={false}
+            on:remove={handleRemoveValue}
+          >
+            {#if enumType}
+              <div class="form-control">
+                <select
+                  class="select select-sm select-bordered w-full"
+                  value={value ?? 0}
+                  on:change={handleEnumChange}
+                >
+                  {#each Array.from(enumType.values.entries()) as [number, name]}
+                    <option value={number}>
+                      {name} ({number})
+                    </option>
+                  {/each}
+                </select>
+                <div class="text-xs opacity-70 mt-1">
+                  Current: {enumType.values.get(value) || 'UNKNOWN'} = {value}
+                </div>
+              </div>
+            {:else}
+              <div class="flex items-center gap-2 p-2 bg-base-200 rounded-md">
+                <span class="text-xl">🔢</span>
+                <span class="text-sm">Enum value: {value ?? 'unset'}</span>
+                <span class="text-xs opacity-70">({fieldSchema.typeName})</span>
+              </div>
+            {/if}
+          </ValueItem>
+        {/if}
+
+        {#if showAddButton}
+          <button
+            class="btn btn-sm btn-outline btn-accent"
+            on:click={() => {
+              // Set default enum value (0)
+              parent.setField(fieldSchema.number, 0);
+              handleChange();
+            }}
+          >
+            + Add {fieldSchema.name}
+          </button>
         {/if}
       {/if}
     {:else if fieldSchema.typeName && fieldSchema.typeName.startsWith('.')}
@@ -131,33 +166,50 @@
           editor={editor}
           on:change={handleChange}
         />
-      {:else if value && value.type}
-        <div class="space-y-2">
-          <ObjectViewer
-            bind:object={value}
-            messageSchema={value.type}
-            editor={editor}
-            on:change={handleChange}
-          />
-          <button
-            class="btn btn-xs btn-outline btn-error"
-            on:click={clearMessageValue}
-            title="Clear this message"
-          >
-            Clear
-          </button>
-        </div>
       {:else}
-        <div class="flex items-center gap-2">
-          <div class="text-sm opacity-70 italic">No value</div>
+        <!-- Singular message field -->
+        {#if !isUnset && value && value.type}
+          <ValueItem
+            isRepeated={false}
+            on:remove={handleRemoveValue}
+          >
+            <ObjectViewer
+              bind:object={value}
+              messageSchema={value.type}
+              editor={editor}
+              on:change={handleChange}
+            />
+          </ValueItem>
+        {/if}
+
+        {#if showAddButton}
           <button
-            class="btn btn-xs btn-outline btn-accent"
-            on:click={createMessageValue}
+            class="btn btn-sm btn-outline btn-accent"
+            on:click={() => {
+              console.log('[NodeViewer] Button clicked! Creating message for:', fieldSchema.typeName);
+
+              if (!fieldSchema.typeName || !editor) {
+                console.error('Cannot create message: missing typeName or editor');
+                return;
+              }
+
+              const newMessage = editor.createEmptyMessage(fieldSchema.typeName);
+              if (newMessage === null) {
+                console.error(`Failed to create empty message for type: ${fieldSchema.typeName}`);
+                console.log('Available types:', editor.getAvailableTypes());
+                return;
+              }
+
+              parent.setField(fieldSchema.number, newMessage);
+              console.log('[NodeViewer] About to call handleChange from slot');
+              handleChange();
+              console.log('[NodeViewer] handleChange called successfully');
+            }}
             title="Create new {fieldSchema.typeName} message"
           >
-            + Create
+            + Add {fieldSchema.name}
           </button>
-        </div>
+        {/if}
       {/if}
     {:else}
       {#if isRepeated}
@@ -168,9 +220,46 @@
           on:change={handleChange}
         />
       {:else}
-        <PrimitiveInput bind:value={value} type={fieldSchema.type} id={fieldSchema.name}
-                       on:change={(e) => { parent.setField(fieldSchema.number, e.detail); handleChange(); }} />
+        <!-- Singular primitive field -->
+        {#if !isUnset}
+          <ValueItem
+            isRepeated={false}
+            on:remove={handleRemoveValue}
+          >
+            <PrimitiveInput
+              bind:value={value}
+              type={fieldSchema.type}
+              id={fieldSchema.name}
+              on:change={(e) => { parent.setField(fieldSchema.number, e.detail); handleChange(); }}
+            />
+          </ValueItem>
+        {/if}
+
+        {#if showAddButton}
+          <button
+            class="btn btn-sm btn-outline btn-accent"
+            on:click={() => {
+              // Set default value based on type
+              let defaultValue;
+              switch (fieldSchema.type) {
+                case FieldType.TYPE_STRING:
+                  defaultValue = '';
+                  break;
+                case FieldType.TYPE_BOOL:
+                  defaultValue = false;
+                  break;
+                default:
+                  defaultValue = 0;
+                  break;
+              }
+              parent.setField(fieldSchema.number, defaultValue);
+              handleChange();
+            }}
+          >
+            + Add {fieldSchema.name}
+          </button>
+        {/if}
       {/if}
     {/if}
-  </div>
-</div>
+  </svelte:fragment>
+</FieldCard>

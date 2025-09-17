@@ -10,7 +10,9 @@
   const dispatch = createEventDispatcher();
 
   function handleChange() {
+    console.log('[ObjectViewer] handleChange called, dispatching change with object:', object);
     dispatch('change', object);
+    console.log('[ObjectViewer] change event dispatched');
   }
 </script>
 

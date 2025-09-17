@@ -21,7 +21,9 @@
   }
 
   function handleDataChange(e: CustomEvent) {
+    console.log('[StructuralViewer] handleDataChange called with detail:', e.detail);
     dispatch('change', e.detail);
+    console.log('[StructuralViewer] change event dispatched to App');
   }
 </script>
 
