@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import type { MessageValue, FieldDef, EnumType } from '@lintx/core';
+  import type { MessageValue, FieldDef, EnumType, StructuralEditor } from '@lintx/core';
   import { FieldLabel, FieldType } from '@lintx/core';
   import FieldCard from './FieldCard.svelte';
   import ValueItem from './ValueItem.svelte';
@@ -10,7 +10,7 @@
 
   export let parent: MessageValue;
   export let fieldSchema: FieldDef;
-  export let editor: any; // StructuralEditor instance
+  export let editor: StructuralEditor; // Now properly typed and non-null
 
   const dispatch = createEventDispatcher();
   let value: any;

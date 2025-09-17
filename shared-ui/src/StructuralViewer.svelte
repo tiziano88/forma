@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import type { MessageValue, MessageType } from '@lintx/core';
+  import type { MessageValue, MessageType, StructuralEditor } from '@lintx/core';
   import ObjectViewer from './ObjectViewer.svelte';
 
   export let decodedData: MessageValue | null;
@@ -9,7 +9,7 @@
   export let currentType: string | null;
   export let hexView: string;
   export let originalHexView: string;
-  export let editor: any; // StructuralEditor instance
+  export let editor: StructuralEditor; // Now properly typed and non-null
 
   const dispatch = createEventDispatcher();
 

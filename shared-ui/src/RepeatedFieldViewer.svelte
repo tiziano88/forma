@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import type { MessageValue, FieldDef } from "@lintx/core";
+  import type { MessageValue, FieldDef, StructuralEditor } from "@lintx/core";
   import { FieldType } from "@lintx/core";
   import ValueItem from "./ValueItem.svelte";
   import ObjectViewer from "./ObjectViewer.svelte";
@@ -8,10 +8,15 @@
 
   export let parent: MessageValue;
   export let fieldSchema: FieldDef;
-  export let editor: any; // StructuralEditor instance
+  export let editor: StructuralEditor; // Now properly typed and non-null
 
   const dispatch = createEventDispatcher();
   const valueType = fieldSchema.typeName; // For message types
+
+  // Runtime assertion to catch missing editor parameter early
+  if (!editor) {
+    throw new Error(`RepeatedFieldViewer: editor parameter is required but was ${editor}. This indicates the component hierarchy is not passing the editor instance correctly.`);
+  }
 
   $: items = parent.getRepeatedField(fieldSchema.number);
 
@@ -20,31 +25,28 @@
   $: showAddButton = true; // Repeated fields always show add button
 
   function createDefaultObject() {
-    if (valueType && editor) {
-      const message = editor.createEmptyMessage(valueType);
-      if (message === null) {
-        console.error(`Failed to create empty message for type: ${valueType}`);
-        console.log("Available types:", editor.getAvailableTypes());
-      }
-      return message;
-    } else {
-      console.log(
-        `cannot create default object: valueType: ${valueType}, editor: ${editor}`
-      );
-      return null;
+    if (!valueType) {
+      throw new Error(`RepeatedFieldViewer: Cannot create message - valueType is missing for field ${fieldSchema.name}`);
     }
+
+    if (!editor) {
+      throw new Error(`RepeatedFieldViewer: Cannot create message - editor parameter is null/undefined. Field: ${fieldSchema.name}, Type: ${valueType}`);
+    }
+
+    const message = editor.createEmptyMessage(valueType);
+    if (message === null) {
+      console.error(`Failed to create empty message for type: ${valueType}`);
+      console.log("Available types:", editor.getAvailableTypes());
+      throw new Error(`RepeatedFieldViewer: Failed to create empty message for type ${valueType}. Check if the type is registered in the schema.`);
+    }
+    return message;
   }
 
   function addToArray() {
     let newItem;
     if (valueType) {
+      // createDefaultObject() now throws errors instead of returning null
       newItem = createDefaultObject();
-      if (newItem === null) {
-        console.error(
-          `Cannot add item: failed to create message of type ${valueType}`
-        );
-        return;
-      }
     } else {
       switch (fieldSchema.type) {
         case FieldType.TYPE_STRING:
