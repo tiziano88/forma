@@ -26,7 +26,7 @@
               kind === "schema" ? "Protobuf Schema" : "Protobuf Data",
             accept: {
               "application/octet-stream":
-                kind === "schema" ? [".proto", ".desc"] : [".bin", ".binpb"],
+                kind === "schema" ? [".proto", ".desc", ".proto.bin"] : [".bin", ".binpb"],
             },
           },
         ],
@@ -35,7 +35,7 @@
 
       const file = await handle.getFile();
       if (kind === "schema") {
-        if (file.name.endsWith(".desc")) {
+        if (file.name.endsWith(".desc") || file.name.endsWith(".proto.bin")) {
           const buffer = await file.arrayBuffer();
           await editor.setSchemaDescriptor(new Uint8Array(buffer));
         } else {

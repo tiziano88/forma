@@ -600,6 +600,22 @@ export class StructuralEditor {
     this.emit({ type: 'change' });
   }
 
+  public setSchema = async (protoText: string): Promise<void> => {
+    throw new Error('setSchema method not implemented. Use setSchemaDescriptor with compiled .desc files instead.');
+  }
+
+  public setSchemaDescriptor = async (descriptorBytes: Bytes): Promise<void> => {
+    try {
+      await this.loadSchemaFromDescriptor(descriptorBytes);
+      this.schemaLoaded = true;
+      this.emit({ type: 'change' });
+    } catch (error) {
+      console.error('[Editor Core] Error loading schema descriptor:', error);
+      this.emit({ type: 'error', payload: error });
+      throw error;
+    }
+  }
+
   public getDecodedData = (): MessageValue | null => {
     return this.decodedData;
   }
