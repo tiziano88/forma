@@ -130,7 +130,7 @@
   }
 </script>
 
-<div class="space-y-4">
+<div class="repeated-list">
   {#if items && Array.isArray(items) && items.length > 0}
     {#each items as item, i}
       <ValueItem
@@ -167,14 +167,14 @@
       </ValueItem>
     {/each}
   {:else}
-    <div class="text-sm text-base-content/70 italic text-center py-2">
+    <div class="repeated-empty">
       No items
     </div>
   {/if}
 
   <!-- Add button always shown for repeated fields -->
   <button
-    class="btn btn-sm btn-outline btn-primary w-full rounded-xl"
+    class="btn-editor-add"
     on:click={addToArray}
   >
     + Add {fieldSchema.name}

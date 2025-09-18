@@ -50,20 +50,20 @@
 
 <div class="flex flex-col gap-4">
   <section class="grid gap-3 lg:grid-cols-2">
-    <div class="rounded-xl border border-base-300/50 bg-base-100/85 p-3.5 shadow-md shadow-base-300/15">
+    <div class="section-header">
       <div class="flex items-center justify-between">
-        <span class="text-sm font-semibold text-base-content/70">Root type</span>
-        <span class="badge badge-sm badge-outline border-primary/40 bg-primary/10 text-primary">
+        <span class="text-sm font-semibold text-editor-secondary">Root type</span>
+        <span class="badge-editor-outline">
           {currentType ? 'Custom' : 'Auto'}
         </span>
       </div>
-      <div class="mt-3 text-sm text-base-content/70">
+      <div class="mt-3 text-sm text-editor-secondary">
         Choose which message to treat as the document root. Leaving it on auto picks the last type in the descriptor.
       </div>
       <div class="mt-4">
         <select
           id="root-type-select"
-          class="select select-bordered select-sm w-full rounded-lg border-base-300/60 bg-base-100"
+          class="select-editor"
           value={currentType ?? ''}
           on:change={handleTypeChange}
         >
@@ -75,29 +75,30 @@
       </div>
     </div>
 
-    <div class="rounded-xl border border-base-300/50 bg-base-100/85 p-3.5 shadow-md shadow-base-300/15">
+    <div class="section-header">
       <div class="flex items-center justify-between">
-        <span class="text-sm font-semibold text-base-content/70">Session</span>
-        <span class="badge badge-outline badge-sm border-accent/40 bg-accent/10 text-accent">
+        <span class="text-sm font-semibold text-editor-secondary">Session</span>
+        <span class="badge-editor-accent">
           {decodedData ? 'Writable' : 'Read only'}
         </span>
       </div>
-      <div class="mt-2.5 grid gap-2.5 text-sm text-base-content/70 sm:grid-cols-2">
-        <div class="flex items-center justify-between rounded-lg border border-base-300/60 bg-base-100/90 px-3 py-1.5">
+      <div class="mt-2.5 grid gap-2.5 text-sm text-editor-secondary sm:grid-cols-2">
+        <div class="flex items-center justify-between rounded-lg border px-3 py-1.5 surface-secondary" style="border-color: var(--editor-border-primary);">
           <span>Current type</span>
-          <span class="font-medium text-base-content/80 truncate max-w-[60%] text-right">{currentType ?? rootMessageType?.fullName ?? 'Auto'}</span>
+          <span class="font-medium text-editor-primary truncate max-w-[60%] text-right">{currentType ?? rootMessageType?.fullName ?? 'Auto'}</span>
         </div>
-        <div class="flex items-center justify-between rounded-lg border border-base-300/60 bg-base-100/90 px-3 py-1.5">
+        <div class="flex items-center justify-between rounded-lg border px-3 py-1.5 surface-secondary" style="border-color: var(--editor-border-primary);">
           <span>Fields</span>
-          <span class="font-medium text-base-content/80">{rootMessageType ? rootMessageType.fields.size : 0}</span>
+          <span class="font-medium text-editor-primary">{rootMessageType ? rootMessageType.fields.size : 0}</span>
         </div>
-        <div class="flex items-center justify-between rounded-lg border border-base-300/60 bg-base-100/90 px-3 py-1.5">
+        <div class="flex items-center justify-between rounded-lg border px-3 py-1.5 surface-secondary" style="border-color: var(--editor-border-primary);">
           <span>Bytes</span>
-          <span class="font-medium text-base-content/80">{encodedBytes?.length ?? 0}</span>
+          <span class="font-medium text-editor-primary">{encodedBytes?.length ?? 0}</span>
         </div>
         <div class="flex items-center justify-end">
           <button
-            class="btn btn-primary btn-xs rounded-lg shadow-sm shadow-primary/20"
+            class="btn btn-primary btn-xs rounded-lg shadow-sm"
+            style="box-shadow: var(--editor-shadow-sm);"
             on:click={() => dispatch('save')}
           >
             Save changes
@@ -107,11 +108,11 @@
     </div>
   </section>
 
-  <section class="rounded-xl border border-base-300/50 bg-base-100/90 p-4 shadow-lg shadow-base-300/15">
+  <section class="section-main">
     <div class="mb-2.5 flex items-center justify-between">
-      <h2 class="text-sm font-semibold text-base-content">Structured view</h2>
+      <h2 class="text-sm font-semibold text-editor-primary">Structured view</h2>
       {#if decodedData && rootMessageType}
-        <div class="badge badge-outline border-base-300/70 bg-base-200/70 text-[10px] font-medium text-base-content/70">
+        <div class="badge badge-outline text-[10px] font-medium" style="border-color: var(--editor-border-primary); background: var(--editor-bg-tertiary); color: var(--editor-text-secondary);">
           {rootMessageType.fullName}
         </div>
       {/if}
@@ -125,16 +126,16 @@
         on:change={handleDataChange}
       />
     {:else}
-      <div class="rounded-lg border border-dashed border-base-300 bg-base-200/40 p-6 text-center text-sm text-base-content/70">
+      <div class="empty-state p-6">
         No decoded data available yet.
       </div>
     {/if}
   </section>
 
-  <section class="rounded-xl border border-base-300/50 bg-base-100/90 p-4 shadow-lg shadow-base-300/15">
+  <section class="section-main">
     <div class="mb-2.5 flex flex-col gap-1">
-      <h2 class="text-sm font-semibold text-base-content">Raw bytes</h2>
-      <p class="text-sm text-base-content/60">Swap viewers to inspect the payload in different representations.</p>
+      <h2 class="text-sm font-semibold text-editor-primary">Raw bytes</h2>
+      <p class="text-sm text-editor-secondary">Swap viewers to inspect the payload in different representations.</p>
     </div>
     <BytesViewer
       bind:selectedSourceId={rawSourceId}

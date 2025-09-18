@@ -1,0 +1,334 @@
+/* ===== FIELD CARDS ===== */
+
+.field-card {
+  @apply rounded-xl border transition-colors duration-150 shadow-sm;
+  border-color: var(--editor-card-border);
+  background: var(--editor-card-bg);
+  box-shadow: var(--editor-shadow-sm);
+}
+
+.field-card.group {
+  /* Group class applied separately in components */
+}
+
+.field-card:hover {
+  border-color: var(--editor-card-hover-border);
+  background: var(--editor-card-hover-bg);
+}
+
+.field-card-header {
+  @apply flex flex-wrap items-start justify-between gap-2 rounded-t-xl border-b px-2.5 py-2 backdrop-blur-sm;
+  border-bottom-color: var(--editor-border-secondary);
+  background: var(--editor-card-header-bg);
+}
+
+.field-card-header--sticky {
+  @apply sticky;
+  /* top and z-index set via style attribute for dynamic values */
+}
+
+.field-card-title {
+  @apply text-sm font-semibold;
+  color: var(--editor-text-primary);
+}
+
+.field-card-subtitle {
+  @apply text-xs;
+  color: var(--editor-text-secondary);
+}
+
+.field-card-meta {
+  @apply text-xs font-medium;
+  color: var(--editor-text-muted);
+}
+
+/* ===== TEXT UTILITIES ===== */
+
+.text-editor-primary {
+  color: var(--editor-text-primary);
+}
+
+.text-editor-secondary {
+  color: var(--editor-text-secondary);
+}
+
+.text-editor-muted {
+  color: var(--editor-text-muted);
+}
+
+/* ===== BUTTONS ===== */
+
+.btn-editor-primary {
+  @apply text-sm px-4 py-2 rounded-xl border cursor-pointer transition-colors;
+  background: var(--editor-primary-bg);
+  border-color: var(--editor-primary);
+  color: var(--editor-primary);
+}
+
+.btn-editor-primary:hover {
+  background: var(--editor-primary);
+  color: var(--editor-bg-primary);
+}
+
+.btn-editor-accent {
+  @apply text-sm px-4 py-2 rounded-xl border cursor-pointer transition-colors;
+  background: var(--editor-accent-bg);
+  border-color: var(--editor-accent);
+  color: var(--editor-accent);
+}
+
+.btn-editor-accent:hover {
+  background: var(--editor-accent);
+  color: var(--editor-bg-primary);
+}
+
+.btn-editor-error {
+  @apply text-sm px-4 py-2 rounded-xl border cursor-pointer transition-colors;
+  background: var(--editor-error-bg);
+  border-color: var(--editor-error);
+  color: var(--editor-error);
+}
+
+.btn-editor-error:hover {
+  background: var(--editor-error);
+  color: var(--editor-bg-primary);
+}
+
+.btn-editor-add {
+  @apply text-sm px-4 py-2 w-full rounded-xl border cursor-pointer transition-colors;
+  background: var(--editor-primary-bg);
+  border-color: var(--editor-primary);
+  color: var(--editor-primary);
+}
+
+.btn-editor-add:hover {
+  background: var(--editor-primary);
+  color: var(--editor-bg-primary);
+}
+
+/* ===== SURFACES & SECTIONS ===== */
+
+.surface-primary {
+  background: var(--editor-bg-primary);
+}
+
+.surface-secondary {
+  background: var(--editor-bg-secondary);
+}
+
+.surface-tertiary {
+  background: var(--editor-bg-tertiary);
+}
+
+.section-card {
+  @apply rounded-xl border p-4 shadow-lg;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-secondary);
+  box-shadow: var(--editor-shadow-md);
+}
+
+.section-header {
+  @apply rounded-xl border p-3.5 shadow-md;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-secondary);
+  box-shadow: var(--editor-shadow-sm);
+}
+
+.section-main {
+  @apply rounded-xl border p-4 shadow-lg;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-secondary);
+  box-shadow: var(--editor-shadow-md);
+}
+
+/* ===== CODE & DATA DISPLAY ===== */
+
+.code-block {
+  @apply whitespace-pre overflow-auto max-h-60 rounded-lg border p-3 text-[11px] font-mono leading-relaxed;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-tertiary);
+  color: var(--editor-text-primary);
+}
+
+.code-block--wrap {
+  @apply whitespace-pre-wrap break-words overflow-auto max-h-60 rounded-lg border p-3 text-[11px] font-mono leading-relaxed;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-tertiary);
+  color: var(--editor-text-primary);
+}
+
+.code-block--break-all {
+  @apply whitespace-pre-wrap break-all overflow-auto max-h-60 rounded-lg border p-3 text-[11px] font-mono leading-relaxed;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-tertiary);
+  color: var(--editor-text-primary);
+}
+
+.data-list {
+  @apply space-y-1 rounded-lg border p-3 text-[11px] font-mono;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-tertiary);
+  color: var(--editor-text-primary);
+}
+
+/* ===== FORM INPUTS ===== */
+
+.input-editor {
+  @apply w-full rounded-xl border text-sm px-3 py-2;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-secondary);
+  color: var(--editor-text-primary);
+}
+
+.input-editor:focus {
+  border-color: var(--editor-border-hover);
+}
+
+.select-editor {
+  @apply w-full rounded-lg border text-sm px-3 py-2;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-secondary);
+  color: var(--editor-text-primary);
+}
+
+.label-editor {
+  @apply flex items-center gap-3 rounded-xl border px-4 py-2 text-sm;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-secondary);
+  color: var(--editor-text-secondary);
+}
+
+/* ===== VALUE ITEMS & LISTS ===== */
+
+.value-item {
+  @apply p-2 rounded-md relative border;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-secondary);
+}
+
+.value-item-header {
+  @apply flex items-center gap-2 text-xs font-semibold;
+  color: var(--editor-text-secondary);
+}
+
+.value-item-index {
+  @apply rounded-full px-2.5 py-1 font-mono text-[11px];
+  background: var(--editor-bg-tertiary);
+  color: var(--editor-text-muted);
+}
+
+.repeated-list {
+  @apply space-y-4;
+}
+
+.repeated-empty {
+  @apply text-sm italic text-center py-2;
+  color: var(--editor-text-secondary);
+}
+
+/* ===== STATUS & ALERTS ===== */
+
+.status-success {
+  color: var(--editor-accent);
+  background: var(--editor-accent-bg);
+}
+
+.status-error {
+  color: var(--editor-error);
+  background: var(--editor-error-bg);
+}
+
+.status-primary {
+  color: var(--editor-primary);
+  background: var(--editor-primary-bg);
+}
+
+.alert-error {
+  @apply border text-sm shadow-sm rounded-lg p-3;
+  border-color: var(--editor-error);
+  background: var(--editor-error-bg);
+  color: var(--editor-error);
+}
+
+.alert-info {
+  @apply border text-sm shadow-sm rounded-lg p-3;
+  border-color: var(--editor-primary);
+  background: var(--editor-primary-bg);
+  color: var(--editor-primary);
+}
+
+/* ===== BADGES & INDICATORS ===== */
+
+.badge-editor-type {
+  @apply text-xs border font-mono px-2 py-1 rounded;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-tertiary);
+  color: var(--editor-text-secondary);
+}
+
+.badge-editor-repeated {
+  @apply text-xs px-2 py-1 rounded border;
+  border-color: var(--editor-accent);
+  background: var(--editor-accent-bg);
+  color: var(--editor-accent);
+}
+
+.badge-editor-outline {
+  @apply text-sm px-3 py-1 rounded border;
+  border-color: var(--editor-primary);
+  background: var(--editor-primary-bg);
+  color: var(--editor-primary);
+}
+
+.badge-editor-accent {
+  @apply text-sm px-3 py-1 rounded border;
+  border-color: var(--editor-accent);
+  background: var(--editor-accent-bg);
+  color: var(--editor-accent);
+}
+
+/* ===== SPECIAL CASES ===== */
+
+.timestamp-display {
+  @apply flex items-center gap-2 p-2 rounded-md;
+  background: var(--editor-bg-secondary);
+}
+
+.enum-display {
+  @apply flex items-center gap-2 p-2 rounded-md;
+  background: var(--editor-bg-secondary);
+}
+
+.empty-state {
+  @apply rounded-lg border border-dashed px-3 py-4 text-center text-sm;
+  border-color: var(--editor-border-primary);
+  color: var(--editor-text-secondary);
+}
+
+.placeholder-state {
+  @apply rounded-3xl border border-dashed p-10 text-center shadow-inner;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-secondary);
+}
+
+/* ===== NAVIGATION & LAYOUT ===== */
+
+.main-container {
+  background: var(--editor-bg-primary);
+}
+
+.main-gradient {
+  background: linear-gradient(to bottom right, var(--editor-bg-secondary), var(--editor-bg-primary), var(--editor-bg-tertiary));
+}
+
+.app-header {
+  @apply flex flex-col gap-4 rounded-2xl border p-4 shadow-lg backdrop-blur;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-secondary);
+  box-shadow: var(--editor-shadow-md);
+}
+
+.navbar-editor {
+  @apply flex items-center justify-between rounded-lg mb-4 px-4 py-3;
+  background: var(--editor-bg-secondary);
+}

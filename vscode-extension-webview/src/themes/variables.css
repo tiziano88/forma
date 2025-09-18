@@ -1,0 +1,49 @@
+:root {
+  /* ===== BASE SURFACES ===== */
+  --editor-bg-primary: var(--vscode-editor-background);
+  --editor-bg-secondary: var(--vscode-sideBar-background);
+  --editor-bg-tertiary: var(--vscode-panel-background);
+
+  /* ===== TEXT COLORS ===== */
+  --editor-text-primary: var(--vscode-foreground);
+  --editor-text-secondary: var(--vscode-descriptionForeground);
+  --editor-text-muted: var(--vscode-disabledForeground);
+
+  /* ===== INTERACTIVE COLORS ===== */
+  --editor-primary: var(--vscode-button-background);
+  --editor-primary-bg: color-mix(in srgb, var(--vscode-button-background) 10%, transparent);
+  --editor-accent: var(--vscode-button-secondaryBackground);
+  --editor-accent-bg: color-mix(in srgb, var(--vscode-button-secondaryBackground) 10%, transparent);
+  --editor-error: var(--vscode-errorForeground);
+  --editor-error-bg: color-mix(in srgb, var(--vscode-errorForeground) 10%, transparent);
+
+  /* ===== BORDERS & OUTLINES ===== */
+  --editor-border-primary: var(--vscode-panel-border);
+  --editor-border-secondary: var(--vscode-widget-border);
+  --editor-border-hover: var(--vscode-button-hoverBackground);
+
+  /* ===== SHADOWS ===== */
+  --editor-shadow-sm: var(--vscode-widget-shadow);
+  --editor-shadow-md: var(--vscode-widget-shadow);
+  --editor-shadow-lg: var(--vscode-widget-shadow);
+
+  /* ===== FIELD CARD SPECIFIC ===== */
+  --editor-card-bg: var(--vscode-editor-background);
+  --editor-card-header-bg: var(--vscode-titleBar-activeBackground);
+  --editor-card-border: var(--vscode-panel-border);
+  --editor-card-hover-bg: var(--vscode-list-hoverBackground);
+  --editor-card-hover-border: var(--vscode-button-hoverBackground);
+
+  /* ===== FALLBACKS FOR MISSING VSCODE VARIABLES ===== */
+  /* Some VSCode themes might not define all variables, so provide sensible fallbacks */
+
+  /* Fallback for secondary button if not available */
+  --editor-accent: var(--vscode-button-secondaryBackground, var(--vscode-textLink-foreground));
+  --editor-accent-bg: color-mix(in srgb, var(--vscode-button-secondaryBackground, var(--vscode-textLink-foreground)) 10%, transparent);
+
+  /* Fallback for title bar if not available */
+  --editor-card-header-bg: var(--vscode-titleBar-activeBackground, var(--vscode-tab-activeBackground, var(--vscode-editor-background)));
+
+  /* Fallback for hover background if not available */
+  --editor-card-hover-bg: var(--vscode-list-hoverBackground, color-mix(in srgb, var(--vscode-foreground) 5%, var(--vscode-editor-background)));
+}

@@ -15,33 +15,25 @@
   }
 </script>
 
-<div
-  class="group rounded-xl border border-base-300/60 bg-base-100/95 shadow-sm shadow-base-300/10 transition-colors duration-150 hover:border-primary/60 hover:bg-base-200"
->
+<div class="field-card group">
   <div
-    class="sticky flex flex-wrap items-start justify-between gap-2 rounded-t-xl border-b border-base-300/50 bg-base-800 px-2.5 py-2"
+    class="field-card-header field-card-header--sticky"
     style="top: {top}px; z-index: {20 - depth};"
   >
     <div class="space-y-1">
-      <div class="text-sm font-semibold text-base-content/90">
+      <div class="field-card-title">
         {fieldSchema.name}
       </div>
-      <div
-        class="flex flex-wrap items-center gap-2 text-xs text-base-content/60"
-      >
-        <span
-          class="badge badge-xs border-base-300 bg-base-100/70 font-mono text-base-content/70"
-        >
+      <div class="flex flex-wrap items-center gap-2 field-card-subtitle">
+        <span class="badge-editor-type">
           {fieldSchema.typeName || fieldSchema.type}
         </span>
         {#if isRepeated}
-          <span class="badge badge-xs border-accent/40 bg-accent/10 text-accent"
-            >Repeated</span
-          >
+          <span class="badge-editor-repeated">Repeated</span>
         {/if}
       </div>
     </div>
-    <div class="text-xs font-medium text-base-content/50">
+    <div class="field-card-meta">
       #{fieldSchema.number}
     </div>
   </div>

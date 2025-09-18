@@ -211,7 +211,7 @@
     {#if resolvedSources.length > 1}
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div class="flex items-center gap-2">
-          <span class="text-xs text-base-content/60">Source</span>
+          <span class="text-xs text-editor-secondary">Source</span>
           <div class="join join-xs">
             {#each resolvedSources as source}
               <button
@@ -230,7 +230,7 @@
     {/if}
 
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <span class="text-xs text-base-content/60">Viewer</span>
+      <span class="text-xs text-editor-secondary">Viewer</span>
       <div class="join join-xs">
         {#each MODE_OPTIONS as option}
           <button
@@ -248,31 +248,31 @@
   </div>
 
   {#if viewerMode === 'hex'}
-    <pre class="whitespace-pre overflow-auto max-h-60 rounded-lg border border-base-300 bg-base-100/75 p-3 text-[11px] font-mono leading-relaxed">{currentHexdump}</pre>
+    <pre class="code-block">{currentHexdump}</pre>
   {:else if viewerMode === 'digests'}
     {#if digestLoading}
-      <div class="flex items-center gap-2 text-sm opacity-70">
+      <div class="flex items-center gap-2 text-sm text-editor-muted">
         <span class="loading loading-spinner loading-xs"></span>
         Calculating digests...
       </div>
     {:else if digestError}
-      <div class="rounded-lg border border-error/40 bg-error/10 px-3 py-2 text-sm text-error">
+      <div class="alert-error px-3 py-2">
         {digestError}
       </div>
     {:else if digestEntries.length === 0}
-      <div class="rounded-lg border border-dashed border-base-300 px-3 py-4 text-center text-sm opacity-70">
+      <div class="empty-state px-3 py-4">
         {emptyMessage}
       </div>
     {:else}
-      <ul class="space-y-1 rounded-lg border border-base-300 bg-base-100/75 p-3 text-[11px] font-mono">
+      <ul class="data-list">
         {#each digestEntries as entry}
           <li><span class="font-semibold">{entry.algorithm}:</span> {entry.value}</li>
         {/each}
       </ul>
     {/if}
   {:else if viewerMode === 'cString'}
-    <pre class="whitespace-pre-wrap break-words overflow-auto max-h-60 rounded-lg border border-base-300 bg-base-100/75 p-3 text-[11px] font-mono leading-relaxed">{cEscapedString}</pre>
+    <pre class="code-block--wrap">{cEscapedString}</pre>
   {:else if viewerMode === 'base64'}
-    <pre class="whitespace-pre-wrap break-all overflow-auto max-h-60 rounded-lg border border-base-300 bg-base-100/75 p-3 text-[11px] font-mono leading-relaxed">{base64String || emptyMessage}</pre>
+    <pre class="code-block--break-all">{base64String || emptyMessage}</pre>
   {/if}
 </div>

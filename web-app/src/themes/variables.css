@@ -1,0 +1,36 @@
+:root {
+  /* ===== BASE SURFACES ===== */
+  --editor-bg-primary: hsl(220 13% 9%);        /* DaisyUI night theme base-100 */
+  --editor-bg-secondary: hsl(220 13% 14%);     /* DaisyUI night theme base-200 */
+  --editor-bg-tertiary: hsl(220 13% 18%);      /* DaisyUI night theme base-300 */
+
+  /* ===== TEXT COLORS ===== */
+  --editor-text-primary: hsl(220 13% 69%);     /* DaisyUI night theme base-content */
+  --editor-text-secondary: hsl(220 13% 50%);   /* base-content with reduced opacity */
+  --editor-text-muted: hsl(220 13% 35%);       /* base-content with more reduced opacity */
+
+  /* ===== INTERACTIVE COLORS ===== */
+  --editor-primary: hsl(259 94% 51%);          /* DaisyUI night theme primary */
+  --editor-primary-bg: hsl(259 94% 51% / 0.1); /* primary with low opacity */
+  --editor-accent: hsl(180 78% 25%);           /* DaisyUI night theme accent */
+  --editor-accent-bg: hsl(180 78% 25% / 0.1);  /* accent with low opacity */
+  --editor-error: hsl(0 91% 71%);              /* DaisyUI night theme error */
+  --editor-error-bg: hsl(0 91% 71% / 0.1);     /* error with low opacity */
+
+  /* ===== BORDERS & OUTLINES ===== */
+  --editor-border-primary: hsl(220 13% 18%);   /* base-300 equivalent */
+  --editor-border-secondary: hsl(220 13% 22%); /* base-300 with slight transparency */
+  --editor-border-hover: hsl(259 94% 51% / 0.6); /* primary with medium opacity */
+
+  /* ===== SHADOWS ===== */
+  --editor-shadow-sm: 0 1px 2px 0 hsl(220 13% 18% / 0.1);
+  --editor-shadow-md: 0 4px 6px -1px hsl(220 13% 18% / 0.15);
+  --editor-shadow-lg: 0 10px 15px -3px hsl(220 13% 18% / 0.25);
+
+  /* ===== FIELD CARD SPECIFIC ===== */
+  --editor-card-bg: hsl(220 13% 9% / 0.95);    /* base-100 with slight transparency */
+  --editor-card-header-bg: hsl(220 13% 8%);    /* darker than base-100 for contrast */
+  --editor-card-border: hsl(220 13% 18% / 0.6); /* base-300 with transparency */
+  --editor-card-hover-bg: hsl(220 13% 14%);    /* base-200 for hover state */
+  --editor-card-hover-border: hsl(259 94% 51% / 0.6); /* primary with transparency */
+}

@@ -150,9 +150,9 @@
   });
 </script>
 
-<div class="p-4 sm:p-6 lg:p-8">
+<div class="main-container p-4 sm:p-6 lg:p-8">
   <div class="max-w-4xl mx-auto">
-    <div class="navbar bg-base-200 rounded-box mb-4">
+    <div class="navbar-editor">
       <div class="flex-1">
         <a href="/" class="btn btn-ghost text-xl">Forma</a>
       </div>
@@ -176,7 +176,7 @@
     </div>
 
     {#if errorMessage}
-      <div role="alert" class="alert alert-error mb-4">
+      <div role="alert" class="alert-error mb-4">
         <span>Error: {errorMessage}</span>
       </div>
     {/if}
@@ -197,10 +197,10 @@
         on:typechange={(e) => editor.setCurrentType(e.detail)}
       />
     {:else if !errorMessage}
-      <div class="card bg-base-200 shadow-xl">
-        <div class="card-body items-center text-center">
-          <h2 class="card-title">Editor Not Ready</h2>
-          <p class="opacity-70">
+      <div class="placeholder-state">
+        <div class="mx-auto flex max-w-md flex-col items-center gap-4">
+          <h2 class="text-xl font-semibold text-editor-primary">Editor Not Ready</h2>
+          <p class="text-sm leading-relaxed text-editor-secondary">
             Load both a schema and data file to begin editing.
           </p>
         </div>

@@ -29,14 +29,14 @@
 </script>
 
 {#if type === FieldType.TYPE_BOOL}
-  <label class="flex items-center gap-3 rounded-xl border border-base-300/60 bg-base-100/90 px-4 py-2 text-sm text-base-content/80">
+  <label class="label-editor">
     <input type="checkbox" class="toggle toggle-sm toggle-primary" bind:checked={value} id={id.toString()} on:change={handleChange} />
-    <span class="font-medium">{value ? 'True' : 'False'}</span>
+    <span class="font-medium text-editor-primary">{value ? 'True' : 'False'}</span>
   </label>
 {:else if numericTypes.has(type)}
   <input
     type="number"
-    class="input input-sm w-full rounded-xl border-base-300/70 bg-base-100/90 text-base-content"
+    class="input-editor"
     bind:value={value}
     id={id.toString()}
     on:input={handleChange}
@@ -44,7 +44,7 @@
 {:else}
   <input
     type="text"
-    class="input input-sm w-full rounded-xl border-base-300/70 bg-base-100/90 text-base-content"
+    class="input-editor"
     bind:value={value}
     id={id.toString()}
     on:input={handleChange}

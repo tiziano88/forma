@@ -102,9 +102,9 @@
   <svelte:fragment slot="default" let:handleChange>
     {#if isSpecialCased}
       <!-- Special cased types (like Timestamps) -->
-      <div class="flex items-center gap-2 p-2 bg-base-200 rounded-md">
+      <div class="timestamp-display">
         <span class="text-xl">⏰</span>
-        <span class="text-sm italic opacity-70">Timestamp (not yet editable)</span>
+        <span class="text-sm italic text-editor-muted">Timestamp (not yet editable)</span>
       </div>
     {:else if fieldSchema.type === FieldType.TYPE_ENUM}
       {#if isRepeated}
@@ -135,15 +135,15 @@
                     </option>
                   {/each}
                 </select>
-                <div class="text-xs opacity-70 mt-1">
+                <div class="text-xs text-editor-muted mt-1">
                   Current: {enumType.values.get(value) || 'UNKNOWN'} = {value}
                 </div>
               </div>
             {:else}
-              <div class="flex items-center gap-2 p-2 bg-base-200 rounded-md">
+              <div class="enum-display">
                 <span class="text-xl">🔢</span>
-                <span class="text-sm">Enum value: {value ?? 'unset'}</span>
-                <span class="text-xs opacity-70">({fieldSchema.typeName})</span>
+                <span class="text-sm text-editor-primary">Enum value: {value ?? 'unset'}</span>
+                <span class="text-xs text-editor-muted">({fieldSchema.typeName})</span>
               </div>
             {/if}
           </ValueItem>
@@ -151,7 +151,7 @@
 
         {#if showAddButton}
           <button
-            class="btn btn-sm btn-outline btn-accent"
+            class="btn-editor-accent"
             on:click={() => {
               // Set default enum value (0)
               parent.setField(fieldSchema.number, 0);
@@ -190,7 +190,7 @@
 
         {#if showAddButton}
           <button
-            class="btn btn-sm btn-outline btn-accent"
+            class="btn-editor-accent"
             on:click={() => {
               if (!fieldSchema.typeName || !editor) {
                 console.error('Cannot create message: missing typeName or editor');
@@ -247,7 +247,7 @@
 
         {#if showAddButton}
           <button
-            class="btn btn-sm btn-outline btn-accent"
+            class="btn-editor-accent"
             on:click={() => {
               // Set default value based on type
               let defaultValue;

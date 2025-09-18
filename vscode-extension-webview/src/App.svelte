@@ -125,7 +125,7 @@
   }
 </script>
 
-<div class="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-300/60">
+<div class="min-h-screen main-gradient">
   {#if isSaving}
     <div class="toast toast-top toast-end">
       <div class="alert alert-info shadow-lg">
@@ -136,32 +136,32 @@
   {/if}
 
   <div class="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 pb-12 pt-8 sm:px-4 lg:px-6">
-    <header class="flex flex-col gap-4 rounded-2xl border border-base-300/60 bg-base-100/80 p-4 shadow-lg shadow-base-300/25 backdrop-blur">
+    <header class="app-header">
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div class="space-y-1">
-          <div class="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+          <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold status-primary">
             Forma Structural Editor
           </div>
-          <h1 class="text-xl font-semibold leading-snug text-base-content md:text-2xl">
+          <h1 class="text-xl font-semibold leading-snug text-editor-primary md:text-2xl">
             Inspect and edit structured protobuf data
           </h1>
-          <p class="text-sm text-base-content/70">
+          <p class="text-sm text-editor-secondary">
             Schema&nbsp;· {schemaFileName} &nbsp;&mdash;&nbsp; Data&nbsp;· {dataFileName}
           </p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2 text-xs">
-          <div class="badge badge-outline border-primary/40 bg-primary/10 px-3 py-1 text-primary">
+          <div class="badge-editor-outline px-3 py-1">
             {editorState?.availableTypes?.length ?? 0} types
           </div>
-          <div class="badge badge-outline border-accent/40 bg-accent/10 px-3 py-1 text-accent">
+          <div class="badge-editor-accent px-3 py-1">
             {editorState?.decodedData ? 'Decoded' : 'Raw bytes'}
           </div>
         </div>
       </div>
 
       {#if errorMessage}
-        <div class="alert alert-error border border-error/40 bg-error/10 text-sm shadow-sm">
+        <div class="alert-error text-sm shadow-sm">
           <span class="font-medium">Error:</span>
           <span>{errorMessage}</span>
         </div>
@@ -185,15 +185,15 @@
             on:typechange={(e) => editor.setCurrentType(e.detail)}
           />
         {:else}
-          <div class="rounded-3xl border border-dashed border-base-300 bg-base-100/60 p-10 text-center shadow-inner">
+          <div class="placeholder-state">
             <div class="mx-auto flex max-w-md flex-col items-center gap-4">
-              <div class="rounded-full bg-base-300/80 p-4 text-base-content/70">
+              <div class="rounded-full p-4" style="background: var(--editor-bg-tertiary); color: var(--editor-text-secondary);">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6" />
                 </svg>
               </div>
-              <h2 class="text-xl font-semibold">Load a schema and data file to begin</h2>
-              <p class="text-sm leading-relaxed text-base-content/70">
+              <h2 class="text-xl font-semibold text-editor-primary">Load a schema and data file to begin</h2>
+              <p class="text-sm leading-relaxed text-editor-secondary">
                 {#if errorMessage}
                   Error: {errorMessage}
                 {:else}
