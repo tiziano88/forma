@@ -1,5 +1,5 @@
 <script lang="ts">
-  type RawViewerMode = 'hex' | 'digests' | 'cString';
+  type RawViewerMode = 'hex' | 'digests' | 'cString' | 'base64';
 
   export type ByteSourceOption = {
     id: string;
@@ -21,6 +21,7 @@
   let digestLoading = false;
   let digestRequestId = 0;
   let cEscapedString = '';
+  let base64String = '';
 
   $: resolvedSources = sources.length > 0
     ? sources
@@ -49,6 +50,12 @@
     cEscapedString = toCEscapedString(currentBytes);
   } else if (viewerMode !== 'cString') {
     cEscapedString = '';
+  }
+
+  $: if (viewerMode === 'base64') {
+    base64String = toBase64(currentBytes);
+  } else if (viewerMode !== 'base64') {
+    base64String = '';
   }
 
   async function refreshDigests(bytes: Uint8Array) {
@@ -158,6 +165,30 @@
 
     return lines.join('\n');
   }
+
+  function toBase64(bytes: Uint8Array): string {
+    if (!bytes || bytes.length === 0) {
+      return '';
+    }
+
+    if (typeof globalThis.btoa === 'function') {
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode(...chunk);
+      }
+      return globalThis.btoa(binary);
+    }
+
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(bytes).toString('base64');
+    }
+
+    // Fallback: hex then base64 via TextEncoder (unlikely path)
+    const text = String.fromCharCode(...bytes);
+    return globalThis.btoa ? globalThis.btoa(text) : '';
+  }
 </script>
 
 <div class="space-y-3">
@@ -183,6 +214,7 @@
           <option value="hex">Hexdump</option>
           <option value="digests">Digests</option>
           <option value="cString">C Escaped String</option>
+          <option value="base64">Base64</option>
         </select>
       </div>
     </div>
@@ -196,6 +228,7 @@
         <option value="hex">Hexdump</option>
         <option value="digests">Digests</option>
         <option value="cString">C Escaped String</option>
+        <option value="base64">Base64</option>
       </select>
     </div>
   {/if}
@@ -218,5 +251,7 @@
     {/if}
   {:else if viewerMode === 'cString'}
     <pre class="whitespace-pre-wrap break-words overflow-auto max-h-60 p-2 bg-base-100 rounded border border-base-300 text-xs font-mono">{cEscapedString}</pre>
+  {:else if viewerMode === 'base64'}
+    <pre class="whitespace-pre-wrap break-all overflow-auto max-h-60 p-2 bg-base-100 rounded border border-base-300 text-xs font-mono">{base64String || emptyMessage}</pre>
   {/if}
 </div>
