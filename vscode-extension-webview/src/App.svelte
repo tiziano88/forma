@@ -135,14 +135,14 @@
     </div>
   {/if}
 
-  <div class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-16 pt-10 sm:px-6 lg:px-10">
-    <header class="flex flex-col gap-6 rounded-3xl border border-base-300/60 bg-base-100/80 p-6 shadow-lg shadow-base-300/30 backdrop-blur">
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+  <div class="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 pb-12 pt-8 sm:px-4 lg:px-6">
+    <header class="flex flex-col gap-4 rounded-2xl border border-base-300/60 bg-base-100/80 p-4 shadow-lg shadow-base-300/25 backdrop-blur">
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div class="space-y-1">
           <div class="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
             Forma Structural Editor
           </div>
-          <h1 class="text-2xl font-semibold leading-snug text-base-content md:text-3xl">
+          <h1 class="text-xl font-semibold leading-snug text-base-content md:text-2xl">
             Inspect and edit structured protobuf data
           </h1>
           <p class="text-sm text-base-content/70">
@@ -150,11 +150,11 @@
           </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3 text-sm">
-          <div class="badge badge-outline badge-lg border-primary/40 bg-primary/10 text-primary">
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <div class="badge badge-outline border-primary/40 bg-primary/10 px-3 py-1 text-primary">
             {editorState?.availableTypes?.length ?? 0} types
           </div>
-          <div class="badge badge-outline badge-lg border-accent/40 bg-accent/10 text-accent">
+          <div class="badge badge-outline border-accent/40 bg-accent/10 px-3 py-1 text-accent">
             {editorState?.decodedData ? 'Decoded' : 'Raw bytes'}
           </div>
         </div>
@@ -168,7 +168,7 @@
       {/if}
     </header>
 
-    <main class="grid gap-6 lg:grid-cols-12">
+    <main class="grid gap-4 lg:grid-cols-12">
       <section class="lg:col-span-12">
         {#if editorState?.availableTypes && editorState.availableTypes.length > 0}
           <StructuralViewer

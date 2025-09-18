@@ -48,9 +48,9 @@
   }
 </script>
 
-<div class="flex flex-col gap-6">
-  <section class="grid gap-6 lg:grid-cols-2">
-    <div class="rounded-2xl border border-base-300/50 bg-base-100/80 p-5 shadow-lg shadow-base-300/20">
+<div class="flex flex-col gap-4">
+  <section class="grid gap-3 lg:grid-cols-2">
+    <div class="rounded-xl border border-base-300/50 bg-base-100/85 p-3.5 shadow-md shadow-base-300/15">
       <div class="flex items-center justify-between">
         <span class="text-sm font-semibold text-base-content/70">Root type</span>
         <span class="badge badge-sm badge-outline border-primary/40 bg-primary/10 text-primary">
@@ -75,29 +75,29 @@
       </div>
     </div>
 
-    <div class="rounded-2xl border border-base-300/50 bg-base-100/80 p-5 shadow-lg shadow-base-300/20">
+    <div class="rounded-xl border border-base-300/50 bg-base-100/85 p-3.5 shadow-md shadow-base-300/15">
       <div class="flex items-center justify-between">
         <span class="text-sm font-semibold text-base-content/70">Session</span>
         <span class="badge badge-outline badge-sm border-accent/40 bg-accent/10 text-accent">
           {decodedData ? 'Writable' : 'Read only'}
         </span>
       </div>
-      <div class="mt-4 grid gap-3 text-sm text-base-content/70 sm:grid-cols-2">
-        <div class="flex items-center justify-between rounded-xl border border-base-300/60 bg-base-100/80 px-3 py-2">
+      <div class="mt-2.5 grid gap-2.5 text-sm text-base-content/70 sm:grid-cols-2">
+        <div class="flex items-center justify-between rounded-lg border border-base-300/60 bg-base-100/90 px-3 py-1.5">
           <span>Current type</span>
           <span class="font-medium text-base-content/80 truncate max-w-[60%] text-right">{currentType ?? rootMessageType?.fullName ?? 'Auto'}</span>
         </div>
-        <div class="flex items-center justify-between rounded-xl border border-base-300/60 bg-base-100/80 px-3 py-2">
+        <div class="flex items-center justify-between rounded-lg border border-base-300/60 bg-base-100/90 px-3 py-1.5">
           <span>Fields</span>
           <span class="font-medium text-base-content/80">{rootMessageType ? rootMessageType.fields.size : 0}</span>
         </div>
-        <div class="flex items-center justify-between rounded-xl border border-base-300/60 bg-base-100/80 px-3 py-2">
+        <div class="flex items-center justify-between rounded-lg border border-base-300/60 bg-base-100/90 px-3 py-1.5">
           <span>Bytes</span>
           <span class="font-medium text-base-content/80">{encodedBytes?.length ?? 0}</span>
         </div>
         <div class="flex items-center justify-end">
           <button
-            class="btn btn-primary btn-sm rounded-xl shadow-md shadow-primary/20"
+            class="btn btn-primary btn-xs rounded-lg shadow-sm shadow-primary/20"
             on:click={() => dispatch('save')}
           >
             Save changes
@@ -107,11 +107,11 @@
     </div>
   </section>
 
-  <section class="rounded-3xl border border-base-300/50 bg-base-100/90 p-6 shadow-lg shadow-base-300/20">
-    <div class="mb-5 flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-base-content">Structured view</h2>
+  <section class="rounded-xl border border-base-300/50 bg-base-100/90 p-4 shadow-lg shadow-base-300/15">
+    <div class="mb-2.5 flex items-center justify-between">
+      <h2 class="text-sm font-semibold text-base-content">Structured view</h2>
       {#if decodedData && rootMessageType}
-        <div class="badge badge-outline border-base-300/70 bg-base-200/70 text-xs font-medium text-base-content/70">
+        <div class="badge badge-outline border-base-300/70 bg-base-200/70 text-[10px] font-medium text-base-content/70">
           {rootMessageType.fullName}
         </div>
       {/if}
@@ -125,15 +125,15 @@
         on:change={handleDataChange}
       />
     {:else}
-      <div class="rounded-2xl border border-dashed border-base-300 bg-base-200/40 p-10 text-center text-sm text-base-content/70">
+      <div class="rounded-lg border border-dashed border-base-300 bg-base-200/40 p-6 text-center text-sm text-base-content/70">
         No decoded data available yet.
       </div>
     {/if}
   </section>
 
-  <section class="rounded-3xl border border-base-300/50 bg-base-100/90 p-6 shadow-lg shadow-base-300/20">
-    <div class="mb-4 flex flex-col gap-1">
-      <h2 class="text-lg font-semibold text-base-content">Raw bytes</h2>
+  <section class="rounded-xl border border-base-300/50 bg-base-100/90 p-4 shadow-lg shadow-base-300/15">
+    <div class="mb-2.5 flex flex-col gap-1">
+      <h2 class="text-sm font-semibold text-base-content">Raw bytes</h2>
       <p class="text-sm text-base-content/60">Swap viewers to inspect the payload in different representations.</p>
     </div>
     <BytesViewer

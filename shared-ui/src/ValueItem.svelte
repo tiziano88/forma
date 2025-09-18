@@ -22,11 +22,11 @@
   }
 </script>
 
-<div class={`flex flex-col gap-4 rounded-2xl border border-base-300/60 bg-base-100/90 p-4 shadow-sm shadow-base-300/10 transition-colors duration-200 ${showBorder ? 'mt-4' : ''} hover:border-primary/60 hover:bg-primary/10`}>
-  <div class="flex items-center justify-between gap-3">
+<div class={`flex flex-col gap-2.5 rounded-xl border border-base-300/60 bg-base-100/95 p-2.5 shadow-sm shadow-base-300/10 transition-colors duration-150 ${showBorder ? 'mt-2.5' : ''} hover:border-primary/60 hover:bg-base-200`}>
+  <div class="flex items-center justify-between gap-2">
     {#if isRepeated}
       <div class="flex items-center gap-2 text-xs font-semibold text-base-content/70">
-        <span class="rounded-full bg-base-200/90 px-3 py-1 font-mono">#{index}</span>
+        <span class="rounded-full bg-base-200/90 px-2.5 py-1 font-mono text-[11px]">#{index}</span>
         <span class="text-base-content/60">Item</span>
       </div>
     {/if}

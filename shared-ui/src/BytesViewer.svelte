@@ -248,7 +248,7 @@
   </div>
 
   {#if viewerMode === 'hex'}
-    <pre class="whitespace-pre overflow-auto max-h-60 rounded-lg border border-base-300 bg-base-100/70 p-3 text-[11px] font-mono leading-relaxed">{currentHexdump}</pre>
+    <pre class="whitespace-pre overflow-auto max-h-60 rounded-lg border border-base-300 bg-base-100/75 p-3 text-[11px] font-mono leading-relaxed">{currentHexdump}</pre>
   {:else if viewerMode === 'digests'}
     {#if digestLoading}
       <div class="flex items-center gap-2 text-sm opacity-70">
@@ -264,15 +264,15 @@
         {emptyMessage}
       </div>
     {:else}
-      <ul class="space-y-1 rounded-lg border border-base-300 bg-base-100/70 p-3 text-[11px] font-mono">
+      <ul class="space-y-1 rounded-lg border border-base-300 bg-base-100/75 p-3 text-[11px] font-mono">
         {#each digestEntries as entry}
           <li><span class="font-semibold">{entry.algorithm}:</span> {entry.value}</li>
         {/each}
       </ul>
     {/if}
   {:else if viewerMode === 'cString'}
-    <pre class="whitespace-pre-wrap break-words overflow-auto max-h-60 rounded-lg border border-base-300 bg-base-100/70 p-3 text-[11px] font-mono leading-relaxed">{cEscapedString}</pre>
+    <pre class="whitespace-pre-wrap break-words overflow-auto max-h-60 rounded-lg border border-base-300 bg-base-100/75 p-3 text-[11px] font-mono leading-relaxed">{cEscapedString}</pre>
   {:else if viewerMode === 'base64'}
-    <pre class="whitespace-pre-wrap break-all overflow-auto max-h-60 rounded-lg border border-base-300 bg-base-100/70 p-3 text-[11px] font-mono leading-relaxed">{base64String || emptyMessage}</pre>
+    <pre class="whitespace-pre-wrap break-all overflow-auto max-h-60 rounded-lg border border-base-300 bg-base-100/75 p-3 text-[11px] font-mono leading-relaxed">{base64String || emptyMessage}</pre>
   {/if}
 </div>
