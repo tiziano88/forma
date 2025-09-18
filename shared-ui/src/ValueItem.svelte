@@ -22,34 +22,23 @@
   }
 </script>
 
-<div class="flex gap-3 {showBorder ? 'border-t border-base-300 pt-3 mt-3' : ''}">
-  <!-- Left Controls Panel -->
-  <div class="flex-shrink-0 w-16 flex flex-col items-center gap-1">
+<div class={`flex flex-col gap-4 rounded-2xl border border-base-300/60 bg-base-100/90 p-4 shadow-sm shadow-base-300/10 transition-colors duration-200 ${showBorder ? 'mt-4' : ''} hover:border-primary/60 hover:bg-primary/10`}>
+  <div class="flex items-center justify-between gap-3">
     {#if isRepeated}
-      <!-- Index display for repeated fields -->
-      <div class="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">
-        {index}
+      <div class="flex items-center gap-2 text-xs font-semibold text-base-content/70">
+        <span class="rounded-full bg-base-200/90 px-3 py-1 font-mono">#{index}</span>
+        <span class="text-base-content/60">Item</span>
       </div>
     {/if}
 
-    <!-- Remove button -->
-    <button
-      class="btn btn-xs btn-ghost text-error/70 hover:text-error hover:bg-error/10"
-      title="Remove {isRepeated ? `item ${index}` : 'value'}"
-      on:click={handleRemove}
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-      </svg>
-    </button>
-
-    {#if isRepeated}
-      <!-- Reorder buttons for repeated fields only -->
-      <div class="flex flex-col">
+    <div class="flex items-center gap-2">
+      {#if isRepeated}
         <button
-          class="btn btn-xs btn-ghost"
+          type="button"
+          class="btn btn-xs btn-ghost btn-circle"
           title="Move up"
           disabled={!canMoveUp}
+          aria-label={canMoveUp ? 'Move item up' : 'Move item up (disabled)'}
           on:click={handleMoveUp}
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -57,21 +46,33 @@
           </svg>
         </button>
         <button
-          class="btn btn-xs btn-ghost"
+          type="button"
+          class="btn btn-xs btn-ghost btn-circle"
           title="Move down"
           disabled={!canMoveDown}
+          aria-label={canMoveDown ? 'Move item down' : 'Move item down (disabled)'}
           on:click={handleMoveDown}
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-      </div>
-    {/if}
+      {/if}
+      <button
+        type="button"
+        class="btn btn-xs btn-error btn-outline btn-circle"
+        title="Remove {isRepeated ? `item ${index}` : 'value'}"
+        aria-label={isRepeated ? `Remove item ${index}` : 'Remove value'}
+        on:click={handleRemove}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
   </div>
 
-  <!-- Content Area -->
-  <div class="flex-1 min-w-0">
+  <div class="min-w-0">
     <slot />
   </div>
 </div>

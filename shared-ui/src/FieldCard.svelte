@@ -14,25 +14,23 @@
   }
 </script>
 
-<div class="rounded-lg border-2 border-primary/20 overflow-hidden bg-base-100">
-  <!-- Card Header - Always shows field name and type -->
-  <div class="bg-base-300 px-3 py-2 border-b border-base-300">
-    <div class="flex items-center justify-between">
-      <div>
-        <span class="font-bold text-primary">{fieldSchema.name}</span>
-        <span class="text-xs opacity-70 ml-2">
-          ({fieldSchema.typeName || fieldSchema.type})
-          {#if isRepeated}<span class="text-accent font-medium">[]</span>{/if}
+<div class="group rounded-2xl border border-base-300/60 bg-base-100/90 shadow-sm shadow-base-300/10 transition-colors duration-200 hover:border-primary/60 hover:bg-primary/10">
+  <div class="flex flex-wrap items-start justify-between gap-3 border-b border-base-300/50 bg-gradient-to-r from-base-200/70 to-base-100/40 px-4 py-3">
+    <div class="space-y-1">
+      <div class="text-sm font-semibold text-base-content/90">{fieldSchema.name}</div>
+      <div class="flex flex-wrap items-center gap-2 text-xs text-base-content/60">
+        <span class="badge badge-xs border-base-300 bg-base-100/70 font-mono text-base-content/70">
+          {fieldSchema.typeName || fieldSchema.type}
         </span>
-      </div>
-      <div class="text-xs opacity-50">
-        Field #{fieldSchema.number}
+        {#if isRepeated}
+          <span class="badge badge-xs border-accent/40 bg-accent/10 text-accent">Repeated</span>
+        {/if}
       </div>
     </div>
+    <div class="text-xs font-medium text-base-content/50">#{fieldSchema.number}</div>
   </div>
 
-  <!-- Card Body - Contains field content -->
-  <div class="p-3">
+  <div class="px-4 py-4">
     <slot {handleChange} />
   </div>
 </div>

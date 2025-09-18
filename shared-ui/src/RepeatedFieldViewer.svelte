@@ -129,7 +129,7 @@
   }
 </script>
 
-<div class="space-y-3">
+<div class="space-y-4">
   {#if items && Array.isArray(items) && items.length > 0}
     {#each items as item, i}
       <ValueItem
@@ -172,7 +172,7 @@
 
   <!-- Add button always shown for repeated fields -->
   <button
-    class="btn btn-sm btn-outline btn-accent w-full"
+    class="btn btn-sm btn-outline btn-primary w-full rounded-xl"
     on:click={addToArray}
   >
     + Add {fieldSchema.name}

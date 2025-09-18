@@ -23,6 +23,13 @@
   let cEscapedString = '';
   let base64String = '';
 
+  const MODE_OPTIONS: Array<{ id: RawViewerMode; label: string }> = [
+    { id: 'hex', label: 'Hex' },
+    { id: 'base64', label: 'Base64' },
+    { id: 'cString', label: 'C String' },
+    { id: 'digests', label: 'Digests' },
+  ];
+
   $: resolvedSources = sources.length > 0
     ? sources
     : [{ id: 'default', label: 'Bytes', bytes: EMPTY_BYTES }];
@@ -56,6 +63,14 @@
     base64String = toBase64(currentBytes);
   } else if (viewerMode !== 'base64') {
     base64String = '';
+  }
+
+  function selectSource(id: string) {
+    selectedSourceId = id;
+  }
+
+  function selectMode(mode: RawViewerMode) {
+    viewerMode = mode;
   }
 
   async function refreshDigests(bytes: Uint8Array) {
@@ -192,66 +207,72 @@
 </script>
 
 <div class="space-y-3">
-  {#if resolvedSources.length > 1}
-    <div class="flex flex-wrap items-center gap-3">
-      <div class="flex items-center gap-2">
-        <span class="label-text">Source</span>
-        <select
-          class="select select-bordered select-xs"
-          bind:value={selectedSourceId}
-        >
-          {#each resolvedSources as source}
-            <option value={source.id}>{source.label}</option>
-          {/each}
-        </select>
+  <div class="flex flex-col gap-3">
+    {#if resolvedSources.length > 1}
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-base-content/60">Source</span>
+          <div class="join join-xs">
+            {#each resolvedSources as source}
+              <button
+                type="button"
+                class="btn btn-xs btn-outline join-item"
+                class:btn-active={selectedSourceId === source.id}
+                class:btn-primary={selectedSourceId === source.id}
+                on:click={() => selectSource(source.id)}
+              >
+                {source.label}
+              </button>
+            {/each}
+          </div>
+        </div>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="label-text">Viewer</span>
-        <select
-          class="select select-bordered select-xs"
-          bind:value={viewerMode}
-        >
-          <option value="hex">Hexdump</option>
-          <option value="digests">Digests</option>
-          <option value="cString">C Escaped String</option>
-          <option value="base64">Base64</option>
-        </select>
+    {/if}
+
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <span class="text-xs text-base-content/60">Viewer</span>
+      <div class="join join-xs">
+        {#each MODE_OPTIONS as option}
+          <button
+            type="button"
+            class="btn btn-xs btn-outline join-item"
+            class:btn-active={viewerMode === option.id}
+            class:btn-primary={viewerMode === option.id}
+            on:click={() => selectMode(option.id)}
+          >
+            {option.label}
+          </button>
+        {/each}
       </div>
     </div>
-  {:else}
-    <div class="flex flex-wrap items-center gap-3">
-      <div class="label-text">Viewer</div>
-      <select
-        class="select select-bordered select-xs"
-        bind:value={viewerMode}
-      >
-        <option value="hex">Hexdump</option>
-        <option value="digests">Digests</option>
-        <option value="cString">C Escaped String</option>
-        <option value="base64">Base64</option>
-      </select>
-    </div>
-  {/if}
+  </div>
 
   {#if viewerMode === 'hex'}
-    <pre class="whitespace-pre overflow-auto max-h-60 p-2 bg-base-100 rounded border border-base-300 text-xs font-mono">{currentHexdump}</pre>
+    <pre class="whitespace-pre overflow-auto max-h-60 rounded-lg border border-base-300 bg-base-100/70 p-3 text-[11px] font-mono leading-relaxed">{currentHexdump}</pre>
   {:else if viewerMode === 'digests'}
     {#if digestLoading}
-      <div class="text-sm opacity-70">Calculating digests...</div>
+      <div class="flex items-center gap-2 text-sm opacity-70">
+        <span class="loading loading-spinner loading-xs"></span>
+        Calculating digests...
+      </div>
     {:else if digestError}
-      <div class="text-sm text-error">{digestError}</div>
+      <div class="rounded-lg border border-error/40 bg-error/10 px-3 py-2 text-sm text-error">
+        {digestError}
+      </div>
     {:else if digestEntries.length === 0}
-      <div class="text-sm opacity-70">{emptyMessage}</div>
+      <div class="rounded-lg border border-dashed border-base-300 px-3 py-4 text-center text-sm opacity-70">
+        {emptyMessage}
+      </div>
     {:else}
-      <ul class="space-y-1 text-xs font-mono break-all">
+      <ul class="space-y-1 rounded-lg border border-base-300 bg-base-100/70 p-3 text-[11px] font-mono">
         {#each digestEntries as entry}
           <li><span class="font-semibold">{entry.algorithm}:</span> {entry.value}</li>
         {/each}
       </ul>
     {/if}
   {:else if viewerMode === 'cString'}
-    <pre class="whitespace-pre-wrap break-words overflow-auto max-h-60 p-2 bg-base-100 rounded border border-base-300 text-xs font-mono">{cEscapedString}</pre>
+    <pre class="whitespace-pre-wrap break-words overflow-auto max-h-60 rounded-lg border border-base-300 bg-base-100/70 p-3 text-[11px] font-mono leading-relaxed">{cEscapedString}</pre>
   {:else if viewerMode === 'base64'}
-    <pre class="whitespace-pre-wrap break-all overflow-auto max-h-60 p-2 bg-base-100 rounded border border-base-300 text-xs font-mono">{base64String || emptyMessage}</pre>
+    <pre class="whitespace-pre-wrap break-all overflow-auto max-h-60 rounded-lg border border-base-300 bg-base-100/70 p-3 text-[11px] font-mono leading-relaxed">{base64String || emptyMessage}</pre>
   {/if}
 </div>
