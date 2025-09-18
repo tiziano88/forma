@@ -5,6 +5,7 @@
   import ValueItem from "./ValueItem.svelte";
   import ObjectViewer from "./ObjectViewer.svelte";
   import PrimitiveInput from "./PrimitiveInput.svelte";
+  import BytesViewer from "./BytesViewer.svelte";
 
   export let parent: MessageValue;
   export let fieldSchema: FieldDef;
@@ -147,6 +148,11 @@
             messageSchema={items[i].type}
             {editor}
             on:change={handleChange}
+          />
+        {:else if fieldSchema.type === FieldType.TYPE_BYTES}
+          <BytesViewer
+            sources={[{ id: `${fieldSchema.name}-${i}`, label: 'Value', bytes: items[i] instanceof Uint8Array ? items[i] : new Uint8Array() }]}
+            emptyMessage="(empty)"
           />
         {:else}
           <PrimitiveInput

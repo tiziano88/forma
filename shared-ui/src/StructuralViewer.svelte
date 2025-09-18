@@ -2,6 +2,9 @@
   import { createEventDispatcher } from 'svelte';
   import type { MessageValue, MessageType, StructuralEditor } from '@lintx/core';
   import ObjectViewer from './ObjectViewer.svelte';
+  import BytesViewer, { type ByteSourceOption } from './BytesViewer.svelte';
+
+  const EMPTY_BYTES = new Uint8Array();
 
   export let decodedData: MessageValue | null;
   export let rootMessageType: MessageType | null;
@@ -9,11 +12,31 @@
   export let currentType: string | null;
   export let hexView: string;
   export let originalHexView: string;
+  export let encodedBytes: Uint8Array = EMPTY_BYTES;
+  export let originalBytes: Uint8Array = EMPTY_BYTES;
   export let editor: StructuralEditor; // Now properly typed and non-null
 
   const dispatch = createEventDispatcher();
+  let rawSourceId: string | null = 'encoded';
+  $: rawByteSources = buildRawSources();
 
-  let hexSource: 'original' | 'encoded' = 'encoded';
+  function buildRawSources(): ByteSourceOption[] {
+    const encodedSource: ByteSourceOption = {
+      id: 'encoded',
+      label: 'Current (encoded)',
+      bytes: encodedBytes ?? EMPTY_BYTES,
+      hexdump: hexView,
+    };
+
+    const originalSource: ByteSourceOption = {
+      id: 'original',
+      label: 'Original',
+      bytes: originalBytes ?? EMPTY_BYTES,
+      hexdump: originalHexView,
+    };
+
+    return [encodedSource, originalSource];
+  }
 
   function handleTypeChange(e: Event) {
     const v = (e.target as HTMLSelectElement).value;
@@ -58,20 +81,13 @@
   </div>
 
   <div class="card bg-base-200 shadow-sm">
-    <div class="card-body p-4">
-      <div class="flex items-center justify-between mb-2">
-        <div class="font-semibold">Hex Viewer</div>
-        <div class="flex items-center gap-2">
-          <label class="label-text" for="hex-source-select">Source</label>
-          <select id="hex-source-select" class="select select-bordered select-xs" bind:value={hexSource}>
-            <option value="encoded">Current (encoded)</option>
-            <option value="original">Original</option>
-          </select>
-        </div>
-      </div>
-      <pre class="whitespace-pre overflow-auto max-h-60 p-2 bg-base-100 rounded border border-base-300 text-xs font-mono">
-        {hexSource === 'encoded' ? hexView : originalHexView}
-      </pre>
+    <div class="card-body p-4 space-y-3">
+      <div class="font-semibold">Raw Bytes</div>
+      <BytesViewer
+        bind:selectedSourceId={rawSourceId}
+        sources={rawByteSources}
+        emptyMessage="No bytes available."
+      />
     </div>
   </div>
 </div>

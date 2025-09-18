@@ -7,6 +7,7 @@
   import ObjectViewer from './ObjectViewer.svelte';
   import PrimitiveInput from './PrimitiveInput.svelte';
   import RepeatedFieldViewer from './RepeatedFieldViewer.svelte';
+  import BytesViewer from './BytesViewer.svelte';
 
   export let parent: MessageValue;
   export let fieldSchema: FieldDef;
@@ -89,6 +90,10 @@
       parent.clearField(fieldSchema.number);
       dispatchChange();
     }
+  }
+
+  function ensureUint8Array(value: any): Uint8Array {
+    return value instanceof Uint8Array ? value : new Uint8Array();
   }
 </script>
 
@@ -219,12 +224,19 @@
             isRepeated={false}
             on:remove={handleRemoveValue}
           >
-            <PrimitiveInput
-              bind:value={value}
-              type={fieldSchema.type}
-              id={fieldSchema.name}
-              on:change={(e) => { parent.setField(fieldSchema.number, e.detail); handleChange(); }}
-            />
+            {#if fieldSchema.type === FieldType.TYPE_BYTES}
+              <BytesViewer
+                sources={[{ id: `${fieldSchema.name}-current`, label: 'Value', bytes: ensureUint8Array(value) }]}
+                emptyMessage="(empty)"
+              />
+            {:else}
+              <PrimitiveInput
+                bind:value={value}
+                type={fieldSchema.type}
+                id={fieldSchema.name}
+                on:change={(e) => { parent.setField(fieldSchema.number, e.detail); handleChange(); }}
+              />
+            {/if}
           </ValueItem>
         {/if}
 
@@ -240,6 +252,9 @@
                   break;
                 case FieldType.TYPE_BOOL:
                   defaultValue = false;
+                  break;
+                case FieldType.TYPE_BYTES:
+                  defaultValue = new Uint8Array();
                   break;
                 default:
                   defaultValue = 0;

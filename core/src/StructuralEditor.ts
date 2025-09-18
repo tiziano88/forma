@@ -632,6 +632,10 @@ export class StructuralEditor {
     return this.decodedData.toBytes();
   }
 
+  public getOriginalBytes = (): Bytes => {
+    return this.dataBytes || new Uint8Array();
+  }
+
   public getRootMessageType = (): MessageType | null => {
     if (!this.selectedTypeName) return null;
     return this.typeRegistry.get(this.selectedTypeName) || null;

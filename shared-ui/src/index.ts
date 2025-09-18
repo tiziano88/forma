@@ -3,5 +3,13 @@ import ObjectViewer from './ObjectViewer.svelte';
 import NodeViewer from './NodeViewer.svelte';
 import RepeatedFieldViewer from './RepeatedFieldViewer.svelte';
 import PrimitiveInput from './PrimitiveInput.svelte';
+import BytesViewer from './BytesViewer.svelte';
 
-export { StructuralViewer, ObjectViewer, NodeViewer, RepeatedFieldViewer, PrimitiveInput };
+export {
+  StructuralViewer,
+  ObjectViewer,
+  NodeViewer,
+  RepeatedFieldViewer,
+  PrimitiveInput,
+  BytesViewer,
+};

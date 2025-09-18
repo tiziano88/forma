@@ -115,6 +115,8 @@
       currentType: editor.getCurrentType(),
       hexView: editor.getHexView("encoded"),
       originalHexView: editor.getHexView("original"),
+      encodedBytes: editor.getEncodedBytes(),
+      originalBytes: editor.getOriginalBytes(),
       isReady: !!editor.getDecodedData(),
     };
     console.log("[WebApp] Editor state updated:", editorState);
@@ -187,6 +189,8 @@
         currentType={editorState.currentType}
         hexView={editorState.hexView}
         originalHexView={editorState.originalHexView}
+        encodedBytes={editorState.encodedBytes}
+        originalBytes={editorState.originalBytes}
         {editor}
         on:save={onSave}
         on:change={(e) => editor.updateDecodedData(e.detail)}

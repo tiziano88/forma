@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { Config } from "@lintx/core";
 
+const MAX_CONFIG_SEARCH_DEPTH = 10;
+
 class StructuralDocument implements vscode.CustomDocument {
   private readonly _uri: vscode.Uri;
   private _documentData: Uint8Array;
@@ -353,6 +355,55 @@ async function prepareInitPayload(
   };
 }
 
+async function findNearestConfig(
+  target: vscode.Uri,
+  maxDepth: number,
+  outputChannel: vscode.OutputChannel
+): Promise<vscode.Uri | undefined> {
+  if (target.scheme !== "file") {
+    outputChannel.appendLine(
+      `[CONFIG] Skipping config search for non-file URI: ${target.toString()}`
+    );
+    return undefined;
+  }
+
+  let currentDir = path.dirname(target.fsPath);
+  const visited = new Set<string>();
+
+  for (let depth = 0; depth <= maxDepth; depth++) {
+    const normalizedDir = path.normalize(currentDir);
+    if (visited.has(normalizedDir)) {
+      break;
+    }
+    visited.add(normalizedDir);
+
+    const candidatePath = path.join(currentDir, "config.forma.binpb");
+    const candidateUri = vscode.Uri.file(candidatePath);
+    try {
+      const stat = await vscode.workspace.fs.stat(candidateUri);
+      if (stat.type === vscode.FileType.File) {
+        outputChannel.appendLine(
+          `[CONFIG] Found config at depth ${depth}: ${candidateUri.fsPath}`
+        );
+        return candidateUri;
+      }
+    } catch (error) {
+      // Ignore missing files and continue walking up the tree.
+    }
+
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      break;
+    }
+    currentDir = parentDir;
+  }
+
+  outputChannel.appendLine(
+    `[CONFIG] No config.forma.binpb found within ${maxDepth} directories of ${target.fsPath}`
+  );
+  return undefined;
+}
+
 async function resolveSessionFromConfig(
   target: vscode.Uri,
   outputChannel: vscode.OutputChannel,
@@ -385,15 +436,17 @@ async function resolveSessionFromConfig(
     }
   }
 
-  // Look for a config.forma.binpb file in the workspace root for mappings.
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (workspaceFolders) {
-    const workspaceRoot = workspaceFolders[0].uri;
-    const configUri = vscode.Uri.joinPath(workspaceRoot, "config.forma.binpb");
+  const configUri = await findNearestConfig(
+    target,
+    MAX_CONFIG_SEARCH_DEPTH,
+    outputChannel
+  );
+
+  if (configUri) {
     try {
       const configBytes = await vscode.workspace.fs.readFile(configUri);
       outputChannel.appendLine(
-        `[CONFIG] Found config file: ${configUri.fsPath}`
+        `[CONFIG] Loaded config file: ${configUri.fsPath}`
       );
 
       const decodedConfig = Config.decode(configBytes);
@@ -401,25 +454,33 @@ async function resolveSessionFromConfig(
         `[CONFIG] Decoded config: ${JSON.stringify(decodedConfig, null, 2)}`
       );
 
+      const configDir = path.dirname(configUri.fsPath);
+      const targetPath = path.normalize(target.fsPath);
+
       for (const mapping of decodedConfig.files) {
-        const dataUri = vscode.Uri.joinPath(workspaceRoot, mapping.data || "");
-        if (dataUri.fsPath === target.fsPath) {
+        const mappingDataRelative = mapping.data || "";
+        const mappingDataPath = path.normalize(
+          path.isAbsolute(mappingDataRelative)
+            ? mappingDataRelative
+            : path.join(configDir, mappingDataRelative)
+        );
+
+        if (mappingDataPath === targetPath) {
           outputChannel.appendLine(
             `[CONFIG] Found mapping for: ${target.fsPath}`
           );
 
           let schemaDescriptor: Uint8Array | undefined;
           if (mapping.schemaDescriptor) {
+            const schemaPath = path.isAbsolute(mapping.schemaDescriptor)
+              ? mapping.schemaDescriptor
+              : path.join(configDir, mapping.schemaDescriptor);
             try {
-              const descriptorUri = vscode.Uri.joinPath(
-                workspaceRoot,
-                mapping.schemaDescriptor
-              );
               schemaDescriptor = await vscode.workspace.fs.readFile(
-                descriptorUri
+                vscode.Uri.file(schemaPath)
               );
               outputChannel.appendLine(
-                `[CONFIG] Loaded schema descriptor: ${descriptorUri.fsPath}`
+                `[CONFIG] Loaded schema descriptor: ${schemaPath}`
               );
             } catch (e) {
               outputChannel.appendLine(

@@ -30,6 +30,8 @@
       currentType: editor.getCurrentType(),
       hexView: editor.getHexView('encoded'),
       originalHexView: editor.getHexView('original'),
+      encodedBytes: editor.getEncodedBytes(),
+      originalBytes: editor.getOriginalBytes(),
       isReady: !!decodedData,
     };
     
@@ -161,6 +163,8 @@
         currentType={editorState.currentType}
         hexView={editorState.hexView}
         originalHexView={editorState.originalHexView}
+        encodedBytes={editorState.encodedBytes}
+        originalBytes={editorState.originalBytes}
         {editor}
         on:change={(e) => editor.updateDecodedData(e.detail)}
         on:typechange={(e) => editor.setCurrentType(e.detail)}
