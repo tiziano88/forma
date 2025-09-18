@@ -8,32 +8,35 @@
   export let depth: number = 0;
 
   const dispatch = createEventDispatcher();
-  const headerHeight = 50;
+  const headerHeight = 40;
   $: top = depth * headerHeight;
 
   // Map wire format types to friendly names
   const typeNameMap: Record<number, string> = {
-    [FieldType.TYPE_DOUBLE]: 'double',
-    [FieldType.TYPE_FLOAT]: 'float',
-    [FieldType.TYPE_INT64]: 'int64',
-    [FieldType.TYPE_UINT64]: 'uint64',
-    [FieldType.TYPE_INT32]: 'int32',
-    [FieldType.TYPE_FIXED64]: 'fixed64',
-    [FieldType.TYPE_FIXED32]: 'fixed32',
-    [FieldType.TYPE_BOOL]: 'bool',
-    [FieldType.TYPE_STRING]: 'string',
-    [FieldType.TYPE_GROUP]: 'group',
-    [FieldType.TYPE_MESSAGE]: 'message',
-    [FieldType.TYPE_BYTES]: 'bytes',
-    [FieldType.TYPE_UINT32]: 'uint32',
-    [FieldType.TYPE_ENUM]: 'enum',
-    [FieldType.TYPE_SFIXED32]: 'sfixed32',
-    [FieldType.TYPE_SFIXED64]: 'sfixed64',
-    [FieldType.TYPE_SINT32]: 'sint32',
-    [FieldType.TYPE_SINT64]: 'sint64',
+    [FieldType.TYPE_DOUBLE]: "double",
+    [FieldType.TYPE_FLOAT]: "float",
+    [FieldType.TYPE_INT64]: "int64",
+    [FieldType.TYPE_UINT64]: "uint64",
+    [FieldType.TYPE_INT32]: "int32",
+    [FieldType.TYPE_FIXED64]: "fixed64",
+    [FieldType.TYPE_FIXED32]: "fixed32",
+    [FieldType.TYPE_BOOL]: "bool",
+    [FieldType.TYPE_STRING]: "string",
+    [FieldType.TYPE_GROUP]: "group",
+    [FieldType.TYPE_MESSAGE]: "message",
+    [FieldType.TYPE_BYTES]: "bytes",
+    [FieldType.TYPE_UINT32]: "uint32",
+    [FieldType.TYPE_ENUM]: "enum",
+    [FieldType.TYPE_SFIXED32]: "sfixed32",
+    [FieldType.TYPE_SFIXED64]: "sfixed64",
+    [FieldType.TYPE_SINT32]: "sint32",
+    [FieldType.TYPE_SINT64]: "sint64",
   };
 
-  $: displayType = fieldSchema.typeName || typeNameMap[fieldSchema.type] || `type_${fieldSchema.type}`;
+  $: displayType =
+    fieldSchema.typeName ||
+    typeNameMap[fieldSchema.type] ||
+    `type_${fieldSchema.type}`;
 
   function handleChange() {
     dispatch("change");
@@ -48,8 +51,11 @@
     <div class="field-card-header-content">
       <span class="field-card-name">{fieldSchema.name}</span>
       <span class="field-card-number">#{fieldSchema.number}</span>
+      {#if isRepeated}
+        <span class="field-card-type-pill"> repeated </span>
+      {/if}
       <span class="field-card-type-pill">
-        {#if isRepeated}repeated {/if}{displayType}
+        {displayType}
       </span>
     </div>
   </div>
