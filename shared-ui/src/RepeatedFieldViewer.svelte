@@ -10,6 +10,7 @@
   export let parent: MessageValue;
   export let fieldSchema: FieldDef;
   export let editor: StructuralEditor; // Now properly typed and non-null
+  export let depth: number = 0;
 
   const dispatch = createEventDispatcher();
   const valueType = fieldSchema.typeName; // For message types
@@ -147,6 +148,7 @@
             bind:object={items[i]}
             messageSchema={items[i].type}
             {editor}
+            depth={depth + 1}
             on:change={handleChange}
           />
         {:else if fieldSchema.type === FieldType.TYPE_BYTES}

@@ -6,7 +6,7 @@
   export let object: MessageValue;
   export let messageSchema: MessageType;
   export let editor: StructuralEditor; // Now properly typed and non-null
-  export let top: number = 0;
+  export let depth: number = 0;
 
   const dispatch = createEventDispatcher();
 
@@ -21,7 +21,7 @@
       bind:parent={object}
       fieldSchema={field}
       editor={editor}
-      {top}
+      {depth}
       on:change={handleChange}
     />
   {/each}
