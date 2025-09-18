@@ -70,7 +70,10 @@
   }
 </script>
 
-<div class="field-card group" class:field-card-placeholder={isPlaceholder || !hasContent}>
+<div
+  class="field-card group"
+  class:field-card-placeholder={isPlaceholder || !hasContent}
+>
   <div
     class="field-card-header field-card-header--sticky"
     class:rounded-xl={!hasContent}
@@ -85,38 +88,35 @@
       {/if}
       <span class="field-card-number">#{fieldSchema.number}</span>
       <span class="field-card-type-pill">
-        {#if isRepeated && arrayIndex === null}repeated {/if}{displayType}
+        {#if isRepeated && arrayIndex === null}repeated
+        {/if}{displayType}
       </span>
 
       <!-- Control buttons -->
       <div class="field-card-controls">
         {#if showMoveUp}
-          <button
-            class="btn-move-up"
-            title="Move up"
-            on:click={handleMoveUp}
-          >↑</button>
+          <button class="btn-move-up" title="Move up" on:click={handleMoveUp}
+            >↑</button
+          >
         {/if}
         {#if showMoveDown}
           <button
             class="btn-move-down"
             title="Move down"
-            on:click={handleMoveDown}
-          >↓</button>
+            on:click={handleMoveDown}>↓</button
+          >
         {/if}
         {#if showAddButton}
           <button
             class="btn-add"
             title={isPlaceholder ? "Add first item" : "Add item"}
-            on:click={handleAdd}
-          >+</button>
+            on:click={handleAdd}>+</button
+          >
         {/if}
         {#if showRemoveButton}
-          <button
-            class="btn-remove"
-            title="Remove"
-            on:click={handleRemove}
-          >×</button>
+          <button class="btn-remove" title="Remove" on:click={handleRemove}
+            >×</button
+          >
         {/if}
       </div>
     </div>

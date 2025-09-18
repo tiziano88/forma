@@ -203,7 +203,7 @@
             bind:object={item}
             messageSchema={item.type}
             {editor}
-            depth={depth + 1}
+            depth={depth}
             onchange={dispatchChange}
           />
         {/if}
@@ -288,7 +288,7 @@
             bind:object={value}
             messageSchema={value.type}
             {editor}
-            depth={depth + 1}
+            depth={depth}
             onchange={dispatchChange}
           />
         {/if}
