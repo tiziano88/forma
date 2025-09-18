@@ -26,7 +26,7 @@
   <div class="flex items-center justify-between gap-2">
     {#if isRepeated}
       <div class="value-item-header">
-        <span class="value-item-index">#{index}</span>
+        <span class="value-item-index">[{index}]</span>
         <span class="text-editor-secondary">Item</span>
       </div>
     {/if}
