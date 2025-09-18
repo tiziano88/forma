@@ -49,6 +49,54 @@
   border: 1px solid var(--editor-border-primary);
 }
 
+.field-card-controls {
+  @apply flex items-center gap-1 ml-auto;
+}
+
+.field-card-index {
+  @apply font-mono text-sm;
+  color: var(--editor-text-muted);
+}
+
+.field-card-placeholder {
+  opacity: 0.7;
+  border-style: dashed;
+}
+
+.btn-move-up, .btn-move-down, .btn-add, .btn-remove {
+  @apply w-6 h-6 rounded text-xs flex items-center justify-center border cursor-pointer transition-colors;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-tertiary);
+  color: var(--editor-text-secondary);
+}
+
+.btn-move-up:hover, .btn-move-down:hover {
+  background: var(--editor-bg-secondary);
+  color: var(--editor-text-primary);
+}
+
+.btn-add {
+  background: var(--editor-primary-bg);
+  color: var(--editor-primary);
+  border-color: var(--editor-primary);
+}
+
+.btn-add:hover {
+  background: var(--editor-primary);
+  color: var(--editor-bg-primary);
+}
+
+.btn-remove {
+  background: var(--editor-error-bg);
+  color: var(--editor-error);
+  border-color: var(--editor-error);
+}
+
+.btn-remove:hover {
+  background: var(--editor-error);
+  color: var(--editor-bg-primary);
+}
+
 /* ===== TEXT UTILITIES ===== */
 
 .text-editor-primary {

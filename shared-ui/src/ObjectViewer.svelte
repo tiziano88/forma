@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import type { MessageValue, MessageType, StructuralEditor } from '@lintx/core';
-  import NodeViewer from './NodeViewer.svelte';
+  import FlatFieldViewer from './FlatFieldViewer.svelte';
 
   export let object: MessageValue;
   export let messageSchema: MessageType;
@@ -17,11 +17,11 @@
 
 <div class="space-y-4">
   {#each Array.from(messageSchema.fields.values()) as field}
-    <NodeViewer
+    <FlatFieldViewer
       bind:parent={object}
       fieldSchema={field}
-      editor={editor}
-      {depth}
+      {editor}
+      depth={depth + 1}
       on:change={handleChange}
     />
   {/each}

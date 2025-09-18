@@ -1,15 +1,15 @@
 import StructuralViewer from './StructuralViewer.svelte';
 import ObjectViewer from './ObjectViewer.svelte';
-import NodeViewer from './NodeViewer.svelte';
-import RepeatedFieldViewer from './RepeatedFieldViewer.svelte';
+import FlatFieldViewer from './FlatFieldViewer.svelte';
+import FieldCard from './FieldCard.svelte';
 import PrimitiveInput from './PrimitiveInput.svelte';
 import BytesViewer from './BytesViewer.svelte';
 
 export {
   StructuralViewer,
   ObjectViewer,
-  NodeViewer,
-  RepeatedFieldViewer,
+  FlatFieldViewer,
+  FieldCard,
   PrimitiveInput,
   BytesViewer,
 };
