@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import type { MessageValue, FieldDef } from "@lintx/core";
   import { FieldType } from "@lintx/core";
 
@@ -14,7 +13,12 @@
   export let showMoveDown: boolean = false;
   export let hasContent: boolean = true; // Whether to show content area
 
-  const dispatch = createEventDispatcher();
+  // Callback props instead of event dispatcher
+  export let onchange: (() => void) | undefined = undefined;
+  export let onadd: (() => void) | undefined = undefined;
+  export let onremove: (() => void) | undefined = undefined;
+  export let onmoveup: (() => void) | undefined = undefined;
+  export let onmovedown: (() => void) | undefined = undefined;
   const headerHeight = 40;
   $: top = depth * headerHeight;
 
@@ -46,23 +50,23 @@
     `type_${fieldSchema.type}`;
 
   function handleChange() {
-    dispatch("change");
+    onchange?.();
   }
 
   function handleAdd() {
-    dispatch("add");
+    onadd?.();
   }
 
   function handleRemove() {
-    dispatch("remove");
+    onremove?.();
   }
 
   function handleMoveUp() {
-    dispatch("moveUp");
+    onmoveup?.();
   }
 
   function handleMoveDown() {
-    dispatch("moveDown");
+    onmovedown?.();
   }
 </script>
 

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
   import type { MessageValue, FieldDef, EnumType, StructuralEditor } from '@lintx/core';
   import { FieldLabel, FieldType } from '@lintx/core';
   import FieldCard from './FieldCard.svelte';
@@ -11,8 +10,7 @@
   export let fieldSchema: FieldDef;
   export let editor: StructuralEditor;
   export let depth: number = 0;
-
-  const dispatch = createEventDispatcher();
+  export let onchange: (() => void) | undefined = undefined;
   let enumType: EnumType | null = null;
 
   // A set of well-known or custom types that require special UI handling.
@@ -37,7 +35,7 @@
   }
 
   function dispatchChange() {
-    dispatch('change');
+    onchange?.();
   }
 
   function createDefaultValue() {
@@ -161,11 +159,11 @@
       showRemoveButton={true}
       showMoveUp={index > 0}
       showMoveDown={index < items.length - 1}
-      on:add={() => handleAdd(index)}
-      on:remove={() => handleRemove(index)}
-      on:moveUp={() => handleMove(index, 'up')}
-      on:moveDown={() => handleMove(index, 'down')}
-      on:change={dispatchChange}
+      onadd={() => handleAdd(index)}
+      onremove={() => handleRemove(index)}
+      onmoveup={() => handleMove(index, 'up')}
+      onmovedown={() => handleMove(index, 'down')}
+      onchange={dispatchChange}
     >
       {#if isSpecialCased}
         <!-- Special cased types (like Timestamps) -->
@@ -206,7 +204,7 @@
             messageSchema={item.type}
             {editor}
             depth={depth + 1}
-            on:change={dispatchChange}
+            onchange={dispatchChange}
           />
         {/if}
       {:else if fieldSchema.type === FieldType.TYPE_BYTES}
@@ -221,7 +219,7 @@
           bind:value={item}
           type={fieldSchema.type}
           id="{fieldSchema.name}-{index}"
-          on:change={(e) => handlePrimitiveChange(e, index)}
+          onchange={(newValue) => handlePrimitiveChange({ detail: newValue }, index)}
         />
       {/if}
     </FieldCard>
@@ -235,8 +233,8 @@
     isPlaceholder={true}
     hasContent={false}
     showAddButton={true}
-    on:add={() => handleAdd()}
-    on:change={dispatchChange}
+    onadd={() => handleAdd()}
+    onchange={dispatchChange}
   />
 {:else}
   <!-- Singular field -->
@@ -247,9 +245,9 @@
     hasContent={!isUnset}
     showAddButton={isUnset}
     showRemoveButton={!isUnset}
-    on:add={() => handleAdd()}
-    on:remove={() => handleRemove()}
-    on:change={dispatchChange}
+    onadd={() => handleAdd()}
+    onremove={() => handleRemove()}
+    onchange={dispatchChange}
   >
     {#if !isUnset}
       {#if isSpecialCased}
@@ -291,7 +289,7 @@
             messageSchema={value.type}
             {editor}
             depth={depth + 1}
-            on:change={dispatchChange}
+            onchange={dispatchChange}
           />
         {/if}
       {:else if fieldSchema.type === FieldType.TYPE_BYTES}
@@ -306,7 +304,7 @@
           bind:value={value}
           type={fieldSchema.type}
           id={fieldSchema.name}
-          on:change={handlePrimitiveChange}
+          onchange={(newValue) => handlePrimitiveChange({ detail: newValue })}
         />
       {/if}
     {/if}

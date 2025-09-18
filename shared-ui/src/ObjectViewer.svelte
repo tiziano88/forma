@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
   import type { MessageValue, MessageType, StructuralEditor } from '@lintx/core';
   import FlatFieldViewer from './FlatFieldViewer.svelte';
 
@@ -7,11 +6,10 @@
   export let messageSchema: MessageType;
   export let editor: StructuralEditor; // Now properly typed and non-null
   export let depth: number = 0;
-
-  const dispatch = createEventDispatcher();
+  export let onchange: (() => void) | undefined = undefined;
 
   function handleChange() {
-    dispatch('change', object);
+    onchange?.();
   }
 </script>
 
@@ -22,7 +20,7 @@
       fieldSchema={field}
       {editor}
       depth={depth + 1}
-      on:change={handleChange}
+      onchange={handleChange}
     />
   {/each}
 </div>

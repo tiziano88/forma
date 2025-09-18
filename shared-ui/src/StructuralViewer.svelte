@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
   import type { MessageValue, MessageType, StructuralEditor } from '@lintx/core';
   import ObjectViewer from './ObjectViewer.svelte';
   import BytesViewer, { type ByteSourceOption } from './BytesViewer.svelte';
@@ -15,8 +14,10 @@
   export let encodedBytes: Uint8Array = EMPTY_BYTES;
   export let originalBytes: Uint8Array = EMPTY_BYTES;
   export let editor: StructuralEditor; // Now properly typed and non-null
+  export let ontypechange: ((type: string | null) => void) | undefined = undefined;
+  export let onchange: ((data: any) => void) | undefined = undefined;
+  export let onsave: (() => void) | undefined = undefined;
 
-  const dispatch = createEventDispatcher();
   let rawSourceId: string | null = 'encoded';
   $: rawByteSources = buildRawSources();
 
@@ -40,11 +41,11 @@
 
   function handleTypeChange(e: Event) {
     const v = (e.target as HTMLSelectElement).value;
-    dispatch('typechange', v || null);
+    ontypechange?.(v || null);
   }
 
-  function handleDataChange(e: CustomEvent) {
-    dispatch('change', e.detail);
+  function handleDataChange() {
+    onchange?.(decodedData);
   }
 </script>
 
@@ -99,7 +100,7 @@
           <button
             class="btn btn-primary btn-xs rounded-lg shadow-sm"
             style="box-shadow: var(--editor-shadow-sm);"
-            on:click={() => dispatch('save')}
+            on:click={() => onsave?.()}
           >
             Save changes
           </button>
@@ -123,7 +124,7 @@
         object={decodedData}
         messageSchema={rootMessageType}
         editor={editor}
-        on:change={handleDataChange}
+        onchange={handleDataChange}
       />
     {:else}
       <div class="empty-state p-6">

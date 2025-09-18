@@ -192,9 +192,9 @@
         encodedBytes={editorState.encodedBytes}
         originalBytes={editorState.originalBytes}
         {editor}
-        on:save={onSave}
-        on:change={(e) => editor.updateDecodedData(e.detail)}
-        on:typechange={(e) => editor.setCurrentType(e.detail)}
+        onsave={onSave}
+        onchange={(data) => editor.updateDecodedData(data)}
+        ontypechange={(type) => editor.setCurrentType(type)}
       />
     {:else if !errorMessage}
       <div class="placeholder-state">

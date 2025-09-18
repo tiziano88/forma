@@ -1,15 +1,13 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
   import { FieldType } from '@lintx/core';
 
   export let value: string | number | boolean;
   export let type: string; // The protobuf field type (e.g., 'string', 'int32', 'bool')
   export let id: string | number;
-
-  const dispatch = createEventDispatcher();
+  export let onchange: ((value: any) => void) | undefined = undefined;
 
   function handleChange() {
-    dispatch('change', value);
+    onchange?.(value);
   }
 
   const numericTypes = new Set([
