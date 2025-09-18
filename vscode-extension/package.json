@@ -2,7 +2,7 @@
   "name": "forma-structural-editor",
   "displayName": "Forma Structural Editor",
   "description": "View and edit Protobuf-encoded binary files with a schema using a Svelte-based webview.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "publisher": "tiziano88",
   "repository": {
     "type": "git",
