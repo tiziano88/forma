@@ -38,7 +38,7 @@ describe("MessageValue System", () => {
       // Verify Person message structure
       const personType = typeRegistry.get(".example.Person")!;
       expect(personType.fullName).toBe(".example.Person");
-      expect(personType.fields.size).toBe(7);
+      expect(personType.fields.size).toBe(8);
 
       // Check specific fields
       expect(personType.fields.get(1)?.name).toBe("name");
@@ -48,6 +48,7 @@ describe("MessageValue System", () => {
       expect(personType.fields.get(5)?.name).toBe("address");
       expect(personType.fields.get(6)?.name).toBe("phones");
       expect(personType.fields.get(7)?.name).toBe("articles");
+      expect(personType.fields.get(8)?.name).toBe("cats");
     });
   });
 
@@ -140,7 +141,7 @@ describe("MessageValue System", () => {
       person.setName(testData.name);
       person.setId(testData.id);
       person.setIsVerified(testData.is_verified);
-      person.setEyeColor(testData.eye_color);
+      person.setEyeColor(testData.eye_color as any);
 
       // Create and set address
       const address = new Address();
@@ -153,7 +154,7 @@ describe("MessageValue System", () => {
       testData.phones.forEach((phoneData) => {
         const phone = new PhoneNumber();
         phone.setNumber(phoneData.number);
-        phone.setType(phoneData.type);
+        phone.setType(phoneData.type as any);
         person.addPhones(phone);
       });
 

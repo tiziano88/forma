@@ -12,6 +12,7 @@
   export let parent: MessageValue;
   export let fieldSchema: FieldDef;
   export let editor: StructuralEditor; // Now properly typed and non-null
+  export let top: number = 0;
 
   const dispatch = createEventDispatcher();
   let value: any;
@@ -97,7 +98,7 @@
   }
 </script>
 
-<FieldCard {fieldSchema} {parent} {editor} {isRepeated} on:change={dispatchChange}>
+<FieldCard {fieldSchema} {isRepeated} {top} on:change={dispatchChange}>
   <svelte:fragment slot="default" let:handleChange>
     {#if isSpecialCased}
       <!-- Special cased types (like Timestamps) -->
@@ -179,6 +180,7 @@
               bind:object={value}
               messageSchema={value.type}
               editor={editor}
+              top={top + 50}
               on:change={handleChange}
             />
           </ValueItem>

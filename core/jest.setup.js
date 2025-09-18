@@ -1,5 +1,2 @@
-// Jest setup file to configure globals
-import { jest } from '@jest/globals';
-
-// Make Jest globals available
-global.jest = jest;
+// This file is intentionally left blank.
+// Jest globals are automatically available in test files.
