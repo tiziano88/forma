@@ -15,7 +15,6 @@
 .field-card:not(:has(div.field-card:hover)):hover {
   border-color: var(--editor-card-hover-border);
   background: var(--editor-card-hover-bg);
-  background-color: red;
 }
 
 .field-card-header {
