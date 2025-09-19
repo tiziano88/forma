@@ -11,12 +11,12 @@
 
   const editor = new StructuralEditor();
 
-  let schemaFileName = 'No schema loaded';
-  let dataFileName = 'No data loaded';
-  let errorMessage = '';
-  let editorState: any = null;
-  let isInitialized = false;
-  let isSaving = false;
+  let schemaFileName = $state('No schema loaded');
+  let dataFileName = $state('No data loaded');
+  let errorMessage = $state('');
+  let editorState = $state<any>(null);
+  let isInitialized = $state(false);
+  let isSaving = $state(false);
 
   // --- Editor State Management ---
   function updateState() {
@@ -45,7 +45,7 @@
 
   editor.on('change', () => {
     updateState();
-    console.log('[Webview] Editor change event fired. New state:', editorState);
+    console.log('[Webview] Editor change event fired. New state:', $state.snapshot(editorState));
     if (isInitialized) {
       vscode?.postMessage({
         type: 'contentChanged',
@@ -86,7 +86,7 @@
           console.log('[Webview] editor.initialize completed successfully');
         } catch (error) {
           console.error('[Webview] Error during editor.initialize:', error);
-          console.error('[Webview] Error stack:', error.stack);
+          console.error('[Webview] Error stack:', (error as Error).stack);
         }
         
         schemaFileName = msg.payload.schemaName || 'Pre-compiled Schema';
@@ -114,7 +114,7 @@
       }
     } catch (error) {
       console.error('[Webview] Error in handleVsCodeMessage:', error);
-      console.error('[Webview] Error stack:', error.stack);
+      console.error('[Webview] Error stack:', (error as Error).stack);
     }
   }
 
@@ -182,8 +182,8 @@
             originalBytes={editorState.originalBytes}
             {editor}
             onchange={(data) => editor.updateDecodedData(data)}
-            ontypechange={(type) => editor.setCurrentType(type)}
-            onsave={onSave}
+            ontypechange={(type) => editor.setCurrentType(type || '')}
+            onsave={() => {}}
           />
         {:else}
           <div class="placeholder-state">

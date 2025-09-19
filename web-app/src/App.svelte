@@ -6,13 +6,13 @@
 
   const editor = new StructuralEditor();
 
-  let schemaFileName = "No schema loaded";
-  let dataFileName = "No data loaded";
-  let errorMessage = "";
-  let editorState: any = null;
+  let schemaFileName = $state("No schema loaded");
+  let dataFileName = $state("No data loaded");
+  let errorMessage = $state("");
+  let editorState = $state<any>(null);
 
-  let schemaFileHandle: FileSystemFileHandle | null = null;
-  let dataFileHandle: FileSystemFileHandle | null = null;
+  let schemaFileHandle = $state<FileSystemFileHandle | null>(null);
+  let dataFileHandle = $state<FileSystemFileHandle | null>(null);
 
   // --- UI Event Handlers ---
 
@@ -119,7 +119,7 @@
       originalBytes: editor.getOriginalBytes(),
       isReady: !!editor.getDecodedData(),
     };
-    console.log("[WebApp] Editor state updated:", editorState);
+    console.log("[WebApp] Editor state updated:", $state.snapshot(editorState));
   }
 
   editor.on("change", () => {
@@ -160,16 +160,16 @@
         <div class="tooltip" data-tip={schemaFileName}>
           <button
             class="btn btn-sm btn-outline"
-            on:click={() => loadFile("schema")}>Load Schema</button
+            onclick={() => loadFile("schema")}>Load Schema</button
           >
         </div>
         <div class="tooltip" data-tip={dataFileName}>
           <button
             class="btn btn-sm btn-outline"
-            on:click={() => loadFile("data")}>Load Data</button
+            onclick={() => loadFile("data")}>Load Data</button
           >
         </div>
-        <button class="btn btn-sm btn-secondary" on:click={loadTestSample}
+        <button class="btn btn-sm btn-secondary" onclick={loadTestSample}
           >Load Test Sample</button
         >
       </div>

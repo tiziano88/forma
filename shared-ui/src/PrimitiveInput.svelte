@@ -1,13 +1,39 @@
 <script lang="ts">
   import { FieldType } from '@lintx/core';
 
-  export let value: string | number | boolean;
-  export let type: string; // The protobuf field type (e.g., 'string', 'int32', 'bool')
-  export let id: string | number;
-  export let onchange: ((value: any) => void) | undefined = undefined;
+  interface Props {
+    value: string | number | boolean;
+    type: string;
+    id: string | number;
+    onchange?: (value: any) => void;
+  }
+
+  const {
+    value,
+    type,
+    id,
+    onchange
+  }: Props = $props();
+
+  // Use local state that starts with the prop value but is independent
+  let localValue = $state(value || '');
+
+  // Initialize local value when component mounts
+  $effect(() => {
+    if (value !== undefined && value !== null && localValue !== value) {
+      localValue = value;
+    }
+  });
+
+  function handleInput(event: Event) {
+    const target = event.target as HTMLInputElement;
+    localValue = target.value;
+    // Immediately call onchange with the new value
+    onchange?.(localValue);
+  }
 
   function handleChange() {
-    onchange?.(value);
+    onchange?.(localValue);
   }
 
   const numericTypes = new Set([
@@ -28,23 +54,23 @@
 
 {#if type === FieldType.TYPE_BOOL}
   <label class="label-editor">
-    <input type="checkbox" class="toggle toggle-sm toggle-primary" bind:checked={value} id={id.toString()} on:change={handleChange} />
-    <span class="font-medium text-editor-primary">{value ? 'True' : 'False'}</span>
+    <input type="checkbox" class="toggle toggle-sm toggle-primary" bind:checked={localValue} id={id.toString()} onchange={handleChange} />
+    <span class="font-medium text-editor-primary">{localValue ? 'True' : 'False'}</span>
   </label>
 {:else if numericTypes.has(type)}
   <input
     type="number"
     class="input-editor"
-    bind:value={value}
+    value={localValue}
     id={id.toString()}
-    on:input={handleChange}
+    oninput={handleInput}
   />
 {:else}
   <input
     type="text"
     class="input-editor"
-    bind:value={value}
+    value={localValue}
     id={id.toString()}
-    on:input={handleChange}
+    oninput={handleInput}
   />
 {/if}

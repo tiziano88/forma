@@ -2,25 +2,45 @@
   import type { MessageValue, FieldDef } from "@lintx/core";
   import { FieldType } from "@lintx/core";
 
-  export let fieldSchema: FieldDef;
-  export let isRepeated: boolean = false;
-  export let depth: number = 0;
-  export let arrayIndex: number | null = null; // For repeated fields
-  export let isPlaceholder: boolean = false; // For "add next" cards
-  export let showAddButton: boolean = false;
-  export let showRemoveButton: boolean = false;
-  export let showMoveUp: boolean = false;
-  export let showMoveDown: boolean = false;
-  export let hasContent: boolean = true; // Whether to show content area
+  interface Props {
+    fieldSchema: FieldDef;
+    isRepeated?: boolean;
+    depth?: number;
+    arrayIndex?: number | null;
+    isPlaceholder?: boolean;
+    showAddButton?: boolean;
+    showRemoveButton?: boolean;
+    showMoveUp?: boolean;
+    showMoveDown?: boolean;
+    hasContent?: boolean;
+    onchange?: () => void;
+    onadd?: () => void;
+    onremove?: () => void;
+    onmoveup?: () => void;
+    onmovedown?: () => void;
+    children?: import('svelte').Snippet<[{ handleChange: () => void }]>;
+  }
 
-  // Callback props instead of event dispatcher
-  export let onchange: (() => void) | undefined = undefined;
-  export let onadd: (() => void) | undefined = undefined;
-  export let onremove: (() => void) | undefined = undefined;
-  export let onmoveup: (() => void) | undefined = undefined;
-  export let onmovedown: (() => void) | undefined = undefined;
+  const {
+    fieldSchema,
+    isRepeated = false,
+    depth = 0,
+    arrayIndex = null,
+    isPlaceholder = false,
+    showAddButton = false,
+    showRemoveButton = false,
+    showMoveUp = false,
+    showMoveDown = false,
+    hasContent = true,
+    onchange,
+    onadd,
+    onremove,
+    onmoveup,
+    onmovedown,
+    children
+  }: Props = $props();
   const headerHeight = 40;
-  $: top = depth * headerHeight;
+  const top = $derived(depth * headerHeight);
 
   // Map wire format types to friendly names
   const typeNameMap: Record<number, string> = {
@@ -44,10 +64,10 @@
     [FieldType.TYPE_SINT64]: "sint64",
   };
 
-  $: displayType =
+  const displayType = $derived(
     fieldSchema.typeName ||
     typeNameMap[fieldSchema.type] ||
-    `type_${fieldSchema.type}`;
+    `type_${fieldSchema.type}`);
 
   function handleChange() {
     onchange?.();
@@ -95,7 +115,7 @@
       <!-- Control buttons -->
       <div class="field-card-controls">
         {#if showMoveUp}
-          <button class="btn-move-up" title="Move up" on:click={handleMoveUp}
+          <button class="btn-move-up" title="Move up" onclick={handleMoveUp}
             >↑</button
           >
         {/if}
@@ -103,18 +123,18 @@
           <button
             class="btn-move-down"
             title="Move down"
-            on:click={handleMoveDown}>↓</button
+            onclick={handleMoveDown}>↓</button
           >
         {/if}
         {#if showAddButton}
           <button
             class="btn-add"
             title={isPlaceholder ? "Add first item" : "Add item"}
-            on:click={handleAdd}>+</button
+            onclick={handleAdd}>+</button
           >
         {/if}
         {#if showRemoveButton}
-          <button class="btn-remove" title="Remove" on:click={handleRemove}
+          <button class="btn-remove" title="Remove" onclick={handleRemove}
             >×</button
           >
         {/if}
@@ -124,7 +144,7 @@
 
   {#if hasContent}
     <div class="px-2.5 py-2.5">
-      <slot {handleChange} />
+      {@render children?.({ handleChange })}
     </div>
   {/if}
 </div>

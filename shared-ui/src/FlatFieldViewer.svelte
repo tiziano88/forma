@@ -6,33 +6,61 @@
   import PrimitiveInput from './PrimitiveInput.svelte';
   import BytesViewer from './BytesViewer.svelte';
 
-  export let parent: MessageValue;
-  export let fieldSchema: FieldDef;
-  export let editor: StructuralEditor;
-  export let depth: number = 0;
-  export let onchange: (() => void) | undefined = undefined;
-  let enumType: EnumType | null = null;
+  interface Props {
+    parent: MessageValue;
+    fieldSchema: FieldDef;
+    editor: StructuralEditor;
+    depth?: number;
+    onchange?: () => void;
+  }
+
+  const {
+    parent,
+    fieldSchema,
+    editor,
+    depth = 0,
+    onchange
+  }: Props = $props();
+  let enumType = $state<EnumType | null>(null);
 
   // A set of well-known or custom types that require special UI handling.
   const SPECIAL_CASED_TYPES = new Set([
     '.google.protobuf.Timestamp',
   ]);
 
-  $: isRepeated = fieldSchema.label === FieldLabel.LABEL_REPEATED;
-  $: value = isRepeated ? parent.getRepeatedField(fieldSchema.number) : parent.getField(fieldSchema.number);
-  $: items = isRepeated ? (value || []) : [];
-  $: isUnset = value === null || value === undefined || (isRepeated && items.length === 0);
-  $: isSpecialCased = fieldSchema.typeName && SPECIAL_CASED_TYPES.has(fieldSchema.typeName);
+  const isRepeated = $derived(fieldSchema.label === FieldLabel.LABEL_REPEATED);
+
+  // Use reactive state instead of derived values for better control
+  let value = $state<any>(null);
+  let items = $state<any[]>([]);
+  let isUnset = $state(true);
+  const isSpecialCased = $derived(fieldSchema.typeName && SPECIAL_CASED_TYPES.has(fieldSchema.typeName));
+
+  // Function to update all reactive state
+  function updateReactiveState() {
+    const newValue = isRepeated ? parent.getRepeatedField(fieldSchema.number) : parent.getField(fieldSchema.number);
+    const newItems = isRepeated ? (newValue || []) : [];
+    const newIsUnset = newValue === null || newValue === undefined || (isRepeated && newItems.length === 0);
+
+    value = newValue;
+    items = newItems;
+    isUnset = newIsUnset;
+  }
+
+  // Initialize state when component mounts
+  $effect(() => {
+    updateReactiveState();
+  });
 
   // Get enum type information if this field is an enum
-  $: {
+  $effect(() => {
     if (fieldSchema.type === FieldType.TYPE_ENUM && fieldSchema.typeName && editor) {
       const enumRegistry = editor.getEnumRegistry();
       enumType = enumRegistry.get(fieldSchema.typeName) || null;
     } else {
       enumType = null;
     }
-  }
+  });
 
   function dispatchChange() {
     onchange?.();
@@ -66,7 +94,9 @@
 
   function handleAdd(index: number | null = null) {
     const defaultValue = createDefaultValue();
-    if (defaultValue === null) return;
+    if (defaultValue === null) {
+      return;
+    }
 
     if (isRepeated) {
       if (index === null) {
@@ -83,6 +113,9 @@
     } else {
       parent.setField(fieldSchema.number, defaultValue);
     }
+
+    // Update reactive state
+    updateReactiveState();
     dispatchChange();
   }
 
@@ -95,6 +128,10 @@
     } else if (!isRepeated) {
       parent.clearField(fieldSchema.number);
     }
+
+    // Update reactive state
+    updateReactiveState();
+
     dispatchChange();
   }
 
@@ -108,6 +145,10 @@
 
     parent.clearField(fieldSchema.number);
     newArray.forEach((item) => parent.addRepeatedField(fieldSchema.number, item));
+
+    // Update reactive state
+    updateReactiveState();
+
     dispatchChange();
   }
 
@@ -124,11 +165,16 @@
     } else {
       parent.setField(fieldSchema.number, newValue);
     }
+
+    // Update reactive state
+    updateReactiveState();
+
     dispatchChange();
   }
 
-  function handlePrimitiveChange(event: CustomEvent, index: number | null = null) {
-    const newValue = event.detail;
+  function handlePrimitiveChange(eventOrValue: any, index: number | null = null) {
+    // Handle both CustomEvent format and direct value
+    const newValue = eventOrValue?.detail !== undefined ? eventOrValue.detail : eventOrValue;
 
     if (isRepeated && index !== null) {
       const currentItems = parent.getRepeatedField(fieldSchema.number) || [];
@@ -139,6 +185,20 @@
     } else {
       parent.setField(fieldSchema.number, newValue);
     }
+
+    // Update only the specific state we need, don't call full updateReactiveState
+    // which might interfere with input values in progress
+    const fieldValue = parent.getField(fieldSchema.number);
+    const newIsUnset = fieldValue === null || fieldValue === undefined;
+    isUnset = newIsUnset;
+    value = fieldValue;
+
+    dispatchChange();
+  }
+
+  function handleObjectChange(index: number | null = null) {
+    // For nested objects, we just need to trigger change notification
+    // The object itself is already modified by reference
     dispatchChange();
   }
 
@@ -177,7 +237,7 @@
             <select
               class="select-editor"
               value={item ?? 0}
-              on:change={(e) => handleEnumChange(e, index)}
+              onchange={(e) => handleEnumChange(e, index)}
             >
               {#each Array.from(enumType.values.entries()) as [number, name]}
                 <option value={number}>
@@ -200,11 +260,11 @@
         <!-- Message field -->
         {#if item && item.type}
           <ObjectViewer
-            bind:object={item}
+            object={item}
             messageSchema={item.type}
             {editor}
             depth={depth}
-            onchange={dispatchChange}
+            onchange={() => handleObjectChange(index)}
           />
         {/if}
       {:else if fieldSchema.type === FieldType.TYPE_BYTES}
@@ -216,10 +276,10 @@
       {:else}
         <!-- Primitive field -->
         <PrimitiveInput
-          bind:value={item}
+          value={item}
           type={fieldSchema.type}
           id="{fieldSchema.name}-{index}"
-          onchange={(newValue) => handlePrimitiveChange({ detail: newValue }, index)}
+          onchange={(newValue) => handlePrimitiveChange(newValue, index)}
         />
       {/if}
     </FieldCard>
@@ -262,7 +322,7 @@
             <select
               class="select-editor"
               value={value ?? 0}
-              on:change={handleEnumChange}
+              onchange={handleEnumChange}
             >
               {#each Array.from(enumType.values.entries()) as [number, name]}
                 <option value={number}>
@@ -285,11 +345,11 @@
         <!-- Message field -->
         {#if value && value.type}
           <ObjectViewer
-            bind:object={value}
+            object={value}
             messageSchema={value.type}
             {editor}
             depth={depth}
-            onchange={dispatchChange}
+            onchange={() => handleObjectChange()}
           />
         {/if}
       {:else if fieldSchema.type === FieldType.TYPE_BYTES}
@@ -301,10 +361,10 @@
       {:else}
         <!-- Primitive field -->
         <PrimitiveInput
-          bind:value={value}
+          value={value}
           type={fieldSchema.type}
           id={fieldSchema.name}
-          onchange={(newValue) => handlePrimitiveChange({ detail: newValue })}
+          onchange={(newValue) => handlePrimitiveChange(newValue)}
         />
       {/if}
     {/if}

@@ -5,21 +5,38 @@
 
   const EMPTY_BYTES = new Uint8Array();
 
-  export let decodedData: MessageValue | null;
-  export let rootMessageType: MessageType | null;
-  export let availableTypes: string[];
-  export let currentType: string | null;
-  export let hexView: string;
-  export let originalHexView: string;
-  export let encodedBytes: Uint8Array = EMPTY_BYTES;
-  export let originalBytes: Uint8Array = EMPTY_BYTES;
-  export let editor: StructuralEditor; // Now properly typed and non-null
-  export let ontypechange: ((type: string | null) => void) | undefined = undefined;
-  export let onchange: ((data: any) => void) | undefined = undefined;
-  export let onsave: (() => void) | undefined = undefined;
+  interface Props {
+    decodedData: MessageValue | null;
+    rootMessageType: MessageType | null;
+    availableTypes: string[];
+    currentType: string | null;
+    hexView: string;
+    originalHexView: string;
+    encodedBytes?: Uint8Array;
+    originalBytes?: Uint8Array;
+    editor: StructuralEditor;
+    ontypechange?: (type: string | null) => void;
+    onchange?: (data: any) => void;
+    onsave?: () => void;
+  }
 
-  let rawSourceId: string | null = 'encoded';
-  $: rawByteSources = buildRawSources();
+  const {
+    decodedData,
+    rootMessageType,
+    availableTypes,
+    currentType,
+    hexView,
+    originalHexView,
+    encodedBytes = EMPTY_BYTES,
+    originalBytes = EMPTY_BYTES,
+    editor,
+    ontypechange,
+    onchange,
+    onsave
+  }: Props = $props();
+
+  let rawSourceId = $state<string | null>('encoded');
+  const rawByteSources = $derived(buildRawSources());
 
   function buildRawSources(): ByteSourceOption[] {
     const encodedSource: ByteSourceOption = {
@@ -66,7 +83,7 @@
           id="root-type-select"
           class="select-editor"
           value={currentType ?? ''}
-          on:change={handleTypeChange}
+          onchange={handleTypeChange}
         >
           <option value=''>Auto (last in schema)</option>
           {#each availableTypes as name}
@@ -100,7 +117,7 @@
           <button
             class="btn btn-primary btn-xs rounded-lg shadow-sm"
             style="box-shadow: var(--editor-shadow-sm);"
-            on:click={() => onsave?.()}
+            onclick={() => onsave?.()}
           >
             Save changes
           </button>

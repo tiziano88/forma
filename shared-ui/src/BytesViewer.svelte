@@ -1,5 +1,5 @@
 <script lang="ts">
-  type RawViewerMode = 'hex' | 'digests' | 'cString' | 'base64';
+  type RawViewerMode = "hex" | "digests" | "cString" | "base64";
 
   export type ByteSourceOption = {
     id: string;
@@ -10,60 +10,111 @@
 
   const EMPTY_BYTES = new Uint8Array();
 
-  export let sources: ByteSourceOption[] = [];
-  export let selectedSourceId: string | null = null;
-  export let initialMode: RawViewerMode = 'hex';
-  export let emptyMessage = 'No bytes available.';
+  interface Props {
+    sources?: ByteSourceOption[];
+    initialMode?: RawViewerMode;
+    emptyMessage?: string;
+  }
 
-  let viewerMode: RawViewerMode = initialMode;
-  let digestEntries: Array<{ algorithm: string; value: string }> = [];
-  let digestError: string | null = null;
-  let digestLoading = false;
-  let digestRequestId = 0;
-  let cEscapedString = '';
-  let base64String = '';
+  let {
+    sources = [],
+    initialMode = "hex",
+    emptyMessage = "No bytes available.",
+  }: Props = $props();
+
+  // Make selectedSourceId a simple state variable instead of $bindable
+  let selectedSourceId = $state<string | null>(null);
+
+  let viewerMode = $state<RawViewerMode>(initialMode);
+  let digestEntries = $state<Array<{ algorithm: string; value: string }>>([]);
+  let digestError = $state<string | null>(null);
+  let digestLoading = $state(false);
+  let digestRequestId = 0; // Non-reactive counter
+  let cEscapedString = $state("");
+  let base64String = $state("");
 
   const MODE_OPTIONS: Array<{ id: RawViewerMode; label: string }> = [
-    { id: 'hex', label: 'Hex' },
-    { id: 'base64', label: 'Base64' },
-    { id: 'cString', label: 'C String' },
-    { id: 'digests', label: 'Digests' },
+    { id: "hex", label: "Hex" },
+    { id: "base64", label: "Base64" },
+    { id: "cString", label: "C String" },
+    { id: "digests", label: "Digests" },
   ];
 
-  $: resolvedSources = sources.length > 0
-    ? sources
-    : [{ id: 'default', label: 'Bytes', bytes: EMPTY_BYTES }];
+  const resolvedSources = $derived(
+    sources.length > 0
+      ? sources
+      : [{ id: "default", label: "Bytes", bytes: EMPTY_BYTES }]
+  );
 
-  $: {
-    if (!selectedSourceId || !resolvedSources.some((src) => src.id === selectedSourceId)) {
+  // Initialize selectedSourceId if needed
+  $effect(() => {
+    // Safety check: ensure resolvedSources is properly initialized
+    if (!resolvedSources || !Array.isArray(resolvedSources)) {
+      return;
+    }
+
+    if (!selectedSourceId && resolvedSources.length > 0) {
+      selectedSourceId = resolvedSources[0].id;
+    } else if (
+      selectedSourceId &&
+      !resolvedSources.some((src) => src.id === selectedSourceId)
+    ) {
+      // If the current selection is invalid, reset to first available
       selectedSourceId = resolvedSources[0]?.id ?? null;
     }
+  });
+
+  // Manual state management for current source instead of derived
+  let currentSource = $state<ByteSourceOption | null>(null);
+  let currentBytes = $state<Uint8Array>(EMPTY_BYTES);
+  let currentHexdump = $state<string>("(empty)");
+
+  function updateCurrentSource() {
+    if (!resolvedSources || !Array.isArray(resolvedSources)) {
+      currentSource = null;
+      currentBytes = EMPTY_BYTES;
+      currentHexdump = "(empty)";
+      return;
+    }
+
+    const found = resolvedSources.find((src) => src.id === selectedSourceId);
+    currentSource = found ?? null;
+    currentBytes = found?.bytes ?? EMPTY_BYTES;
+    currentHexdump = found?.hexdump ?? formatHexdump(currentBytes);
   }
 
-  $: currentSource = resolvedSources.find((src) => src.id === selectedSourceId) ?? null;
-  $: currentBytes = currentSource?.bytes ?? EMPTY_BYTES;
-  $: currentHexdump = currentSource?.hexdump ?? formatHexdump(currentBytes);
+  // Update current source when dependencies change
+  $effect(() => {
+    updateCurrentSource();
+  });
 
-  $: if (viewerMode === 'digests') {
-    void refreshDigests(currentBytes);
-  } else {
-    digestRequestId++;
-    digestError = null;
-    digestEntries = [];
-    digestLoading = false;
-  }
+  $effect(() => {
+    if (viewerMode === "digests") {
+      void refreshDigests(currentBytes);
+    } else {
+      // Cancel any pending digest requests by incrementing the counter
+      digestRequestId++;
+      digestError = null;
+      digestEntries = [];
+      digestLoading = false;
+    }
+  });
 
-  $: if (viewerMode === 'cString') {
-    cEscapedString = toCEscapedString(currentBytes);
-  } else if (viewerMode !== 'cString') {
-    cEscapedString = '';
-  }
+  $effect(() => {
+    if (viewerMode === "cString") {
+      cEscapedString = toCEscapedString(currentBytes);
+    } else if (viewerMode !== "cString") {
+      cEscapedString = "";
+    }
+  });
 
-  $: if (viewerMode === 'base64') {
-    base64String = toBase64(currentBytes);
-  } else if (viewerMode !== 'base64') {
-    base64String = '';
-  }
+  $effect(() => {
+    if (viewerMode === "base64") {
+      base64String = toBase64(currentBytes);
+    } else if (viewerMode !== "base64") {
+      base64String = "";
+    }
+  });
 
   function selectSource(id: string) {
     selectedSourceId = id;
@@ -86,16 +137,17 @@
 
       const subtle = globalThis.crypto?.subtle;
       if (!subtle) {
-        throw new Error('Web Crypto API is not available in this environment.');
+        throw new Error("Web Crypto API is not available in this environment.");
       }
 
-      const algorithms: AlgorithmIdentifier[] = ['SHA-256', 'SHA-1', 'SHA-512'];
+      const algorithms: AlgorithmIdentifier[] = ["SHA-256", "SHA-1", "SHA-512"];
       const results: Array<{ algorithm: string; value: string }> = [];
 
       for (const algorithm of algorithms) {
         const digestBuffer = await subtle.digest(algorithm, bytes);
         results.push({
-          algorithm: typeof algorithm === 'string' ? algorithm : String(algorithm),
+          algorithm:
+            typeof algorithm === "string" ? algorithm : String(algorithm),
           value: bufferToHex(digestBuffer),
         });
       }
@@ -118,8 +170,8 @@
   function bufferToHex(buffer: ArrayBuffer): string {
     const view = new Uint8Array(buffer);
     return Array.from(view)
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('');
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
   }
 
   function toCEscapedString(bytes: Uint8Array): string {
@@ -131,28 +183,28 @@
     for (const byte of bytes) {
       switch (byte) {
         case 0x5c:
-          result += '\\';
+          result += "\\";
           break;
         case 0x22:
-          result += '\"';
+          result += '"';
           break;
         case 0x0a:
-          result += '\n';
+          result += "\n";
           break;
         case 0x0d:
-          result += '\r';
+          result += "\r";
           break;
         case 0x09:
-          result += '\t';
+          result += "\t";
           break;
         case 0x00:
-          result += '\0';
+          result += "\0";
           break;
         default:
           if (byte >= 0x20 && byte <= 0x7e) {
             result += String.fromCharCode(byte);
           } else {
-            result += `\\x${byte.toString(16).padStart(2, '0')}`;
+            result += `\\x${byte.toString(16).padStart(2, "0")}`;
           }
       }
     }
@@ -162,32 +214,36 @@
 
   function formatHexdump(bytes: Uint8Array, columns = 16): string {
     if (!bytes || bytes.length === 0) {
-      return '(empty)';
+      return "(empty)";
     }
 
     const lines: string[] = [];
     for (let offset = 0; offset < bytes.length; offset += columns) {
       const slice = bytes.slice(offset, offset + columns);
-      const hexParts = Array.from(slice).map((byte) => byte.toString(16).padStart(2, '0'));
+      const hexParts = Array.from(slice).map((byte) =>
+        byte.toString(16).padStart(2, "0")
+      );
       const ascii = Array.from(slice)
-        .map((byte) => (byte >= 0x20 && byte <= 0x7e ? String.fromCharCode(byte) : '.'))
-        .join('');
+        .map((byte) =>
+          byte >= 0x20 && byte <= 0x7e ? String.fromCharCode(byte) : "."
+        )
+        .join("");
 
-      const hexColumn = hexParts.join(' ').padEnd(columns * 3 - 1, ' ');
-      const line = `${offset.toString(16).padStart(8, '0')}  ${hexColumn}  |${ascii}|`;
+      const hexColumn = hexParts.join(" ").padEnd(columns * 3 - 1, " ");
+      const line = `${offset.toString(16).padStart(8, "0")}  ${hexColumn}  |${ascii}|`;
       lines.push(line);
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   function toBase64(bytes: Uint8Array): string {
     if (!bytes || bytes.length === 0) {
-      return '';
+      return "";
     }
 
-    if (typeof globalThis.btoa === 'function') {
-      let binary = '';
+    if (typeof globalThis.btoa === "function") {
+      let binary = "";
       const chunkSize = 0x8000;
       for (let i = 0; i < bytes.length; i += chunkSize) {
         const chunk = bytes.subarray(i, i + chunkSize);
@@ -196,13 +252,13 @@
       return globalThis.btoa(binary);
     }
 
-    if (typeof Buffer !== 'undefined') {
-      return Buffer.from(bytes).toString('base64');
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(bytes).toString("base64");
     }
 
     // Fallback: hex then base64 via TextEncoder (unlikely path)
     const text = String.fromCharCode(...bytes);
-    return globalThis.btoa ? globalThis.btoa(text) : '';
+    return globalThis.btoa ? globalThis.btoa(text) : "";
   }
 </script>
 
@@ -219,7 +275,7 @@
                 class="btn btn-xs btn-outline join-item"
                 class:btn-active={selectedSourceId === source.id}
                 class:btn-primary={selectedSourceId === source.id}
-                on:click={() => selectSource(source.id)}
+                onclick={() => selectSource(source.id)}
               >
                 {source.label}
               </button>
@@ -238,7 +294,7 @@
             class="btn btn-xs btn-outline join-item"
             class:btn-active={viewerMode === option.id}
             class:btn-primary={viewerMode === option.id}
-            on:click={() => selectMode(option.id)}
+            onclick={() => selectMode(option.id)}
           >
             {option.label}
           </button>
@@ -247,9 +303,9 @@
     </div>
   </div>
 
-  {#if viewerMode === 'hex'}
+  {#if viewerMode === "hex"}
     <pre class="code-block">{currentHexdump}</pre>
-  {:else if viewerMode === 'digests'}
+  {:else if viewerMode === "digests"}
     {#if digestLoading}
       <div class="flex items-center gap-2 text-sm text-editor-muted">
         <span class="loading loading-spinner loading-xs"></span>
@@ -266,13 +322,16 @@
     {:else}
       <ul class="data-list">
         {#each digestEntries as entry}
-          <li><span class="font-semibold">{entry.algorithm}:</span> {entry.value}</li>
+          <li>
+            <span class="font-semibold">{entry.algorithm}:</span>
+            {entry.value}
+          </li>
         {/each}
       </ul>
     {/if}
-  {:else if viewerMode === 'cString'}
+  {:else if viewerMode === "cString"}
     <pre class="code-block--wrap">{cEscapedString}</pre>
-  {:else if viewerMode === 'base64'}
+  {:else if viewerMode === "base64"}
     <pre class="code-block--break-all">{base64String || emptyMessage}</pre>
   {/if}
 </div>

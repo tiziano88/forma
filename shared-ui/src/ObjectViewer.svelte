@@ -2,11 +2,21 @@
   import type { MessageValue, MessageType, StructuralEditor } from '@lintx/core';
   import FlatFieldViewer from './FlatFieldViewer.svelte';
 
-  export let object: MessageValue;
-  export let messageSchema: MessageType;
-  export let editor: StructuralEditor; // Now properly typed and non-null
-  export let depth: number = 0;
-  export let onchange: (() => void) | undefined = undefined;
+  interface Props {
+    object: MessageValue;
+    messageSchema: MessageType;
+    editor: StructuralEditor;
+    depth?: number;
+    onchange?: () => void;
+  }
+
+  const {
+    object,
+    messageSchema,
+    editor,
+    depth = 0,
+    onchange
+  }: Props = $props();
 
   function handleChange() {
     onchange?.();
@@ -16,7 +26,7 @@
 <div class="space-y-4">
   {#each Array.from(messageSchema.fields.values()) as field}
     <FlatFieldViewer
-      bind:parent={object}
+      parent={object}
       fieldSchema={field}
       {editor}
       depth={depth + 1}
