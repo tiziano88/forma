@@ -4,6 +4,7 @@
   import BytesViewer, { type ByteSourceOption } from './BytesViewer.svelte';
   import type { FieldMutation, MutationEvent } from './mutations';
   import { MutationDispatcher, MutationApplicator } from './mutations';
+  import { ReactiveMessageValue, makeReactive } from './reactive-message.svelte';
 
   const EMPTY_BYTES = new Uint8Array();
 
@@ -43,6 +44,26 @@
   // Mutation tracking
   let mutations = $state<FieldMutation[]>([]);
 
+  // Create reactive version of decodedData
+  let reactiveData = $state<ReactiveMessageValue | null>(null);
+
+  // Convert decodedData to reactive when it changes (but only for truly new data)
+  let lastDecodedData = $state<MessageValue | null>(null);
+  $effect(() => {
+    // Only create new reactive data if this is genuinely new input data,
+    // not just re-encoded data from our mutations
+    if (decodedData !== lastDecodedData) {
+      lastDecodedData = decodedData;
+      if (decodedData) {
+        reactiveData = makeReactive(decodedData);
+        mutations = []; // Clear mutations when we get new input data
+      } else {
+        reactiveData = null;
+        mutations = [];
+      }
+    }
+  });
+
   // Create root mutation dispatcher
   const rootDispatcher = $derived(
     new MutationDispatcher([], handleMutation)
@@ -52,7 +73,10 @@
     console.log('[StructuralViewer] Received mutation:', event.mutation);
     mutations = [...mutations, event.mutation];
 
-    // Apply mutation to the top-level message (Phase 3 - mutation-only updates)
+    // Apply mutation to both the reactive data and the original decodedData
+    if (reactiveData) {
+      MutationApplicator.applyMutation(reactiveData, event.mutation);
+    }
     if (decodedData) {
       MutationApplicator.applyMutation(decodedData, event.mutation);
     }
@@ -85,6 +109,7 @@
   }
 
   function handleDataChange() {
+    // Pass the original decodedData that has been mutated
     onchange?.(decodedData);
   }
 </script>
@@ -159,9 +184,9 @@
       {/if}
     </div>
 
-    {#if decodedData && rootMessageType}
+    {#if reactiveData && rootMessageType}
       <ObjectViewer
-        object={decodedData}
+        object={reactiveData}
         messageSchema={rootMessageType}
         editor={editor}
         onchange={handleDataChange}

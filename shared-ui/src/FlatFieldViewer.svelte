@@ -35,35 +35,11 @@
 
   const isRepeated = $derived(fieldSchema.label === FieldLabel.LABEL_REPEATED);
 
-  // Use reactive state instead of derived values for better control
-  let value = $state<any>(null);
-  let items = $state<any[]>([]);
-  let isUnset = $state(true);
-  let updateTrigger = $state(0); // Force reactivity trigger
+  // Use derived values - now reactive thanks to ReactiveMessageValue
+  const value = $derived(isRepeated ? parent.getRepeatedField(fieldSchema.number) : parent.getField(fieldSchema.number));
+  const items = $derived(isRepeated ? (value || []) : []);
+  const isUnset = $derived(value === null || value === undefined || (isRepeated && items.length === 0));
   const isSpecialCased = $derived(fieldSchema.typeName && SPECIAL_CASED_TYPES.has(fieldSchema.typeName));
-
-  // Function to update all reactive state
-  function updateReactiveState() {
-    const newValue = isRepeated ? parent.getRepeatedField(fieldSchema.number) : parent.getField(fieldSchema.number);
-    const newItems = isRepeated ? (newValue || []) : [];
-    const newIsUnset = newValue === null || newValue === undefined || (isRepeated && newItems.length === 0);
-
-    value = newValue;
-    items = newItems;
-    isUnset = newIsUnset;
-  }
-
-  // Force update by incrementing trigger
-  function forceUpdate() {
-    updateTrigger++;
-  }
-
-  // Initialize state when component mounts
-  $effect(() => {
-    // Access updateTrigger to make this effect reactive to manual triggers
-    updateTrigger;
-    updateReactiveState();
-  });
 
   // Get enum type information if this field is an enum
   $effect(() => {
@@ -121,7 +97,6 @@
       }
     }
 
-    forceUpdate(); // Trigger UI update
     dispatchChange();
   }
 
@@ -135,7 +110,6 @@
       }
     }
 
-    forceUpdate(); // Trigger UI update
     dispatchChange();
   }
 
@@ -149,7 +123,6 @@
       dispatcher.moveRepeatedField(fieldSchema.number, index, newIndex);
     }
 
-    forceUpdate(); // Trigger UI update
     dispatchChange();
   }
 
@@ -166,7 +139,6 @@
       }
     }
 
-    forceUpdate(); // Trigger UI update
     dispatchChange();
   }
 
@@ -184,7 +156,6 @@
       }
     }
 
-    forceUpdate(); // Trigger UI update
     dispatchChange();
   }
 
