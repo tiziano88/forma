@@ -2,6 +2,8 @@
   import type { MessageValue, MessageType, StructuralEditor } from '@lintx/core';
   import ObjectViewer from './ObjectViewer.svelte';
   import BytesViewer, { type ByteSourceOption } from './BytesViewer.svelte';
+  import type { FieldMutation, MutationEvent } from './mutations';
+  import { MutationDispatcher, MutationApplicator } from './mutations';
 
   const EMPTY_BYTES = new Uint8Array();
 
@@ -37,6 +39,27 @@
 
   let rawSourceId = $state<string | null>('encoded');
   const rawByteSources = $derived(buildRawSources());
+
+  // Mutation tracking
+  let mutations = $state<FieldMutation[]>([]);
+
+  // Create root mutation dispatcher
+  const rootDispatcher = $derived(
+    new MutationDispatcher([], handleMutation)
+  );
+
+  function handleMutation(event: MutationEvent) {
+    console.log('[StructuralViewer] Received mutation:', event.mutation);
+    mutations = [...mutations, event.mutation];
+
+    // Apply mutation to the top-level message (Phase 3 - mutation-only updates)
+    if (decodedData) {
+      MutationApplicator.applyMutation(decodedData, event.mutation);
+    }
+
+    // Continue with existing change notification
+    handleDataChange();
+  }
 
   function buildRawSources(): ByteSourceOption[] {
     const encodedSource: ByteSourceOption = {
@@ -142,6 +165,8 @@
         messageSchema={rootMessageType}
         editor={editor}
         onchange={handleDataChange}
+        onmutation={handleMutation}
+        dispatcher={rootDispatcher}
       />
     {:else}
       <div class="empty-state p-6">
@@ -160,5 +185,56 @@
       sources={rawByteSources}
       emptyMessage="No bytes available."
     />
+  </section>
+
+  <!-- Mutation History Section -->
+  <section class="section-main">
+    <div class="mb-2.5 flex items-center justify-between">
+      <h2 class="text-sm font-semibold text-editor-primary">Mutation History</h2>
+      <div class="flex items-center gap-2">
+        <span class="badge badge-outline text-[10px] font-medium" style="border-color: var(--editor-border-primary); background: var(--editor-bg-tertiary); color: var(--editor-text-secondary);">
+          {mutations.length} mutations
+        </span>
+        {#if mutations.length > 0}
+          <button
+            class="btn btn-xs btn-outline"
+            onclick={() => mutations = []}
+          >
+            Clear
+          </button>
+        {/if}
+      </div>
+    </div>
+
+    {#if mutations.length > 0}
+      <div class="space-y-2 max-h-64 overflow-y-auto">
+        {#each mutations as mutation, index}
+          <div class="rounded-lg border p-3 text-sm surface-secondary" style="border-color: var(--editor-border-primary);">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-editor-primary truncate">
+                  {mutation.description}
+                </div>
+                <div class="mt-1 text-xs text-editor-muted">
+                  ID: {mutation.id}
+                </div>
+              </div>
+              <div class="flex-shrink-0 text-xs text-editor-secondary">
+                #{index + 1}
+              </div>
+            </div>
+            <div class="mt-2 text-xs text-editor-muted">
+              {new Date(mutation.timestamp).toLocaleTimeString()}
+            </div>
+          </div>
+        {/each}
+      </div>
+    {:else}
+      <div class="empty-state p-6">
+        <div class="text-sm text-editor-secondary">
+          No mutations recorded yet. Edit fields to see mutation history.
+        </div>
+      </div>
+    {/if}
   </section>
 </div>

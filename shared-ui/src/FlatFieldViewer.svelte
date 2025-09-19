@@ -5,6 +5,7 @@
   import ObjectViewer from './ObjectViewer.svelte';
   import PrimitiveInput from './PrimitiveInput.svelte';
   import BytesViewer from './BytesViewer.svelte';
+  import type { MutationEvent, MutationDispatcher } from './mutations';
 
   interface Props {
     parent: MessageValue;
@@ -12,6 +13,8 @@
     editor: StructuralEditor;
     depth?: number;
     onchange?: () => void;
+    onmutation?: (event: MutationEvent) => void;
+    dispatcher?: MutationDispatcher;
   }
 
   const {
@@ -19,7 +22,9 @@
     fieldSchema,
     editor,
     depth = 0,
-    onchange
+    onchange,
+    onmutation,
+    dispatcher
   }: Props = $props();
   let enumType = $state<EnumType | null>(null);
 
@@ -34,6 +39,7 @@
   let value = $state<any>(null);
   let items = $state<any[]>([]);
   let isUnset = $state(true);
+  let updateTrigger = $state(0); // Force reactivity trigger
   const isSpecialCased = $derived(fieldSchema.typeName && SPECIAL_CASED_TYPES.has(fieldSchema.typeName));
 
   // Function to update all reactive state
@@ -47,8 +53,15 @@
     isUnset = newIsUnset;
   }
 
+  // Force update by incrementing trigger
+  function forceUpdate() {
+    updateTrigger++;
+  }
+
   // Initialize state when component mounts
   $effect(() => {
+    // Access updateTrigger to make this effect reactive to manual triggers
+    updateTrigger;
     updateReactiveState();
   });
 
@@ -98,40 +111,31 @@
       return;
     }
 
-    if (isRepeated) {
-      if (index === null) {
-        // Add to end
-        parent.addRepeatedField(fieldSchema.number, defaultValue);
+    // Dispatch mutation (mutation-only system)
+    if (dispatcher) {
+      if (isRepeated) {
+        const insertIndex = index !== null ? index + 1 : undefined;
+        dispatcher.addRepeatedField(fieldSchema.number, defaultValue, insertIndex);
       } else {
-        // Insert after index
-        const currentItems = parent.getRepeatedField(fieldSchema.number) || [];
-        const newItems = [...currentItems];
-        newItems.splice(index + 1, 0, defaultValue);
-        parent.clearField(fieldSchema.number);
-        newItems.forEach((item) => parent.addRepeatedField(fieldSchema.number, item));
+        dispatcher.setField(fieldSchema.number, defaultValue);
       }
-    } else {
-      parent.setField(fieldSchema.number, defaultValue);
     }
 
-    // Update reactive state
-    updateReactiveState();
+    forceUpdate(); // Trigger UI update
     dispatchChange();
   }
 
   function handleRemove(index: number | null = null) {
-    if (isRepeated && index !== null) {
-      const currentItems = parent.getRepeatedField(fieldSchema.number) || [];
-      const newItems = currentItems.filter((_, i) => i !== index);
-      parent.clearField(fieldSchema.number);
-      newItems.forEach((item) => parent.addRepeatedField(fieldSchema.number, item));
-    } else if (!isRepeated) {
-      parent.clearField(fieldSchema.number);
+    // Dispatch mutation (mutation-only system)
+    if (dispatcher) {
+      if (isRepeated && index !== null) {
+        dispatcher.removeRepeatedField(fieldSchema.number, index);
+      } else if (!isRepeated) {
+        dispatcher.clearField(fieldSchema.number);
+      }
     }
 
-    // Update reactive state
-    updateReactiveState();
-
+    forceUpdate(); // Trigger UI update
     dispatchChange();
   }
 
@@ -140,15 +144,12 @@
     const currentItems = parent.getRepeatedField(fieldSchema.number) || [];
     if (newIndex < 0 || newIndex >= currentItems.length) return;
 
-    const newArray = [...currentItems];
-    [newArray[index], newArray[newIndex]] = [newArray[newIndex], newArray[index]];
+    // Dispatch mutation (mutation-only system)
+    if (dispatcher) {
+      dispatcher.moveRepeatedField(fieldSchema.number, index, newIndex);
+    }
 
-    parent.clearField(fieldSchema.number);
-    newArray.forEach((item) => parent.addRepeatedField(fieldSchema.number, item));
-
-    // Update reactive state
-    updateReactiveState();
-
+    forceUpdate(); // Trigger UI update
     dispatchChange();
   }
 
@@ -156,19 +157,16 @@
     const target = event.target as HTMLSelectElement;
     const newValue = parseInt(target.value, 10);
 
-    if (isRepeated && index !== null) {
-      const currentItems = parent.getRepeatedField(fieldSchema.number) || [];
-      const newItems = [...currentItems];
-      newItems[index] = newValue;
-      parent.clearField(fieldSchema.number);
-      newItems.forEach((item) => parent.addRepeatedField(fieldSchema.number, item));
-    } else {
-      parent.setField(fieldSchema.number, newValue);
+    // Dispatch mutation (mutation-only system)
+    if (dispatcher) {
+      if (isRepeated && index !== null) {
+        dispatcher.setField(fieldSchema.number, newValue, index);
+      } else {
+        dispatcher.setField(fieldSchema.number, newValue);
+      }
     }
 
-    // Update reactive state
-    updateReactiveState();
-
+    forceUpdate(); // Trigger UI update
     dispatchChange();
   }
 
@@ -176,23 +174,17 @@
     // Handle both CustomEvent format and direct value
     const newValue = eventOrValue?.detail !== undefined ? eventOrValue.detail : eventOrValue;
 
-    if (isRepeated && index !== null) {
-      const currentItems = parent.getRepeatedField(fieldSchema.number) || [];
-      const newItems = [...currentItems];
-      newItems[index] = newValue;
-      parent.clearField(fieldSchema.number);
-      newItems.forEach((item) => parent.addRepeatedField(fieldSchema.number, item));
-    } else {
-      parent.setField(fieldSchema.number, newValue);
+    // Note: PrimitiveInput already dispatches mutations directly,
+    // but we keep this for any other primitive change sources
+    if (dispatcher) {
+      if (isRepeated && index !== null) {
+        dispatcher.setField(fieldSchema.number, newValue, index);
+      } else {
+        dispatcher.setField(fieldSchema.number, newValue);
+      }
     }
 
-    // Update only the specific state we need, don't call full updateReactiveState
-    // which might interfere with input values in progress
-    const fieldValue = parent.getField(fieldSchema.number);
-    const newIsUnset = fieldValue === null || fieldValue === undefined;
-    isUnset = newIsUnset;
-    value = fieldValue;
-
+    forceUpdate(); // Trigger UI update
     dispatchChange();
   }
 
@@ -265,6 +257,8 @@
             {editor}
             depth={depth + 1}
             onchange={() => handleObjectChange(index)}
+            onmutation={onmutation}
+            dispatcher={dispatcher?.createChild(fieldSchema.number, index || 0)}
           />
         {/if}
       {:else if fieldSchema.type === FieldType.TYPE_BYTES}
@@ -280,6 +274,7 @@
           type={fieldSchema.type}
           id="{fieldSchema.name}-{index}"
           onchange={(newValue) => handlePrimitiveChange(newValue, index)}
+          dispatcher={dispatcher?.createChild(fieldSchema.number, index)}
         />
       {/if}
     </FieldCard>
@@ -350,6 +345,8 @@
             {editor}
             depth={depth + 1}
             onchange={() => handleObjectChange()}
+            onmutation={onmutation}
+            dispatcher={dispatcher?.createChild(fieldSchema.number, 0)}
           />
         {/if}
       {:else if fieldSchema.type === FieldType.TYPE_BYTES}
@@ -365,6 +362,7 @@
           type={fieldSchema.type}
           id={fieldSchema.name}
           onchange={(newValue) => handlePrimitiveChange(newValue)}
+          dispatcher={dispatcher?.createChild(fieldSchema.number, 0)}
         />
       {/if}
     {/if}

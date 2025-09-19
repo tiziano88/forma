@@ -1,18 +1,21 @@
 <script lang="ts">
   import { FieldType } from '@lintx/core';
+  import type { MutationDispatcher, FieldValue } from './mutations';
 
   interface Props {
     value: string | number | boolean;
     type: string;
     id: string | number;
     onchange?: (value: any) => void;
+    dispatcher?: MutationDispatcher;
   }
 
   const {
     value,
     type,
     id,
-    onchange
+    onchange,
+    dispatcher
   }: Props = $props();
 
   // Use local state that starts with the prop value but is independent
@@ -28,11 +31,22 @@
   function handleInput(event: Event) {
     const target = event.target as HTMLInputElement;
     localValue = target.value;
+
+    // Dispatch mutation if we have dispatcher
+    if (dispatcher) {
+      dispatcher.setSelf(localValue as FieldValue);
+    }
+
     // Immediately call onchange with the new value
     onchange?.(localValue);
   }
 
   function handleChange() {
+    // Dispatch mutation if we have dispatcher
+    if (dispatcher) {
+      dispatcher.setSelf(localValue as FieldValue);
+    }
+
     onchange?.(localValue);
   }
 
