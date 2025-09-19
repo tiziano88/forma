@@ -29,7 +29,7 @@
       parent={object}
       fieldSchema={field}
       {editor}
-      depth={depth + 1}
+      {depth}
       onchange={handleChange}
     />
   {/each}

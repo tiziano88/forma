@@ -263,7 +263,7 @@
             object={item}
             messageSchema={item.type}
             {editor}
-            depth={depth}
+            depth={depth + 1}
             onchange={() => handleObjectChange(index)}
           />
         {/if}
@@ -348,7 +348,7 @@
             object={value}
             messageSchema={value.type}
             {editor}
-            depth={depth}
+            depth={depth + 1}
             onchange={() => handleObjectChange()}
           />
         {/if}
