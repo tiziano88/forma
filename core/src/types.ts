@@ -1,3 +1,5 @@
+import { SvelteMap, SvelteSet } from './svelte-reactivity.js';
+
 export type Bytes = Uint8Array;
 
 // Runtime constant to ensure this module generates JS output
@@ -14,7 +16,7 @@ export type EditorEventType = 'change' | 'error';
 
 export interface EditorEvent {
   type: EditorEventType;
-  payload?: any;
+  payload?: unknown;
 }
 
 export type EventListener = (event: EditorEvent) => void;
@@ -40,12 +42,12 @@ export interface EnumType {
   valuesByName: Map<string, number>; // name -> number mapping
 }
 
-export type InterpretedValue = string | number | boolean | MessageValue;
+export type InterpretedValue = string | number | boolean | Bytes | MessageValue;
 
 export interface MessageValue {
   type: MessageType;
-  fields: Map<number, InterpretedValue[]>;
-  modifiedFields: Set<number>;
+  fields: SvelteMap<number, InterpretedValue[]>;
+  modifiedFields: SvelteSet<number>;
 
   getField<T extends InterpretedValue>(fieldNumber: number): T | undefined;
   getRepeatedField<T extends InterpretedValue>(fieldNumber: number): T[];
@@ -54,7 +56,7 @@ export interface MessageValue {
   clearField(fieldNumber: number): void;
   hasField(fieldNumber: number): boolean;
   getSetFields(): number[];
-  toObject(): Record<string, any>;
+  toObject(): Record<string, unknown>;
   toBytes(): Uint8Array;
   isModified(): boolean;
   getModifiedFieldNumbers(): number[];

@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { MessageValue, MessageType, StructuralEditor } from '@lintx/core';
+  import type { InterpretedValue, MessageValue, MessageType, StructuralEditor } from '@lintx/core';
   import ObjectViewer from './ObjectViewer.svelte';
   import BytesViewer, { type ByteSourceOption } from './BytesViewer.svelte';
   import type { FieldMutation, MutationEvent } from './mutations';
   import { MutationDispatcher, MutationApplicator } from './mutations';
-  import { ReactiveMessageValue, makeReactive } from './reactive-message.svelte';
+  import { SvelteMap, SvelteSet } from './svelte-reactivity.js';
 
   const EMPTY_BYTES = new Uint8Array();
 
@@ -44,41 +44,69 @@
   // Mutation tracking
   let mutations = $state<FieldMutation[]>([]);
 
-  // Create reactive version of decodedData
-  let reactiveData = $state<ReactiveMessageValue | null>(null);
-
-  // Convert decodedData to reactive when it changes (but only for truly new data)
-  let lastDecodedData = $state<MessageValue | null>(null);
-  $effect(() => {
-    // Only create new reactive data if this is genuinely new input data,
-    // not just re-encoded data from our mutations
-    if (decodedData !== lastDecodedData) {
-      lastDecodedData = decodedData;
-      if (decodedData) {
-        reactiveData = makeReactive(decodedData);
-        mutations = []; // Clear mutations when we get new input data
-      } else {
-        reactiveData = null;
-        mutations = [];
-      }
-    }
-  });
-
   // Create root mutation dispatcher
   const rootDispatcher = $derived(
     new MutationDispatcher([], handleMutation)
   );
 
+  if (decodedData) {
+    ensureReactiveMessage(decodedData);
+  }
+
+  function ensureReactiveMessage(message: MessageValue, visited = new WeakSet<MessageValue>()): void {
+    if (visited.has(message)) {
+      return;
+    }
+    visited.add(message);
+
+    const fieldMap = message.fields as unknown as Map<number, InterpretedValue[]>;
+    const needsReactiveMap = (fieldMap as any).set === Map.prototype.set;
+    if (needsReactiveMap) {
+      console.debug('[ensureReactiveMessage] Converting fields to SvelteMap for', message.type.fullName);
+    }
+
+    if (needsReactiveMap) {
+      const reactiveFields = new SvelteMap<number, InterpretedValue[]>();
+      for (const [fieldNumber, values] of fieldMap) {
+        const normalizedValues = values.map((value) => {
+          if (isMessageValue(value)) {
+            ensureReactiveMessage(value, visited);
+          }
+          return value;
+        });
+        reactiveFields.set(fieldNumber, normalizedValues);
+      }
+      message.fields = reactiveFields as MessageValue['fields'];
+    } else {
+      for (const values of message.fields.values()) {
+        values.forEach((value) => {
+          if (isMessageValue(value)) {
+            ensureReactiveMessage(value, visited);
+          }
+        });
+      }
+    }
+
+    const modifiedSet = message.modifiedFields as unknown as Set<number>;
+    if ((modifiedSet as any).add === Set.prototype.add) {
+      console.debug('[ensureReactiveMessage] Converting modifiedFields to SvelteSet for', message.type.fullName);
+      message.modifiedFields = new SvelteSet<number>(modifiedSet) as MessageValue['modifiedFields'];
+    }
+  }
+
+  function isMessageValue(value: InterpretedValue): value is MessageValue {
+    return typeof value === 'object' && value !== null && 'type' in value && 'fields' in value;
+  }
+
   function handleMutation(event: MutationEvent) {
     console.log('[StructuralViewer] Received mutation:', event.mutation);
     mutations = [...mutations, event.mutation];
 
-    // Apply mutation to both the reactive data and the original decodedData
-    if (reactiveData) {
-      MutationApplicator.applyMutation(reactiveData, event.mutation);
-    }
+    // Apply mutation to the decodedData (which now uses SvelteMap/SvelteSet)
     if (decodedData) {
       MutationApplicator.applyMutation(decodedData, event.mutation);
+      ensureReactiveMessage(decodedData);
+      console.debug('[StructuralViewer] Post-mutation field keys', Array.from(decodedData.fields.keys()));
     }
 
     // Continue with existing change notification
@@ -112,6 +140,20 @@
     // Pass the original decodedData that has been mutated
     onchange?.(decodedData);
   }
+
+  // Clear mutations when decodedData changes (new data loaded)
+  let lastDecodedData = $state<MessageValue | null>(null);
+  $effect.pre(() => {
+    if (decodedData) {
+      ensureReactiveMessage(decodedData);
+    }
+  });
+  $effect(() => {
+    if (decodedData !== lastDecodedData) {
+      lastDecodedData = decodedData;
+      mutations = []; // Clear mutations when we get new input data
+    }
+  });
 </script>
 
 <div class="flex flex-col gap-4">
@@ -184,14 +226,15 @@
       {/if}
     </div>
 
-    {#if reactiveData && rootMessageType}
+    {#if decodedData && rootMessageType}
       <ObjectViewer
-        object={reactiveData}
+        object={decodedData}
         messageSchema={rootMessageType}
         editor={editor}
         onchange={handleDataChange}
         onmutation={handleMutation}
         dispatcher={rootDispatcher}
+        mutationVersion={mutations.length}
       />
     {:else}
       <div class="empty-state p-6">

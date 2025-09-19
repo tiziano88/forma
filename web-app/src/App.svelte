@@ -120,6 +120,10 @@
       isReady: !!editor.getDecodedData(),
     };
     console.log("[WebApp] Editor state updated:", $state.snapshot(editorState));
+    const decoded = editorState.decodedData;
+    if (decoded) {
+      console.log('[WebApp] decodedData field keys', Array.from(decoded.fields.keys()));
+    }
   }
 
   editor.on("change", () => {

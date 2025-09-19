@@ -1,11 +1,17 @@
 <script lang="ts">
-  import type { MessageValue, FieldDef, EnumType, StructuralEditor } from '@lintx/core';
-  import { FieldLabel, FieldType } from '@lintx/core';
-  import FieldCard from './FieldCard.svelte';
-  import ObjectViewer from './ObjectViewer.svelte';
-  import PrimitiveInput from './PrimitiveInput.svelte';
-  import BytesViewer from './BytesViewer.svelte';
-  import type { MutationEvent, MutationDispatcher } from './mutations';
+  import type {
+    MessageValue,
+    FieldDef,
+    EnumType,
+    StructuralEditor,
+    InterpretedValue,
+  } from "@lintx/core";
+  import { FieldLabel, FieldType } from "@lintx/core";
+  import FieldCard from "./FieldCard.svelte";
+  import ObjectViewer from "./ObjectViewer.svelte";
+  import PrimitiveInput from "./PrimitiveInput.svelte";
+  import BytesViewer from "./BytesViewer.svelte";
+  import type { MutationEvent, MutationDispatcher } from "./mutations";
 
   interface Props {
     parent: MessageValue;
@@ -15,6 +21,7 @@
     onchange?: () => void;
     onmutation?: (event: MutationEvent) => void;
     dispatcher?: MutationDispatcher;
+    mutationVersion?: number;
   }
 
   const {
@@ -24,26 +31,115 @@
     depth = 0,
     onchange,
     onmutation,
-    dispatcher
+    dispatcher,
+    mutationVersion = 0,
   }: Props = $props();
   let enumType = $state<EnumType | null>(null);
 
   // A set of well-known or custom types that require special UI handling.
-  const SPECIAL_CASED_TYPES = new Set([
-    '.google.protobuf.Timestamp',
-  ]);
+  const SPECIAL_CASED_TYPES = new Set([".google.protobuf.Timestamp"]);
 
   const isRepeated = $derived(fieldSchema.label === FieldLabel.LABEL_REPEATED);
 
-  // Use derived values - now reactive thanks to ReactiveMessageValue
-  const value = $derived(isRepeated ? parent.getRepeatedField(fieldSchema.number) : parent.getField(fieldSchema.number));
-  const items = $derived(isRepeated ? (value || []) : []);
-  const isUnset = $derived(value === null || value === undefined || (isRepeated && items.length === 0));
-  const isSpecialCased = $derived(fieldSchema.typeName && SPECIAL_CASED_TYPES.has(fieldSchema.typeName));
+  // Use direct SvelteMap access for proper reactivity
+  let currentValue = $state(null);
+
+  // Update currentValue when mutationVersion changes
+  $effect(() => {
+    const version = mutationVersion; // Depend on mutationVersion for reactivity
+    const fieldData = parent.fields.get(fieldSchema.number);
+    if (isRepeated) {
+      currentValue = fieldData || null;
+    } else {
+      currentValue = fieldData && fieldData.length > 0 ? fieldData[0] : null;
+    }
+
+    // Debug logging for field #5
+    if (fieldSchema.number === 5) {
+      console.log(`[currentValue $effect] field #5 v${version}:`, {
+        fieldData,
+        currentValue,
+        hasType: currentValue?.type,
+        typeName: currentValue?.type?.fullName
+      });
+    }
+  });
+
+  const currentItems = $derived(() => {
+    if (isRepeated) {
+      return parent.fields.get(fieldSchema.number) || [];
+    } else {
+      return [];
+    }
+  });
+
+  let fieldIsUnset = $state(true);
+
+  // Manually update fieldIsUnset when mutationVersion changes
+  $effect(() => {
+    const version = mutationVersion;
+    const fieldData = parent.fields.get(fieldSchema.number);
+    const result = isRepeated
+      ? (!fieldData || fieldData.length === 0)
+      : (!fieldData || fieldData.length === 0);
+
+    fieldIsUnset = result;
+
+    // Debug logging for field #5
+    if (fieldSchema.number === 5) {
+      console.log(`[fieldIsUnset $effect] field #5 v${version}:`, {
+        fieldData,
+        isRepeated,
+        hasFieldData: !!fieldData,
+        fieldDataLength: fieldData?.length,
+        result,
+        fieldIsUnset
+      });
+    }
+  });
+
+  // Debug logging for root_layer
+  $effect(() => {
+    if (fieldSchema.name === "root_layer") {
+      console.log(
+        `[FlatFieldViewer] ${fieldSchema.name} mutationVersion=${mutationVersion}`,
+        "fieldData:", parent.fields.get(fieldSchema.number),
+        "currentValue:", currentValue,
+        "fieldIsUnset:", fieldIsUnset
+      );
+    }
+  });
+
+  // Debug mutationVersion changes for all fields
+  $effect(() => {
+    console.log(`[FlatFieldViewer] ${fieldSchema.name} (field #${fieldSchema.number}) mutationVersion changed to ${mutationVersion}`);
+  });
+
+  $effect(() => {
+    if (fieldSchema.number === 5) {
+      const fieldData = parent.fields.get(fieldSchema.number);
+      console.log(
+        "[FlatFieldViewer] Field #5 debug:",
+        "fieldData:", fieldData,
+        "fieldData exists:", !!fieldData,
+        "fieldData.length:", fieldData?.length,
+        "fieldData[0]:", fieldData?.[0],
+        "currentValue:", currentValue,
+        "fieldIsUnset:", fieldIsUnset
+      );
+    }
+  });
+  const isSpecialCased = $derived(
+    fieldSchema.typeName && SPECIAL_CASED_TYPES.has(fieldSchema.typeName)
+  );
 
   // Get enum type information if this field is an enum
   $effect(() => {
-    if (fieldSchema.type === FieldType.TYPE_ENUM && fieldSchema.typeName && editor) {
+    if (
+      fieldSchema.type === FieldType.TYPE_ENUM &&
+      fieldSchema.typeName &&
+      editor
+    ) {
       const enumRegistry = editor.getEnumRegistry();
       enumType = enumRegistry.get(fieldSchema.typeName) || null;
     } else {
@@ -56,11 +152,13 @@
   }
 
   function createDefaultValue() {
-    if (fieldSchema.typeName && fieldSchema.typeName.startsWith('.')) {
+    if (fieldSchema.typeName && fieldSchema.typeName.startsWith(".")) {
       // Message type
       const newMessage = editor.createEmptyMessage(fieldSchema.typeName);
       if (newMessage === null) {
-        console.error(`Failed to create empty message for type: ${fieldSchema.typeName}`);
+        console.error(
+          `Failed to create empty message for type: ${fieldSchema.typeName}`
+        );
         return null;
       }
       return newMessage;
@@ -68,7 +166,7 @@
       // Primitive type
       switch (fieldSchema.type) {
         case FieldType.TYPE_STRING:
-          return '';
+          return "";
         case FieldType.TYPE_BYTES:
           return new Uint8Array();
         case FieldType.TYPE_BOOL:
@@ -91,7 +189,11 @@
     if (dispatcher) {
       if (isRepeated) {
         const insertIndex = index !== null ? index + 1 : undefined;
-        dispatcher.addRepeatedField(fieldSchema.number, defaultValue, insertIndex);
+        dispatcher.addRepeatedField(
+          fieldSchema.number,
+          defaultValue,
+          insertIndex
+        );
       } else {
         dispatcher.setField(fieldSchema.number, defaultValue);
       }
@@ -113,8 +215,8 @@
     dispatchChange();
   }
 
-  function handleMove(index: number, direction: 'up' | 'down') {
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
+  function handleMove(index: number, direction: "up" | "down") {
+    const newIndex = direction === "up" ? index - 1 : index + 1;
     const currentItems = parent.getRepeatedField(fieldSchema.number) || [];
     if (newIndex < 0 || newIndex >= currentItems.length) return;
 
@@ -142,9 +244,13 @@
     dispatchChange();
   }
 
-  function handlePrimitiveChange(eventOrValue: any, index: number | null = null) {
+  function handlePrimitiveChange(
+    eventOrValue: any,
+    index: number | null = null
+  ) {
     // Handle both CustomEvent format and direct value
-    const newValue = eventOrValue?.detail !== undefined ? eventOrValue.detail : eventOrValue;
+    const newValue =
+      eventOrValue?.detail !== undefined ? eventOrValue.detail : eventOrValue;
 
     // Note: PrimitiveInput already dispatches mutations directly,
     // but we keep this for any other primitive change sources
@@ -172,7 +278,7 @@
 
 {#if isRepeated}
   <!-- Repeated field: render one card per item + placeholder -->
-  {#each items as item, index}
+  {#each currentItems as item, index}
     <FieldCard
       {fieldSchema}
       {depth}
@@ -181,18 +287,20 @@
       showAddButton={true}
       showRemoveButton={true}
       showMoveUp={index > 0}
-      showMoveDown={index < items.length - 1}
+      showMoveDown={index < currentItems.length - 1}
       onadd={() => handleAdd(index)}
       onremove={() => handleRemove(index)}
-      onmoveup={() => handleMove(index, 'up')}
-      onmovedown={() => handleMove(index, 'down')}
+      onmoveup={() => handleMove(index, "up")}
+      onmovedown={() => handleMove(index, "down")}
       onchange={dispatchChange}
     >
       {#if isSpecialCased}
         <!-- Special cased types (like Timestamps) -->
         <div class="timestamp-display">
           <span class="text-xl">⏰</span>
-          <span class="text-sm italic text-editor-muted">Timestamp (not yet editable)</span>
+          <span class="text-sm italic text-editor-muted"
+            >Timestamp (not yet editable)</span
+          >
         </div>
       {:else if fieldSchema.type === FieldType.TYPE_ENUM}
         {#if enumType}
@@ -209,17 +317,21 @@
               {/each}
             </select>
             <div class="text-xs text-editor-muted mt-1">
-              Current: {enumType.values.get(item) || 'UNKNOWN'} = {item}
+              Current: {enumType.values.get(item) || "UNKNOWN"} = {item}
             </div>
           </div>
         {:else}
           <div class="enum-display">
             <span class="text-xl">🔢</span>
-            <span class="text-sm text-editor-primary">Enum value: {item ?? 'unset'}</span>
-            <span class="text-xs text-editor-muted">({fieldSchema.typeName})</span>
+            <span class="text-sm text-editor-primary"
+              >Enum value: {item ?? "unset"}</span
+            >
+            <span class="text-xs text-editor-muted"
+              >({fieldSchema.typeName})</span
+            >
           </div>
         {/if}
-      {:else if fieldSchema.typeName && fieldSchema.typeName.startsWith('.')}
+      {:else if fieldSchema.typeName && fieldSchema.typeName.startsWith(".")}
         <!-- Message field -->
         {#if item && item.type}
           <ObjectViewer
@@ -228,14 +340,21 @@
             {editor}
             depth={depth + 1}
             onchange={() => handleObjectChange(index)}
-            onmutation={onmutation}
+            {onmutation}
             dispatcher={dispatcher?.createChild(fieldSchema.number, index || 0)}
+            mutationVersion={mutationVersion}
           />
         {/if}
       {:else if fieldSchema.type === FieldType.TYPE_BYTES}
         <!-- Bytes field -->
         <BytesViewer
-          sources={[{ id: `${fieldSchema.name}-${index}`, label: 'Value', bytes: ensureUint8Array(item) }]}
+          sources={[
+            {
+              id: `${fieldSchema.name}-${index}`,
+              label: "Value",
+              bytes: ensureUint8Array(item),
+            },
+          ]}
           emptyMessage="(empty)"
         />
       {:else}
@@ -268,26 +387,28 @@
     {fieldSchema}
     {depth}
     isRepeated={false}
-    hasContent={!isUnset}
-    showAddButton={isUnset}
-    showRemoveButton={!isUnset}
+    hasContent={!fieldIsUnset}
+    showAddButton={fieldIsUnset}
+    showRemoveButton={!fieldIsUnset}
     onadd={() => handleAdd()}
     onremove={() => handleRemove()}
     onchange={dispatchChange}
   >
-    {#if !isUnset}
+    {#if !fieldIsUnset}
       {#if isSpecialCased}
         <!-- Special cased types (like Timestamps) -->
         <div class="timestamp-display">
           <span class="text-xl">⏰</span>
-          <span class="text-sm italic text-editor-muted">Timestamp (not yet editable)</span>
+          <span class="text-sm italic text-editor-muted"
+            >Timestamp (not yet editable)</span
+          >
         </div>
       {:else if fieldSchema.type === FieldType.TYPE_ENUM}
         {#if enumType}
           <div class="form-control">
             <select
               class="select-editor"
-              value={value ?? 0}
+              value={currentValue ?? 0}
               onchange={handleEnumChange}
             >
               {#each Array.from(enumType.values.entries()) as [number, name]}
@@ -297,39 +418,50 @@
               {/each}
             </select>
             <div class="text-xs text-editor-muted mt-1">
-              Current: {enumType.values.get(value) || 'UNKNOWN'} = {value}
+              Current: {enumType.values.get(currentValue) || "UNKNOWN"} = {currentValue}
             </div>
           </div>
         {:else}
           <div class="enum-display">
             <span class="text-xl">🔢</span>
-            <span class="text-sm text-editor-primary">Enum value: {value ?? 'unset'}</span>
-            <span class="text-xs text-editor-muted">({fieldSchema.typeName})</span>
+            <span class="text-sm text-editor-primary"
+              >Enum value: {currentValue ?? "unset"}</span
+            >
+            <span class="text-xs text-editor-muted"
+              >({fieldSchema.typeName})</span
+            >
           </div>
         {/if}
-      {:else if fieldSchema.typeName && fieldSchema.typeName.startsWith('.')}
+      {:else if fieldSchema.typeName && fieldSchema.typeName.startsWith(".")}
         <!-- Message field -->
-        {#if value && value.type}
+        {#if currentValue && currentValue.type}
           <ObjectViewer
-            object={value}
-            messageSchema={value.type}
+            object={currentValue}
+            messageSchema={currentValue.type}
             {editor}
             depth={depth + 1}
             onchange={() => handleObjectChange()}
-            onmutation={onmutation}
+            {onmutation}
             dispatcher={dispatcher?.createChild(fieldSchema.number, 0)}
+            mutationVersion={mutationVersion}
           />
         {/if}
       {:else if fieldSchema.type === FieldType.TYPE_BYTES}
         <!-- Bytes field -->
         <BytesViewer
-          sources={[{ id: fieldSchema.name, label: 'Value', bytes: ensureUint8Array(value) }]}
+          sources={[
+            {
+              id: fieldSchema.name,
+              label: "Value",
+              bytes: ensureUint8Array(currentValue),
+            },
+          ]}
           emptyMessage="(empty)"
         />
       {:else}
         <!-- Primitive field -->
         <PrimitiveInput
-          value={value}
+          value={currentValue}
           type={fieldSchema.type}
           id={fieldSchema.name}
           onchange={(newValue) => handlePrimitiveChange(newValue)}

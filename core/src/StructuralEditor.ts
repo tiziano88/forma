@@ -1,5 +1,6 @@
 import { Bytes, EditorData, EditorEvent, EditorEventType, EventListener, EnumType } from './types.js';
 import * as jspb from 'google-protobuf';
+import { SvelteMap, SvelteSet } from './svelte-reactivity.js';
 
 // Field type and label enums (from protobuf descriptor.proto)
 export enum FieldType {
@@ -296,13 +297,13 @@ interface MessageValue {
 // MessageValue implementation class
 class MessageValueImpl implements MessageValue {
   type: MessageType;
-  fields: Map<number, InterpretedValue[]>;
-  modifiedFields: Set<number>;
+  fields: SvelteMap<number, InterpretedValue[]>;
+  modifiedFields: SvelteSet<number>;
 
   constructor(messageType: MessageType) {
     this.type = messageType;
-    this.fields = new Map();
-    this.modifiedFields = new Set();
+    this.fields = new SvelteMap<number, InterpretedValue[]>();
+    this.modifiedFields = new SvelteSet<number>();
   }
 
   // Get field value (returns first value for non-repeated, undefined if not set)
@@ -360,9 +361,9 @@ class MessageValueImpl implements MessageValue {
     
     this.validateFieldValue(fieldDef, value);
     
-    const existing = this.fields.get(fieldNumber) || [];
-    existing.push(value);
-    this.fields.set(fieldNumber, existing);
+    const existing = this.fields.get(fieldNumber);
+    const nextValues = existing ? [...existing, value] : [value];
+    this.fields.set(fieldNumber, nextValues);
     this.modifiedFields.add(fieldNumber);
   }
 
@@ -380,24 +381,25 @@ class MessageValueImpl implements MessageValue {
 
   // Get all set field numbers
   getSetFields(): number[] {
-    return Array.from(this.fields.keys()).filter(fn => this.hasField(fn));
+    const fieldNumbers = Array.from(this.fields.keys()) as number[];
+    return fieldNumbers.filter((fieldNumber) => this.hasField(fieldNumber));
   }
 
   // Convert to display object (with field names)
-  toObject(): Record<string, any> {
-    const result: Record<string, any> = {};
-    
-    for (const [fieldNumber, values] of this.fields) {
+  toObject(): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+
+    for (const [fieldNumber, values] of this.fields as Iterable<[number, InterpretedValue[]]>) {
       const fieldDef = this.type.fields.get(fieldNumber);
       if (!fieldDef || values.length === 0) continue;
-      
+
       if (fieldDef.label === FieldLabel.LABEL_REPEATED) {
-        result[fieldDef.name] = values.map(v => this.valueToObject(v));
+        result[fieldDef.name] = values.map((value: InterpretedValue) => this.valueToObject(value));
       } else {
         result[fieldDef.name] = this.valueToObject(values[0]);
       }
     }
-    
+
     return result;
   }
 
@@ -406,11 +408,12 @@ class MessageValueImpl implements MessageValue {
     const writer = new jspb.BinaryWriter();
     
     // Sort by field number for deterministic output
-    const sortedFields = Array.from(this.fields.keys()).sort((a, b) => a - b);
-    
+    const sortedFields = Array.from(this.fields.keys()) as number[];
+    sortedFields.sort((a, b) => a - b);
+
     for (const fieldNumber of sortedFields) {
       const fieldDef = this.type.fields.get(fieldNumber);
-      const values = this.fields.get(fieldNumber);
+      const values = this.fields.get(fieldNumber) as InterpretedValue[] | undefined;
       if (!fieldDef || !values || values.length === 0) continue;
 
       for (const value of values) {
@@ -435,11 +438,13 @@ class MessageValueImpl implements MessageValue {
   }
 
   // Private helpers
-  private valueToObject(value: InterpretedValue): any {
-    if (typeof value === 'object' && 'type' in value && 'fields' in value) {
+  private valueToObject(value: InterpretedValue): unknown {
+    if (typeof value === 'object' && value !== null && 'type' in value && 'fields' in value) {
       // It's a MessageValue
       return (value as MessageValue).toObject();
-    } else if (value instanceof Uint8Array) {
+    }
+
+    if (value instanceof Uint8Array) {
       // Convert bytes to base64 for display
       return btoa(String.fromCharCode(...Array.from(value)));
     }

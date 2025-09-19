@@ -11,6 +11,7 @@
     onchange?: () => void;
     onmutation?: (event: MutationEvent) => void;
     dispatcher?: MutationDispatcher;
+    mutationVersion?: number;
   }
 
   const {
@@ -20,7 +21,8 @@
     depth = 0,
     onchange,
     onmutation,
-    dispatcher
+    dispatcher,
+    mutationVersion = 0
   }: Props = $props();
 
   function handleChange() {
@@ -42,6 +44,7 @@
       onchange={handleChange}
       onmutation={handleMutation}
       {dispatcher}
+      mutationVersion={mutationVersion}
     />
   {/each}
 </div>
