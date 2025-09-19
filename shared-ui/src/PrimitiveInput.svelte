@@ -72,5 +72,6 @@
     value={localValue}
     id={id.toString()}
     oninput={handleInput}
+    autocomplete="off"
   />
 {/if}

@@ -1,7 +1,7 @@
 /* ===== FIELD CARDS ===== */
 
 .field-card {
-  @apply rounded-xl border transition-colors duration-150 shadow-sm;
+  @apply rounded-xl border duration-150 shadow-sm;
   border-color: var(--editor-card-border);
   background: var(--editor-card-bg);
   box-shadow: var(--editor-shadow-sm);
@@ -11,9 +11,11 @@
   /* Group class applied separately in components */
 }
 
-.field-card:hover {
+/* https://stackoverflow.com/questions/6679283/css-hover-only-affect-top-div-of-nest */
+.field-card:not(:has(div.field-card:hover)):hover {
   border-color: var(--editor-card-hover-border);
   background: var(--editor-card-hover-bg);
+  background-color: red;
 }
 
 .field-card-header {
@@ -64,7 +66,7 @@
 }
 
 .btn-move-up, .btn-move-down, .btn-add, .btn-remove {
-  @apply w-6 h-6 rounded text-xs flex items-center justify-center border cursor-pointer transition-colors;
+  @apply w-6 h-6 rounded text-xs flex items-center justify-center border cursor-pointer;
   border-color: var(--editor-border-primary);
   background: var(--editor-bg-tertiary);
   color: var(--editor-text-secondary);
@@ -114,7 +116,7 @@
 /* ===== BUTTONS ===== */
 
 .btn-editor-primary {
-  @apply text-sm px-4 py-2 rounded-xl border cursor-pointer transition-colors;
+  @apply text-sm px-4 py-2 rounded-xl border cursor-pointer;
   background: var(--editor-primary-bg);
   border-color: var(--editor-primary);
   color: var(--editor-primary);
@@ -126,7 +128,7 @@
 }
 
 .btn-editor-accent {
-  @apply text-sm px-4 py-2 rounded-xl border cursor-pointer transition-colors;
+  @apply text-sm px-4 py-2 rounded-xl border cursor-pointer;
   background: var(--editor-accent-bg);
   border-color: var(--editor-accent);
   color: var(--editor-accent);
@@ -138,7 +140,7 @@
 }
 
 .btn-editor-error {
-  @apply text-sm px-4 py-2 rounded-xl border cursor-pointer transition-colors;
+  @apply text-sm px-4 py-2 rounded-xl border cursor-pointer;
   background: var(--editor-error-bg);
   border-color: var(--editor-error);
   color: var(--editor-error);
@@ -150,7 +152,7 @@
 }
 
 .btn-editor-add {
-  @apply text-sm px-4 py-2 w-full rounded-xl border cursor-pointer transition-colors;
+  @apply text-sm px-4 py-2 w-full rounded-xl border cursor-pointer;
   background: var(--editor-primary-bg);
   border-color: var(--editor-primary);
   color: var(--editor-primary);
