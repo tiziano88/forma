@@ -35,7 +35,7 @@
 </script>
 
 <div class="space-y-4">
-  {#each Array.from(messageSchema.fields.values()) as field}
+  {#each messageSchema?.fields ? Array.from(messageSchema.fields.values()) : [] as field}
     <FlatFieldViewer
       parent={object}
       fieldSchema={field}

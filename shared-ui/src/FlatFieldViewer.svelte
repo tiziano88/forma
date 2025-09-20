@@ -336,7 +336,7 @@
         {#if item && item.type}
           <ObjectViewer
             object={item}
-            messageSchema={item.type}
+            messageSchema={item?.type}
             {editor}
             depth={depth + 1}
             onchange={() => handleObjectChange(index)}
@@ -437,7 +437,7 @@
         {#if currentValue && currentValue.type}
           <ObjectViewer
             object={currentValue}
-            messageSchema={currentValue.type}
+            messageSchema={currentValue?.type}
             {editor}
             depth={depth + 1}
             onchange={() => handleObjectChange()}
