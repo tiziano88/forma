@@ -42,7 +42,7 @@
     220 13% 9% / 0.95
   ); /* base-100 with slight transparency */
   --editor-card-header-bg: hsl(
-    220 13% 22%
+    220 13% 22% / 0.6
   ); /* more distinct background for better contrast */
   --editor-card-border: hsl(220 13% 18% / 0.6); /* base-300 with transparency */
   --editor-card-hover-bg: hsl(220 13% 14%); /* base-200 for hover state */

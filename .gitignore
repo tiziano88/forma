@@ -6,3 +6,5 @@ vscode-extension/media/assets/
 .svelte-kit
 .DS_Store
 *.vsix
+
+.playwright-mcp/

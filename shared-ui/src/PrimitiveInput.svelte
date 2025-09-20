@@ -50,6 +50,19 @@
     onchange?.(localValue);
   }
 
+  function handleCheckboxChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    localValue = target.checked;
+
+    // Dispatch mutation if we have dispatcher
+    if (dispatcher) {
+      dispatcher.setSelf(localValue as FieldValue);
+    }
+
+    // Immediately call onchange with the new value
+    onchange?.(localValue);
+  }
+
   const numericTypes = new Set([
     FieldType.TYPE_DOUBLE,
     FieldType.TYPE_FLOAT,
@@ -68,7 +81,7 @@
 
 {#if type === FieldType.TYPE_BOOL}
   <label class="label-editor">
-    <input type="checkbox" class="toggle toggle-sm toggle-primary" bind:checked={localValue} id={id.toString()} onchange={handleChange} />
+    <input type="checkbox" class="toggle toggle-sm toggle-primary" checked={localValue} id={id.toString()} onchange={handleCheckboxChange} />
     <span class="font-medium text-editor-primary">{localValue ? 'True' : 'False'}</span>
   </label>
 {:else if numericTypes.has(type)}
