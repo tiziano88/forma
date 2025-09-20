@@ -5,40 +5,16 @@ import {
   EditorEventType,
   EventListener,
   EnumType,
+  MessageValue,
+  InterpretedValue,
+  FieldDef,
+  MessageType,
+  FieldType,
+  FieldLabel,
 } from './types.js';
 import * as jspb from 'google-protobuf';
 import { SvelteMap, SvelteSet } from './svelte-reactivity.js';
 
-// Field type and label enums (from protobuf descriptor.proto)
-export enum FieldType {
-  TYPE_DOUBLE = 1,
-  TYPE_FLOAT = 2,
-  TYPE_INT64 = 3,
-  TYPE_UINT64 = 4,
-  TYPE_INT32 = 5,
-  TYPE_FIXED64 = 6,
-  TYPE_FIXED32 = 7,
-  TYPE_BOOL = 8,
-  TYPE_STRING = 9,
-  TYPE_GROUP = 10,
-  TYPE_MESSAGE = 11,
-  TYPE_BYTES = 12,
-  TYPE_UINT32 = 13,
-  TYPE_ENUM = 14,
-  TYPE_SFIXED32 = 15,
-  TYPE_SFIXED64 = 16,
-  TYPE_SINT32 = 17,
-  TYPE_SINT64 = 18,
-}
-
-export enum FieldLabel {
-  LABEL_OPTIONAL = 1,
-  LABEL_REQUIRED = 2,
-  LABEL_REPEATED = 3,
-}
-
-export type FieldTypeEnum = FieldType;
-export type FieldLabelEnum = FieldLabel;
 
 // Simple interfaces for descriptor parsing
 interface ParsedFileDescriptorSet {
@@ -265,48 +241,8 @@ function parseEnumValueDescriptorProto(
   return { name, number };
 }
 
-// New two-layer IR system
-interface FieldDef {
-  name: string;
-  number: number;
-  type: FieldTypeEnum;
-  label: FieldLabelEnum;
-  typeName?: string; // Always fully qualified for MESSAGE types
-}
-
-interface MessageType {
-  fullName: string; // "com.example.Outer.Inner"
-  fields: Map<number, FieldDef>; // field number -> field definition
-  fieldNameToNumber: Map<string, number>; // field name -> field number
-}
-
 type TypeRegistry = Map<string, MessageType>; // "full.name" -> MessageType
 type EnumRegistry = Map<string, EnumType>; // "full.name" -> EnumType
-
-type InterpretedValue = string | number | boolean | Uint8Array | MessageValue;
-
-interface MessageValue {
-  type: MessageType;
-  fields: Map<number, InterpretedValue[]>; // field number -> values (repeated = array)
-  modifiedFields: Set<number>; // track changes
-
-  // Methods
-  getField<T extends InterpretedValue>(fieldNumber: number): T | undefined;
-  getRepeatedField<T extends InterpretedValue>(fieldNumber: number): T[];
-  setField<T extends InterpretedValue>(fieldNumber: number, value: T): void;
-  addRepeatedField<T extends InterpretedValue>(
-    fieldNumber: number,
-    value: T
-  ): void;
-  clearField(fieldNumber: number): void;
-  hasField(fieldNumber: number): boolean;
-  getSetFields(): number[];
-  toObject(): Record<string, any>;
-  toBytes(): Uint8Array;
-  isModified(): boolean;
-  getModifiedFieldNumbers(): number[];
-  resetModifiedTracking(): void;
-}
 
 // MessageValue implementation class
 class MessageValueImpl implements MessageValue {
