@@ -17,4 +17,4 @@ module.exports = {
   },
   // Fix TypeScript configuration for Jest globals
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-}
+};

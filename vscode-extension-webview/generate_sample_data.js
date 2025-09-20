@@ -1,12 +1,12 @@
 // DEPRECATED: This utility script still uses protobufjs
-const protobuf = require('protobufjs')
-const fs = require('fs')
-const path = require('path')
+const protobuf = require('protobufjs');
+const fs = require('fs');
+const path = require('path');
 
 async function generateSampleData() {
   try {
-    const root = await protobuf.load('sample.proto')
-    const Person = root.lookupType('example.Person')
+    const root = await protobuf.load('sample.proto');
+    const Person = root.lookupType('example.Person');
 
     const payload = {
       name: 'John Doe',
@@ -22,23 +22,23 @@ async function generateSampleData() {
         { number: '555-1234', type: 'HOME' },
         { number: '555-5678', type: 'MOBILE' },
       ],
-    }
+    };
 
-    const errMsg = Person.verify(payload)
+    const errMsg = Person.verify(payload);
     if (errMsg) {
-      throw new Error(errMsg)
+      throw new Error(errMsg);
     }
 
-    const message = Person.create(payload)
-    const buffer = Person.encode(message).finish()
+    const message = Person.create(payload);
+    const buffer = Person.encode(message).finish();
 
-    const filePath = path.join(__dirname, 'sample.bin')
-    fs.writeFileSync(filePath, buffer)
+    const filePath = path.join(__dirname, 'sample.bin');
+    fs.writeFileSync(filePath, buffer);
 
-    console.log(`Successfully created sample.bin at ${filePath}`)
+    console.log(`Successfully created sample.bin at ${filePath}`);
   } catch (err) {
-    console.error('Error generating sample data:', err)
+    console.error('Error generating sample data:', err);
   }
 }
 
-generateSampleData()
+generateSampleData();

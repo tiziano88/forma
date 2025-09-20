@@ -1,5 +1,5 @@
-import * as fs from 'fs'
-import * as path from 'path'
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Test utility functions for MessageValue testing
@@ -15,17 +15,17 @@ export function loadDescriptor(filename: string): Uint8Array {
     path.resolve(__dirname, '../../../../web-app/public', filename),
     path.resolve(process.cwd(), '../web-app/public', filename),
     path.resolve(process.cwd(), 'web-app/public', filename),
-  ]
+  ];
 
   for (const filePath of possiblePaths) {
     if (fs.existsSync(filePath)) {
-      return new Uint8Array(fs.readFileSync(filePath))
+      return new Uint8Array(fs.readFileSync(filePath));
     }
   }
 
   throw new Error(
     `Descriptor file not found. Tried paths:\n${possiblePaths.join('\n')}`
-  )
+  );
 }
 
 /**
@@ -38,17 +38,17 @@ export function loadBinaryData(filename: string): Uint8Array {
     path.resolve(__dirname, '../../../../web-app/public', filename),
     path.resolve(process.cwd(), '../web-app/public', filename),
     path.resolve(process.cwd(), 'web-app/public', filename),
-  ]
+  ];
 
   for (const filePath of possiblePaths) {
     if (fs.existsSync(filePath)) {
-      return new Uint8Array(fs.readFileSync(filePath))
+      return new Uint8Array(fs.readFileSync(filePath));
     }
   }
 
   throw new Error(
     `Data file not found. Tried paths:\n${possiblePaths.join('\n')}`
-  )
+  );
 }
 
 /**
@@ -86,7 +86,7 @@ export function createTestPersonData() {
         published_at: 1609545600, // 2021-01-02 00:00:00 UTC
       },
     ],
-  }
+  };
 }
 
 /**
@@ -94,32 +94,32 @@ export function createTestPersonData() {
  */
 export function deepEqual(actual: any, expected: any): boolean {
   // Handle null/undefined
-  if (actual === expected) return true
-  if (actual == null || expected == null) return false
+  if (actual === expected) return true;
+  if (actual == null || expected == null) return false;
 
   // Handle primitive types
   if (typeof actual !== 'object' || typeof expected !== 'object') {
-    return actual === expected
+    return actual === expected;
   }
 
   // Handle arrays
   if (Array.isArray(actual) && Array.isArray(expected)) {
-    if (actual.length !== expected.length) return false
-    return actual.every((val, idx) => deepEqual(val, expected[idx]))
+    if (actual.length !== expected.length) return false;
+    return actual.every((val, idx) => deepEqual(val, expected[idx]));
   }
 
   // Handle MessageValue objects (they have a toObject method)
   if (actual.toObject && typeof actual.toObject === 'function') {
-    return deepEqual(actual.toObject(), expected)
+    return deepEqual(actual.toObject(), expected);
   }
 
   // Handle regular objects
-  const actualKeys = Object.keys(actual)
-  const expectedKeys = Object.keys(expected)
+  const actualKeys = Object.keys(actual);
+  const expectedKeys = Object.keys(expected);
 
-  if (actualKeys.length !== expectedKeys.length) return false
+  if (actualKeys.length !== expectedKeys.length) return false;
 
-  return actualKeys.every((key) => deepEqual(actual[key], expected[key]))
+  return actualKeys.every((key) => deepEqual(actual[key], expected[key]));
 }
 
 /**
@@ -130,13 +130,13 @@ export function assertMessageValue(
   expectedFields: Record<number, any>
 ): void {
   for (const [fieldNum, expectedValue] of Object.entries(expectedFields)) {
-    const fieldNumber = parseInt(fieldNum)
-    const actualValue = messageValue.getField(fieldNumber)
+    const fieldNumber = parseInt(fieldNum);
+    const actualValue = messageValue.getField(fieldNumber);
 
     if (!deepEqual(actualValue, expectedValue)) {
       throw new Error(
         `Field ${fieldNumber} mismatch: expected ${JSON.stringify(expectedValue)}, got ${JSON.stringify(actualValue)}`
-      )
+      );
     }
   }
 }

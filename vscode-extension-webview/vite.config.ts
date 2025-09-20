@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import { svelte } from '@sveltejs/vite-plugin-svelte'
-import path from 'path'
+import { defineConfig } from 'vite';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+import path from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -9,4 +9,4 @@ export default defineConfig({
     outDir: path.resolve(__dirname, '../vscode-extension/media'),
     emptyOutDir: true,
   },
-})
+});

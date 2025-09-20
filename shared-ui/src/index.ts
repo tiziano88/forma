@@ -1,9 +1,9 @@
-import StructuralViewer from './StructuralViewer.svelte'
-import ObjectViewer from './ObjectViewer.svelte'
-import FlatFieldViewer from './FlatFieldViewer.svelte'
-import FieldCard from './FieldCard.svelte'
-import PrimitiveInput from './PrimitiveInput.svelte'
-import BytesViewer from './BytesViewer.svelte'
+import StructuralViewer from './StructuralViewer.svelte';
+import ObjectViewer from './ObjectViewer.svelte';
+import FlatFieldViewer from './FlatFieldViewer.svelte';
+import FieldCard from './FieldCard.svelte';
+import PrimitiveInput from './PrimitiveInput.svelte';
+import BytesViewer from './BytesViewer.svelte';
 
 export {
   StructuralViewer,
@@ -12,4 +12,4 @@ export {
   FieldCard,
   PrimitiveInput,
   BytesViewer,
-}
+};
