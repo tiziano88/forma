@@ -41,9 +41,9 @@
 
   /* ===== FIELD CARD SPECIFIC ===== */
   --editor-card-bg: var(--vscode-editor-background);
-  --editor-card-header-bg: var(--vscode-titleBar-activeBackground);
+  --editor-card-header-bg: var(--vscode-list-hoverBackground);
   --editor-card-border: var(--vscode-panel-border);
-  --editor-card-hover-bg: var(--vscode-list-hoverBackground);
+  --editor-card-hover-bg: var(--vscode-editor-background);
   --editor-card-hover-border: var(--vscode-button-hoverBackground);
 
   /* ===== FALLBACKS FOR MISSING VSCODE VARIABLES ===== */
@@ -61,19 +61,12 @@
     transparent
   );
 
-  /* Fallback for title bar if not available */
+  /* Fallback for header background */
   --editor-card-header-bg: var(
-    --vscode-titleBar-activeBackground,
-    var(--vscode-tab-activeBackground, var(--vscode-editor-background))
+    --vscode-list-hoverBackground,
+    var(--vscode-tab-activeBackground, var(--vscode-panel-background))
   );
 
-  /* Fallback for hover background if not available */
-  --editor-card-hover-bg: var(
-    --vscode-list-hoverBackground,
-    color-mix(
-      in srgb,
-      var(--vscode-foreground) 5%,
-      var(--vscode-editor-background)
-    )
-  );
+  /* Hover background should match card background (no change on hover) */
+  --editor-card-hover-bg: var(--vscode-editor-background);
 }

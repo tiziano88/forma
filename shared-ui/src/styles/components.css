@@ -1,7 +1,7 @@
 /* ===== FIELD CARDS ===== */
 
 .field-card {
-  @apply rounded-xl border duration-150 shadow-sm;
+  @apply rounded-xl border-2 shadow-sm;
   border-color: var(--editor-card-border);
   background: var(--editor-card-bg);
   box-shadow: var(--editor-shadow-sm);
@@ -14,7 +14,6 @@
 /* https://stackoverflow.com/questions/6679283/css-hover-only-affect-top-div-of-nest */
 .field-card:not(:has(div.field-card:hover)):hover {
   border-color: var(--editor-card-hover-border);
-  background: var(--editor-card-hover-bg);
 }
 
 .field-card-header {
