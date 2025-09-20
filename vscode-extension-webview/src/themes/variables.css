@@ -11,11 +11,23 @@
 
   /* ===== INTERACTIVE COLORS ===== */
   --editor-primary: var(--vscode-button-background);
-  --editor-primary-bg: color-mix(in srgb, var(--vscode-button-background) 10%, transparent);
+  --editor-primary-bg: color-mix(
+    in srgb,
+    var(--vscode-button-background) 10%,
+    transparent
+  );
   --editor-accent: var(--vscode-button-secondaryBackground);
-  --editor-accent-bg: color-mix(in srgb, var(--vscode-button-secondaryBackground) 10%, transparent);
+  --editor-accent-bg: color-mix(
+    in srgb,
+    var(--vscode-button-secondaryBackground) 10%,
+    transparent
+  );
   --editor-error: var(--vscode-errorForeground);
-  --editor-error-bg: color-mix(in srgb, var(--vscode-errorForeground) 10%, transparent);
+  --editor-error-bg: color-mix(
+    in srgb,
+    var(--vscode-errorForeground) 10%,
+    transparent
+  );
 
   /* ===== BORDERS & OUTLINES ===== */
   --editor-border-primary: var(--vscode-panel-border);
@@ -38,12 +50,30 @@
   /* Some VSCode themes might not define all variables, so provide sensible fallbacks */
 
   /* Fallback for secondary button if not available */
-  --editor-accent: var(--vscode-button-secondaryBackground, var(--vscode-textLink-foreground));
-  --editor-accent-bg: color-mix(in srgb, var(--vscode-button-secondaryBackground, var(--vscode-textLink-foreground)) 10%, transparent);
+  --editor-accent: var(
+    --vscode-button-secondaryBackground,
+    var(--vscode-textLink-foreground)
+  );
+  --editor-accent-bg: color-mix(
+    in srgb,
+    var(--vscode-button-secondaryBackground, var(--vscode-textLink-foreground))
+      10%,
+    transparent
+  );
 
   /* Fallback for title bar if not available */
-  --editor-card-header-bg: var(--vscode-titleBar-activeBackground, var(--vscode-tab-activeBackground, var(--vscode-editor-background)));
+  --editor-card-header-bg: var(
+    --vscode-titleBar-activeBackground,
+    var(--vscode-tab-activeBackground, var(--vscode-editor-background))
+  );
 
   /* Fallback for hover background if not available */
-  --editor-card-hover-bg: var(--vscode-list-hoverBackground, color-mix(in srgb, var(--vscode-foreground) 5%, var(--vscode-editor-background)));
+  --editor-card-hover-bg: var(
+    --vscode-list-hoverBackground,
+    color-mix(
+      in srgb,
+      var(--vscode-foreground) 5%,
+      var(--vscode-editor-background)
+    )
+  );
 }

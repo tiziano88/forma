@@ -79,3 +79,7 @@ test-watch:
 
 # Full test setup: generate bindings and run tests
 test-all: generate-test-proto test
+
+# Format all files
+format:
+    pnpm format

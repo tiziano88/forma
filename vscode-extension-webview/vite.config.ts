@@ -8,5 +8,5 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, '../vscode-extension/media'),
     emptyOutDir: true,
-  }
+  },
 })

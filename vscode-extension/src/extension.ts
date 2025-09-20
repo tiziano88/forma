@@ -1,61 +1,61 @@
-import * as vscode from "vscode";
-import * as path from "path";
-import { Config } from "@lintx/core";
+import * as vscode from 'vscode'
+import * as path from 'path'
+import { Config } from '@lintx/core'
 
-const MAX_CONFIG_SEARCH_DEPTH = 10;
+const MAX_CONFIG_SEARCH_DEPTH = 10
 
 class StructuralDocument implements vscode.CustomDocument {
-  private readonly _uri: vscode.Uri;
-  private _documentData: Uint8Array;
-  private readonly _onDidDispose = new vscode.EventEmitter<void>();
-  public readonly onDidDispose = this._onDidDispose.event;
+  private readonly _uri: vscode.Uri
+  private _documentData: Uint8Array
+  private readonly _onDidDispose = new vscode.EventEmitter<void>()
+  public readonly onDidDispose = this._onDidDispose.event
 
-  private readonly _onDidChangeContent = new vscode.EventEmitter<void>();
-  public readonly onDidChangeContent = this._onDidChangeContent.event;
+  private readonly _onDidChangeContent = new vscode.EventEmitter<void>()
+  public readonly onDidChangeContent = this._onDidChangeContent.event
 
   private readonly _onDidChange = new vscode.EventEmitter<{
-    readonly label: string;
-    undo(): void;
-    redo(): void;
-  }>();
-  public readonly onDidChange = this._onDidChange.event;
+    readonly label: string
+    undo(): void
+    redo(): void
+  }>()
+  public readonly onDidChange = this._onDidChange.event
 
   constructor(uri: vscode.Uri, initialContent: Uint8Array) {
-    this._uri = uri;
-    this._documentData = initialContent;
+    this._uri = uri
+    this._documentData = initialContent
   }
 
   public get uri() {
-    return this._uri;
+    return this._uri
   }
   public get documentData(): Uint8Array {
-    return this._documentData;
+    return this._documentData
   }
 
   public makeEdit(newContent: Uint8Array) {
-    const oldContent = this._documentData;
-    this._documentData = newContent;
+    const oldContent = this._documentData
+    this._documentData = newContent
 
     this._onDidChange.fire({
-      label: "Update",
+      label: 'Update',
       undo: () => {
-        this.revert(oldContent);
+        this.revert(oldContent)
       },
       redo: () => {
-        this.makeEdit(newContent);
+        this.makeEdit(newContent)
       },
-    });
+    })
   }
 
   public revert(newContent: Uint8Array) {
-    this._documentData = newContent;
-    this._onDidChangeContent.fire();
+    this._documentData = newContent
+    this._onDidChangeContent.fire()
   }
 
   dispose(): void {
-    this._onDidDispose.fire();
-    this._onDidChange.dispose();
-    this._onDidChangeContent.dispose();
+    this._onDidDispose.fire()
+    this._onDidChange.dispose()
+    this._onDidChangeContent.dispose()
   }
 }
 
@@ -67,24 +67,24 @@ class StructuralEditorProvider
     outputChannel: vscode.OutputChannel
   ): vscode.Disposable {
     outputChannel.appendLine(
-      "[REGISTER] Registering custom editor provider for viewType: forma.structuralEditor"
-    );
-    const provider = new StructuralEditorProvider(context, outputChannel);
+      '[REGISTER] Registering custom editor provider for viewType: forma.structuralEditor'
+    )
+    const provider = new StructuralEditorProvider(context, outputChannel)
     return vscode.window.registerCustomEditorProvider(
-      "forma.structuralEditor",
+      'forma.structuralEditor',
       provider,
       {
         webviewOptions: { retainContextWhenHidden: true },
         supportsMultipleEditorsPerDocument: false,
       }
-    );
+    )
   }
 
   private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<
     vscode.CustomDocumentEditEvent<StructuralDocument>
-  >();
+  >()
   public readonly onDidChangeCustomDocument =
-    this._onDidChangeCustomDocument.event;
+    this._onDidChangeCustomDocument.event
 
   constructor(
     private readonly _context: vscode.ExtensionContext,
@@ -94,28 +94,28 @@ class StructuralEditorProvider
   async openCustomDocument(uri: vscode.Uri): Promise<StructuralDocument> {
     this._outputChannel.appendLine(
       `[OPEN] Opening custom document: ${uri.fsPath}`
-    );
-    let data: Uint8Array;
+    )
+    let data: Uint8Array
     try {
-      data = await vscode.workspace.fs.readFile(uri);
+      data = await vscode.workspace.fs.readFile(uri)
       this._outputChannel.appendLine(
         `[OPEN] Successfully read ${data.length} bytes from ${uri.fsPath}`
-      );
+      )
     } catch (e) {
       this._outputChannel.appendLine(
         `[ERROR] Could not read file: ${uri.fsPath}. ${e}`
-      );
-      data = new Uint8Array();
+      )
+      data = new Uint8Array()
     }
 
-    const document = new StructuralDocument(uri, data);
+    const document = new StructuralDocument(uri, data)
 
     const listener = document.onDidChange((e) => {
-      this._onDidChangeCustomDocument.fire({ document, ...e });
-    });
-    document.onDidDispose(() => listener.dispose());
+      this._onDidChangeCustomDocument.fire({ document, ...e })
+    })
+    document.onDidDispose(() => listener.dispose())
 
-    return document;
+    return document
   }
 
   async resolveCustomEditor(
@@ -125,67 +125,67 @@ class StructuralEditorProvider
     webviewPanel.webview.options = {
       enableScripts: true,
       localResourceRoots: [
-        vscode.Uri.joinPath(this._context.extensionUri, "media"),
+        vscode.Uri.joinPath(this._context.extensionUri, 'media'),
       ],
-    };
+    }
     webviewPanel.webview.html = await getWebviewHtml(
       webviewPanel.webview,
       this._context
-    );
+    )
 
     const changeSubscription = document.onDidChangeContent(() => {
       webviewPanel.webview.postMessage({
-        type: "updateContent",
+        type: 'updateContent',
         payload: Array.from(document.documentData),
-      });
-    });
+      })
+    })
 
     webviewPanel.onDidDispose(() => {
-      changeSubscription.dispose();
-    });
+      changeSubscription.dispose()
+    })
 
     webviewPanel.webview.onDidReceiveMessage(async (msg) => {
       try {
         switch (msg.type) {
-          case "ready": {
+          case 'ready': {
             this._outputChannel.appendLine(
               `[READY] Received ready message for ${document.uri.fsPath}`
-            );
+            )
             const session = await resolveSessionFromConfig(
               document.uri,
               this._outputChannel,
               this._context
-            );
-            const initPayload = await prepareInitPayload(document, session);
+            )
+            const initPayload = await prepareInitPayload(document, session)
             this._outputChannel.appendLine(
               `[INIT] Sending initWithConfig with typeName: ${
                 initPayload.typeName
               }, schemaDescriptor: ${
                 initPayload.schemaDescriptor
                   ? `${initPayload.schemaDescriptor.length} bytes`
-                  : "none"
+                  : 'none'
               }, data: ${
-                initPayload.data ? `${initPayload.data.length} bytes` : "none"
+                initPayload.data ? `${initPayload.data.length} bytes` : 'none'
               }`
-            );
+            )
             webviewPanel.webview.postMessage({
-              type: "initWithConfig",
+              type: 'initWithConfig',
               payload: initPayload,
-            });
-            break;
+            })
+            break
           }
-          case "contentChanged": {
-            document.makeEdit(new Uint8Array(msg.payload));
-            break;
+          case 'contentChanged': {
+            document.makeEdit(new Uint8Array(msg.payload))
+            break
           }
         }
       } catch (error) {
         this._outputChannel.appendLine(
           `[ERROR] Error handling message ${msg.type}: ${error}`
-        );
-        console.error("Extension error:", error);
+        )
+        console.error('Extension error:', error)
       }
-    });
+    })
   }
 
   async saveCustomDocument(
@@ -194,8 +194,8 @@ class StructuralEditorProvider
   ): Promise<void> {
     this._outputChannel.appendLine(
       `[SAVE] Triggered for: ${doc.uri.toString()}`
-    );
-    await this.saveCustomDocumentAs(doc, doc.uri, cancel);
+    )
+    await this.saveCustomDocumentAs(doc, doc.uri, cancel)
   }
 
   async saveCustomDocumentAs(
@@ -204,17 +204,17 @@ class StructuralEditorProvider
     cancel: vscode.CancellationToken
   ): Promise<void> {
     if (cancel.isCancellationRequested) {
-      return;
+      return
     }
-    await vscode.workspace.fs.writeFile(dest, doc.documentData);
+    await vscode.workspace.fs.writeFile(dest, doc.documentData)
   }
 
   async revertCustomDocument(
     doc: StructuralDocument,
     cancel: vscode.CancellationToken
   ): Promise<void> {
-    const fileData = await vscode.workspace.fs.readFile(doc.uri);
-    doc.revert(fileData);
+    const fileData = await vscode.workspace.fs.readFile(doc.uri)
+    doc.revert(fileData)
   }
 
   async backupCustomDocument(
@@ -222,80 +222,80 @@ class StructuralEditorProvider
     ctx: vscode.CustomDocumentBackupContext,
     cancel: vscode.CancellationToken
   ): Promise<vscode.CustomDocumentBackup> {
-    await this.saveCustomDocumentAs(doc, ctx.destination, cancel);
-    return { id: ctx.destination.toString(), delete: async () => {} };
+    await this.saveCustomDocumentAs(doc, ctx.destination, cancel)
+    return { id: ctx.destination.toString(), delete: async () => {} }
   }
 }
 
 export function activate(context: vscode.ExtensionContext) {
   const outputChannel = vscode.window.createOutputChannel(
-    "Forma Structural Editor"
-  );
-  outputChannel.appendLine("Forma extension is activating.");
-  outputChannel.show(); // Show the output channel immediately
-  context.subscriptions.push(outputChannel);
+    'Forma Structural Editor'
+  )
+  outputChannel.appendLine('Forma extension is activating.')
+  outputChannel.show() // Show the output channel immediately
+  context.subscriptions.push(outputChannel)
 
   try {
-    const provider = StructuralEditorProvider.register(context, outputChannel);
-    context.subscriptions.push(provider);
+    const provider = StructuralEditorProvider.register(context, outputChannel)
+    context.subscriptions.push(provider)
 
     // Register command handlers
     context.subscriptions.push(
       vscode.commands.registerCommand(
-        "forma.openStructuralEditor",
+        'forma.openStructuralEditor',
         async () => {
           outputChannel.appendLine(
-            "[COMMAND] Opening structural editor command triggered"
-          );
+            '[COMMAND] Opening structural editor command triggered'
+          )
           const uris = await vscode.window.showOpenDialog({
             canSelectMany: false,
-            openLabel: "Open with Structural Editor",
+            openLabel: 'Open with Structural Editor',
             filters: {
-              "Binary Files": ["bin", "binpb", "binarypb"],
-              "All Files": ["*"],
+              'Binary Files': ['bin', 'binpb', 'binarypb'],
+              'All Files': ['*'],
             },
-          });
+          })
           if (uris && uris.length > 0) {
-            const uri = uris[0];
-            outputChannel.appendLine(`[COMMAND] Opening file: ${uri.fsPath}`);
+            const uri = uris[0]
+            outputChannel.appendLine(`[COMMAND] Opening file: ${uri.fsPath}`)
             await vscode.commands.executeCommand(
-              "vscode.openWith",
+              'vscode.openWith',
               uri,
-              "forma.structuralEditor"
-            );
+              'forma.structuralEditor'
+            )
           }
         }
       )
-    );
+    )
 
     context.subscriptions.push(
-      vscode.commands.registerCommand("forma.openForActiveFile", async () => {
+      vscode.commands.registerCommand('forma.openForActiveFile', async () => {
         outputChannel.appendLine(
-          "[COMMAND] Open for active file command triggered"
-        );
-        const activeEditor = vscode.window.activeTextEditor;
+          '[COMMAND] Open for active file command triggered'
+        )
+        const activeEditor = vscode.window.activeTextEditor
         if (activeEditor) {
-          const uri = activeEditor.document.uri;
+          const uri = activeEditor.document.uri
           outputChannel.appendLine(
             `[COMMAND] Opening active file: ${uri.fsPath}`
-          );
+          )
           await vscode.commands.executeCommand(
-            "vscode.openWith",
+            'vscode.openWith',
             uri,
-            "forma.structuralEditor"
-          );
+            'forma.structuralEditor'
+          )
         } else {
           vscode.window.showInformationMessage(
-            "No active file to open with Structural Editor"
-          );
+            'No active file to open with Structural Editor'
+          )
         }
       })
-    );
+    )
 
-    outputChannel.appendLine("Forma extension activated successfully.");
+    outputChannel.appendLine('Forma extension activated successfully.')
   } catch (error) {
-    outputChannel.appendLine(`Error during activation: ${error}`);
-    throw error;
+    outputChannel.appendLine(`Error during activation: ${error}`)
+    throw error
   }
 }
 
@@ -303,19 +303,19 @@ async function getWebviewHtml(
   webview: vscode.Webview,
   context: vscode.ExtensionContext
 ): Promise<string> {
-  const mediaRoot = vscode.Uri.joinPath(context.extensionUri, "media");
-  const assetsRoot = vscode.Uri.joinPath(mediaRoot, "assets");
-  const files = await vscode.workspace.fs.readDirectory(assetsRoot);
-  const cssFile = files.find(([name]) => name.endsWith(".css"))?.[0];
-  const jsFile = files.find(([name]) => name.endsWith(".js"))?.[0];
+  const mediaRoot = vscode.Uri.joinPath(context.extensionUri, 'media')
+  const assetsRoot = vscode.Uri.joinPath(mediaRoot, 'assets')
+  const files = await vscode.workspace.fs.readDirectory(assetsRoot)
+  const cssFile = files.find(([name]) => name.endsWith('.css'))?.[0]
+  const jsFile = files.find(([name]) => name.endsWith('.js'))?.[0]
 
   if (!cssFile || !jsFile) {
-    return "<body>Error: Could not find built webview assets.</body>";
+    return '<body>Error: Could not find built webview assets.</body>'
   }
 
-  const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(assetsRoot, cssFile));
-  const jsUri = webview.asWebviewUri(vscode.Uri.joinPath(assetsRoot, jsFile));
-  const cspSource = webview.cspSource;
+  const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(assetsRoot, cssFile))
+  const jsUri = webview.asWebviewUri(vscode.Uri.joinPath(assetsRoot, jsFile))
+  const cspSource = webview.cspSource
 
   return `
     <!doctype html>
@@ -338,7 +338,7 @@ async function getWebviewHtml(
         <script type="module" crossorigin src="${jsUri}"></script>
       </body>
     </html>
-  `;
+  `
 }
 
 async function prepareInitPayload(
@@ -352,7 +352,7 @@ async function prepareInitPayload(
     schemaDescriptor: session.schemaDescriptor
       ? Array.from(session.schemaDescriptor)
       : undefined,
-  };
+  }
 }
 
 async function findNearestConfig(
@@ -360,48 +360,48 @@ async function findNearestConfig(
   maxDepth: number,
   outputChannel: vscode.OutputChannel
 ): Promise<vscode.Uri | undefined> {
-  if (target.scheme !== "file") {
+  if (target.scheme !== 'file') {
     outputChannel.appendLine(
       `[CONFIG] Skipping config search for non-file URI: ${target.toString()}`
-    );
-    return undefined;
+    )
+    return undefined
   }
 
-  let currentDir = path.dirname(target.fsPath);
-  const visited = new Set<string>();
+  let currentDir = path.dirname(target.fsPath)
+  const visited = new Set<string>()
 
   for (let depth = 0; depth <= maxDepth; depth++) {
-    const normalizedDir = path.normalize(currentDir);
+    const normalizedDir = path.normalize(currentDir)
     if (visited.has(normalizedDir)) {
-      break;
+      break
     }
-    visited.add(normalizedDir);
+    visited.add(normalizedDir)
 
-    const candidatePath = path.join(currentDir, "config.forma.binpb");
-    const candidateUri = vscode.Uri.file(candidatePath);
+    const candidatePath = path.join(currentDir, 'config.forma.binpb')
+    const candidateUri = vscode.Uri.file(candidatePath)
     try {
-      const stat = await vscode.workspace.fs.stat(candidateUri);
+      const stat = await vscode.workspace.fs.stat(candidateUri)
       if (stat.type === vscode.FileType.File) {
         outputChannel.appendLine(
           `[CONFIG] Found config at depth ${depth}: ${candidateUri.fsPath}`
-        );
-        return candidateUri;
+        )
+        return candidateUri
       }
     } catch (error) {
       // Ignore missing files and continue walking up the tree.
     }
 
-    const parentDir = path.dirname(currentDir);
+    const parentDir = path.dirname(currentDir)
     if (parentDir === currentDir) {
-      break;
+      break
     }
-    currentDir = parentDir;
+    currentDir = parentDir
   }
 
   outputChannel.appendLine(
     `[CONFIG] No config.forma.binpb found within ${maxDepth} directories of ${target.fsPath}`
-  );
-  return undefined;
+  )
+  return undefined
 }
 
 async function resolveSessionFromConfig(
@@ -409,30 +409,30 @@ async function resolveSessionFromConfig(
   outputChannel: vscode.OutputChannel,
   context: vscode.ExtensionContext
 ): Promise<{ typeName?: string; schemaDescriptor?: Uint8Array }> {
-  outputChannel.appendLine(`[CONFIG] Resolving session for: ${target.fsPath}`);
+  outputChannel.appendLine(`[CONFIG] Resolving session for: ${target.fsPath}`)
 
   // If the target file is exactly "config.forma.binpb", use the built-in schema
-  if (path.basename(target.fsPath) === "config.forma.binpb") {
+  if (path.basename(target.fsPath) === 'config.forma.binpb') {
     outputChannel.appendLine(
       `[CONFIG] Target is config.forma.binpb, using built-in schema`
-    );
+    )
     try {
       const schemaPath = vscode.Uri.joinPath(
         context.extensionUri,
-        "media",
-        "schemas",
-        "config.desc"
-      );
-      const schemaDescriptor = await vscode.workspace.fs.readFile(schemaPath);
+        'media',
+        'schemas',
+        'config.desc'
+      )
+      const schemaDescriptor = await vscode.workspace.fs.readFile(schemaPath)
       outputChannel.appendLine(
         `[CONFIG] Loaded built-in schema descriptor: ${schemaPath.fsPath}`
-      );
+      )
       return {
-        typeName: ".forma.config.Config",
+        typeName: '.forma.config.Config',
         schemaDescriptor,
-      };
+      }
     } catch (e) {
-      outputChannel.appendLine(`[CONFIG] Error loading built-in schema: ${e}`);
+      outputChannel.appendLine(`[CONFIG] Error loading built-in schema: ${e}`)
     }
   }
 
@@ -440,70 +440,70 @@ async function resolveSessionFromConfig(
     target,
     MAX_CONFIG_SEARCH_DEPTH,
     outputChannel
-  );
+  )
 
   if (configUri) {
     try {
-      const configBytes = await vscode.workspace.fs.readFile(configUri);
+      const configBytes = await vscode.workspace.fs.readFile(configUri)
       outputChannel.appendLine(
         `[CONFIG] Loaded config file: ${configUri.fsPath}`
-      );
+      )
 
-      const decodedConfig = Config.decode(configBytes);
+      const decodedConfig = Config.decode(configBytes)
       outputChannel.appendLine(
         `[CONFIG] Decoded config: ${JSON.stringify(decodedConfig, null, 2)}`
-      );
+      )
 
-      const configDir = path.dirname(configUri.fsPath);
-      const targetPath = path.normalize(target.fsPath);
+      const configDir = path.dirname(configUri.fsPath)
+      const targetPath = path.normalize(target.fsPath)
 
       for (const mapping of decodedConfig.files) {
-        const mappingDataRelative = mapping.data || "";
+        const mappingDataRelative = mapping.data || ''
         const mappingDataPath = path.normalize(
           path.isAbsolute(mappingDataRelative)
             ? mappingDataRelative
             : path.join(configDir, mappingDataRelative)
-        );
+        )
 
         if (mappingDataPath === targetPath) {
           outputChannel.appendLine(
             `[CONFIG] Found mapping for: ${target.fsPath}`
-          );
+          )
 
-          let schemaDescriptor: Uint8Array | undefined;
+          let schemaDescriptor: Uint8Array | undefined
           if (mapping.schemaDescriptor) {
             const schemaPath = path.isAbsolute(mapping.schemaDescriptor)
               ? mapping.schemaDescriptor
-              : path.join(configDir, mapping.schemaDescriptor);
+              : path.join(configDir, mapping.schemaDescriptor)
             try {
               schemaDescriptor = await vscode.workspace.fs.readFile(
                 vscode.Uri.file(schemaPath)
-              );
+              )
               outputChannel.appendLine(
                 `[CONFIG] Loaded schema descriptor: ${schemaPath}`
-              );
+              )
             } catch (e) {
               outputChannel.appendLine(
                 `[CONFIG] Error loading schema descriptor: ${e}`
-              );
+              )
             }
           }
 
           return {
             typeName: mapping.type || undefined,
             schemaDescriptor,
-          };
+          }
         }
       }
     } catch (e) {
       outputChannel.appendLine(
         `[CONFIG] Error reading or parsing config file: ${e}`
-      );
+      )
     }
   }
 
   outputChannel.appendLine(
     `[CONFIG] No configuration found. User will need to select type manually.`
-  );
-  return {};
+  )
+  return {}
 }

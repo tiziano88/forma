@@ -64,14 +64,18 @@
   border-style: dashed;
 }
 
-.btn-move-up, .btn-move-down, .btn-add, .btn-remove {
+.btn-move-up,
+.btn-move-down,
+.btn-add,
+.btn-remove {
   @apply w-6 h-6 rounded text-xs flex items-center justify-center border cursor-pointer;
   border-color: var(--editor-border-primary);
   background: var(--editor-bg-tertiary);
   color: var(--editor-text-secondary);
 }
 
-.btn-move-up:hover, .btn-move-down:hover {
+.btn-move-up:hover,
+.btn-move-down:hover {
   background: var(--editor-bg-secondary);
   color: var(--editor-text-primary);
 }
@@ -374,7 +378,12 @@
 }
 
 .main-gradient {
-  background: linear-gradient(to bottom right, var(--editor-bg-secondary), var(--editor-bg-primary), var(--editor-bg-tertiary));
+  background: linear-gradient(
+    to bottom right,
+    var(--editor-bg-secondary),
+    var(--editor-bg-primary),
+    var(--editor-bg-tertiary)
+  );
 }
 
 .app-header {

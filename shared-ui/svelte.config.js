@@ -1,4 +1,4 @@
-import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -10,8 +10,8 @@ const config = {
     package: {
       dir: 'dist',
       emitTypes: true,
-    }
-  }
-};
+    },
+  },
+}
 
-export default config;
+export default config

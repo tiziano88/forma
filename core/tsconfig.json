@@ -14,9 +14,7 @@
     "noEmit": false,
     "allowArbitraryExtensions": true
   },
-  "include": [
-    "src"
-  ],
+  "include": ["src"],
   "exclude": [
     "src/schema.js",
     "src/generated/**/*.d.ts",
