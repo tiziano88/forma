@@ -38,7 +38,6 @@
     onsave
   }: Props = $props();
 
-  let rawSourceId = $state<string | null>('encoded');
   const rawByteSources = $derived(buildRawSources());
 
   // Mutation tracking
@@ -249,7 +248,6 @@
       <p class="text-sm text-editor-secondary">Swap viewers to inspect the payload in different representations.</p>
     </div>
     <BytesViewer
-      bind:selectedSourceId={rawSourceId}
       sources={rawByteSources}
       emptyMessage="No bytes available."
     />

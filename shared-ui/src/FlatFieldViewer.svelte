@@ -41,31 +41,17 @@
 
   const isRepeated = $derived(fieldSchema.label === FieldLabel.LABEL_REPEATED);
 
-  // Use direct SvelteMap access for proper reactivity
-  let currentValue = $state(null);
-
-  // Update currentValue when mutationVersion changes
-  $effect(() => {
+  const currentValue = $derived.by(() => {
     const version = mutationVersion; // Depend on mutationVersion for reactivity
     const fieldData = parent.fields.get(fieldSchema.number);
     if (isRepeated) {
-      currentValue = fieldData || null;
+      return fieldData || null;
     } else {
-      currentValue = fieldData && fieldData.length > 0 ? fieldData[0] : null;
-    }
-
-    // Debug logging for field #5
-    if (fieldSchema.number === 5) {
-      console.log(`[currentValue $effect] field #5 v${version}:`, {
-        fieldData,
-        currentValue,
-        hasType: currentValue?.type,
-        typeName: currentValue?.type?.fullName
-      });
+      return fieldData && fieldData.length > 0 ? fieldData[0] : null;
     }
   });
 
-  const currentItems = $derived(() => {
+  const currentItems = $derived.by(() => {
     if (isRepeated) {
       return parent.fields.get(fieldSchema.number) || [];
     } else {
@@ -73,62 +59,14 @@
     }
   });
 
-  let fieldIsUnset = $state(true);
-
-  // Manually update fieldIsUnset when mutationVersion changes
-  $effect(() => {
-    const version = mutationVersion;
+  const fieldIsUnset = $derived.by(() => {
+    const version = mutationVersion; // Depend on mutationVersion for reactivity
     const fieldData = parent.fields.get(fieldSchema.number);
-    const result = isRepeated
+    return isRepeated
       ? (!fieldData || fieldData.length === 0)
       : (!fieldData || fieldData.length === 0);
-
-    fieldIsUnset = result;
-
-    // Debug logging for field #5
-    if (fieldSchema.number === 5) {
-      console.log(`[fieldIsUnset $effect] field #5 v${version}:`, {
-        fieldData,
-        isRepeated,
-        hasFieldData: !!fieldData,
-        fieldDataLength: fieldData?.length,
-        result,
-        fieldIsUnset
-      });
-    }
   });
 
-  // Debug logging for root_layer
-  $effect(() => {
-    if (fieldSchema.name === "root_layer") {
-      console.log(
-        `[FlatFieldViewer] ${fieldSchema.name} mutationVersion=${mutationVersion}`,
-        "fieldData:", parent.fields.get(fieldSchema.number),
-        "currentValue:", currentValue,
-        "fieldIsUnset:", fieldIsUnset
-      );
-    }
-  });
-
-  // Debug mutationVersion changes for all fields
-  $effect(() => {
-    console.log(`[FlatFieldViewer] ${fieldSchema.name} (field #${fieldSchema.number}) mutationVersion changed to ${mutationVersion}`);
-  });
-
-  $effect(() => {
-    if (fieldSchema.number === 5) {
-      const fieldData = parent.fields.get(fieldSchema.number);
-      console.log(
-        "[FlatFieldViewer] Field #5 debug:",
-        "fieldData:", fieldData,
-        "fieldData exists:", !!fieldData,
-        "fieldData.length:", fieldData?.length,
-        "fieldData[0]:", fieldData?.[0],
-        "currentValue:", currentValue,
-        "fieldIsUnset:", fieldIsUnset
-      );
-    }
-  });
   const isSpecialCased = $derived(
     fieldSchema.typeName && SPECIAL_CASED_TYPES.has(fieldSchema.typeName)
   );

@@ -22,16 +22,14 @@
     emptyMessage = "No bytes available.",
   }: Props = $props();
 
-  // Make selectedSourceId a simple state variable instead of $bindable
-  let selectedSourceId = $state<string | null>(null);
-
   let viewerMode = $state<RawViewerMode>(initialMode);
   let digestEntries = $state<Array<{ algorithm: string; value: string }>>([]);
   let digestError = $state<string | null>(null);
   let digestLoading = $state(false);
   let digestRequestId = 0; // Non-reactive counter
-  let cEscapedString = $state("");
-  let base64String = $state("");
+
+  // User-selected source, null means "use default"
+  let userSelectedSourceId = $state<string | null>(null);
 
   const MODE_OPTIONS: Array<{ id: RawViewerMode; label: string }> = [
     { id: "hex", label: "Hex" },
@@ -46,46 +44,38 @@
       : [{ id: "default", label: "Bytes", bytes: EMPTY_BYTES }]
   );
 
-  // Initialize selectedSourceId if needed
-  $effect(() => {
-    // Safety check: ensure resolvedSources is properly initialized
-    if (!resolvedSources || !Array.isArray(resolvedSources)) {
-      return;
+  // Automatically manage selected source
+  const selectedSourceId = $derived.by(() => {
+    if (!resolvedSources || !Array.isArray(resolvedSources) || resolvedSources.length === 0) {
+      return null;
     }
 
-    if (!selectedSourceId && resolvedSources.length > 0) {
-      selectedSourceId = resolvedSources[0].id;
-    } else if (
-      selectedSourceId &&
-      !resolvedSources.some((src) => src.id === selectedSourceId)
-    ) {
-      // If the current selection is invalid, reset to first available
-      selectedSourceId = resolvedSources[0]?.id ?? null;
+    // If user has made a selection and it's still valid, use it
+    if (userSelectedSourceId && resolvedSources.some((src) => src.id === userSelectedSourceId)) {
+      return userSelectedSourceId;
     }
+
+    // Otherwise, default to first available source
+    return resolvedSources[0].id;
   });
 
-  // Manual state management for current source instead of derived
-  let currentSource = $state<ByteSourceOption | null>(null);
-  let currentBytes = $state<Uint8Array>(EMPTY_BYTES);
-  let currentHexdump = $state<string>("(empty)");
+  const cEscapedString = $derived(viewerMode === "cString" ? toCEscapedString(currentBytes) : "");
 
-  function updateCurrentSource() {
+  const base64String = $derived(viewerMode === "base64" ? toBase64(currentBytes) : "");
+
+  // Convert to derived values
+  const currentSource = $derived.by(() => {
     if (!resolvedSources || !Array.isArray(resolvedSources)) {
-      currentSource = null;
-      currentBytes = EMPTY_BYTES;
-      currentHexdump = "(empty)";
-      return;
+      return null;
     }
+    return resolvedSources.find((src) => src.id === selectedSourceId) ?? null;
+  });
 
-    const found = resolvedSources.find((src) => src.id === selectedSourceId);
-    currentSource = found ?? null;
-    currentBytes = found?.bytes ?? EMPTY_BYTES;
-    currentHexdump = found?.hexdump ?? formatHexdump(currentBytes);
-  }
+  const currentBytes = $derived(currentSource?.bytes ?? EMPTY_BYTES);
 
-  // Update current source when dependencies change
-  $effect(() => {
-    updateCurrentSource();
+  const currentHexdump = $derived.by(() => {
+    if (!currentSource) return "(empty)";
+    return currentSource.hexdump ?? formatHexdump(currentBytes);
   });
 
   $effect(() => {
@@ -100,24 +90,9 @@
     }
   });
 
-  $effect(() => {
-    if (viewerMode === "cString") {
-      cEscapedString = toCEscapedString(currentBytes);
-    } else if (viewerMode !== "cString") {
-      cEscapedString = "";
-    }
-  });
-
-  $effect(() => {
-    if (viewerMode === "base64") {
-      base64String = toBase64(currentBytes);
-    } else if (viewerMode !== "base64") {
-      base64String = "";
-    }
-  });
 
   function selectSource(id: string) {
-    selectedSourceId = id;
+    userSelectedSourceId = id;
   }
 
   function selectMode(mode: RawViewerMode) {
