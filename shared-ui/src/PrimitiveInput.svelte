@@ -32,22 +32,36 @@
     const target = event.target as HTMLInputElement;
     localValue = target.value;
 
-    // Dispatch mutation if we have dispatcher
-    if (dispatcher) {
-      dispatcher.setSelf(localValue as FieldValue);
+    // Convert to appropriate type for mutation dispatch
+    let mutationValue: FieldValue = localValue;
+    if (numericTypes.has(type)) {
+      const numValue = parseFloat(target.value);
+      mutationValue = isNaN(numValue) ? 0 : numValue;
     }
 
-    // Immediately call onchange with the new value
-    onchange?.(localValue);
+    // Dispatch mutation if we have dispatcher
+    if (dispatcher) {
+      dispatcher.setSelf(mutationValue);
+    }
+
+    // Immediately call onchange with the converted value
+    onchange?.(mutationValue);
   }
 
   function handleChange() {
-    // Dispatch mutation if we have dispatcher
-    if (dispatcher) {
-      dispatcher.setSelf(localValue as FieldValue);
+    // Convert to appropriate type for mutation dispatch
+    let mutationValue: FieldValue = localValue;
+    if (numericTypes.has(type)) {
+      const numValue = parseFloat(localValue.toString());
+      mutationValue = isNaN(numValue) ? 0 : numValue;
     }
 
-    onchange?.(localValue);
+    // Dispatch mutation if we have dispatcher
+    if (dispatcher) {
+      dispatcher.setSelf(mutationValue);
+    }
+
+    onchange?.(mutationValue);
   }
 
   function handleCheckboxChange(event: Event) {
