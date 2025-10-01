@@ -1,10 +1,9 @@
 <script lang="ts">
-  import type { InterpretedValue, MessageValue, MessageType, StructuralEditor } from '@lintx/core';
+  import type { MessageValue, MessageType, StructuralEditor } from '@lintx/core';
   import ObjectViewer from './ObjectViewer.svelte';
   import BytesViewer, { type ByteSourceOption } from './BytesViewer.svelte';
   import type { FieldMutation, MutationEvent } from './mutations';
   import { MutationDispatcher, MutationApplicator } from './mutations';
-  import { SvelteMap, SvelteSet } from './svelte-reactivity.js';
 
   const EMPTY_BYTES = new Uint8Array();
 
@@ -48,63 +47,15 @@
     new MutationDispatcher([], handleMutation)
   );
 
-  if (decodedData) {
-    ensureReactiveMessage(decodedData);
-  }
-
-  function ensureReactiveMessage(message: MessageValue, visited = new WeakSet<MessageValue>()): void {
-    if (visited.has(message)) {
-      return;
-    }
-    visited.add(message);
-
-    const fieldMap = message.fields as unknown as Map<number, InterpretedValue[]>;
-    const needsReactiveMap = (fieldMap as any).set === Map.prototype.set;
-    if (needsReactiveMap) {
-      console.debug('[ensureReactiveMessage] Converting fields to SvelteMap for', message.type.fullName);
-    }
-
-    if (needsReactiveMap) {
-      const reactiveFields = new SvelteMap<number, InterpretedValue[]>();
-      for (const [fieldNumber, values] of fieldMap) {
-        const normalizedValues = values.map((value) => {
-          if (isMessageValue(value)) {
-            ensureReactiveMessage(value, visited);
-          }
-          return value;
-        });
-        reactiveFields.set(fieldNumber, normalizedValues);
-      }
-      message.fields = reactiveFields as MessageValue['fields'];
-    } else {
-      for (const values of message.fields.values()) {
-        values.forEach((value) => {
-          if (isMessageValue(value)) {
-            ensureReactiveMessage(value, visited);
-          }
-        });
-      }
-    }
-
-    const modifiedSet = message.modifiedFields as unknown as Set<number>;
-    if ((modifiedSet as any).add === Set.prototype.add) {
-      console.debug('[ensureReactiveMessage] Converting modifiedFields to SvelteSet for', message.type.fullName);
-      message.modifiedFields = new SvelteSet<number>(modifiedSet) as MessageValue['modifiedFields'];
-    }
-  }
-
-  function isMessageValue(value: InterpretedValue): value is MessageValue {
-    return typeof value === 'object' && value !== null && 'type' in value && 'fields' in value;
-  }
+  // No conversion needed - MessageValueImpl already creates SvelteMap/SvelteSet
 
   function handleMutation(event: MutationEvent) {
     console.log('[StructuralViewer] Received mutation:', event.mutation);
     mutations = [...mutations, event.mutation];
 
-    // Apply mutation to the decodedData (which now uses SvelteMap/SvelteSet)
+    // Apply mutation to the decodedData (already reactive via SvelteMap/SvelteSet)
     if (decodedData) {
       MutationApplicator.applyMutation(decodedData, event.mutation);
-      ensureReactiveMessage(decodedData);
       console.debug('[StructuralViewer] Post-mutation field keys', Array.from(decodedData.fields.keys()));
     }
 
@@ -142,11 +93,6 @@
 
   // Clear mutations when decodedData changes (new data loaded)
   let lastDecodedData = $state<MessageValue | null>(null);
-  $effect.pre(() => {
-    if (decodedData) {
-      ensureReactiveMessage(decodedData);
-    }
-  });
   $effect(() => {
     if (decodedData !== lastDecodedData) {
       lastDecodedData = decodedData;
