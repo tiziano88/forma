@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "svelte-package",
     "clean": "rm -rf dist",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -25,6 +25,9 @@
     "svelte": "^5.38.6"
   },
   "devDependencies": {
+    "@sveltejs/kit": "^2.5.18",
+    "@sveltejs/package": "^2.3.2",
+    "@sveltejs/vite-plugin-svelte": "^5.1.0",
     "@types/google-protobuf": "^3.15.12",
     "@types/jest": "^29.5.14",
     "@types/long": "^5.0.0",

@@ -3,19 +3,6 @@
   import { StructuralViewer } from 'shared-ui';
   import { StructuralEditor, type MessageValue, type MessageType, type Bytes } from '@lintx/core';
 
-  // Editor state interface
-  interface EditorState {
-    decodedData: MessageValue | null;
-    rootMessageType: MessageType | null;
-    availableTypes: string[];
-    currentType: string | null;
-    hexView: string;
-    originalHexView: string;
-    encodedBytes: Bytes;
-    originalBytes: Bytes;
-    isReady: boolean;
-  }
-
   // VSCode webview message types
   type ToVSCodeMessage =
     | { type: 'ready' }
@@ -38,51 +25,26 @@
 
   let schemaFileName = $state('No schema loaded');
   let dataFileName = $state('No data loaded');
-  let errorMessage = $state('');
-  let editorState = $state<EditorState | null>(null);
   let isInitialized = $state(false);
   let isSaving = $state(false);
 
-  // --- Editor State Management ---
-  function updateState() {
-    const availableTypes = editor.getAvailableTypes();
-    const decodedData = editor.getDecodedData();
-    
-    editorState = {
-      decodedData: decodedData,
-      rootMessageType: editor.getRootMessageType(),
-      availableTypes: availableTypes,
-      currentType: editor.getCurrentType(),
-      hexView: editor.getHexView('encoded'),
-      originalHexView: editor.getHexView('original'),
-      encodedBytes: editor.getEncodedBytes(),
-      originalBytes: editor.getOriginalBytes(),
-      isReady: !!decodedData,
-    };
-    
-    console.log('[Webview] State updated:');
-    console.log('  - availableTypes:', availableTypes);
-    console.log('  - availableTypes.length:', availableTypes?.length);
-    console.log('  - decodedData:', decodedData);
-    console.log('  - currentType:', editor.getCurrentType());
-    console.log('  - rootMessageType:', editor.getRootMessageType());
-  }
+  // Watch for changes to editor state and notify VSCode
+  $effect(() => {
+    const encodedBytes = editor.encodedBytes;
 
-  editor.on('change', () => {
-    updateState();
-    console.log('[Webview] Editor change event fired. New state:', $state.snapshot(editorState));
+    console.log('[Webview] Editor state changed');
+    console.log('  - availableTypes:', editor.availableTypes);
+    console.log('  - availableTypes.length:', editor.availableTypes?.length);
+    console.log('  - decodedData:', editor.decodedData);
+    console.log('  - currentType:', editor.selectedTypeName);
+    console.log('  - rootMessageType:', editor.rootMessageType);
+
     if (isInitialized) {
       vscode?.postMessage({
         type: 'contentChanged',
-        payload: Array.from(editor.getEncodedBytes()),
+        payload: Array.from(encodedBytes),
       });
     }
-  });
-
-  editor.on('error', (event) => {
-    const error = event.payload as Error | undefined;
-    errorMessage = error?.message || 'An unknown error occurred.';
-    updateState();
   });
 
   // --- VS Code Communication ---
@@ -114,7 +76,7 @@
           console.error('[Webview] Error during editor.initialize:', error);
           console.error('[Webview] Error stack:', (error as Error).stack);
         }
-        
+
         schemaFileName = msg.payload.schemaName || 'Pre-compiled Schema';
         dataFileName = msg.payload.dataName || 'Data';
         isInitialized = true;
@@ -130,8 +92,7 @@
         isSaving = true;
         setTimeout(() => { isSaving = false; }, 1000);
         try {
-          const content = editor.getEncodedBytes();
-          vscode?.postMessage({ requestId: msg.requestId, payload: Array.from(content) });
+          vscode?.postMessage({ requestId: msg.requestId, payload: Array.from(editor.encodedBytes) });
         } catch (err: any) {
           vscode?.postMessage({ requestId: msg.requestId, payload: { error: err.message } });
         }
@@ -178,34 +139,19 @@
 
         <div class="flex flex-wrap items-center gap-2 text-xs">
           <div class="badge-editor-outline px-3 py-1">
-            {editorState?.availableTypes?.length ?? 0} types
+            {editor.availableTypes?.length ?? 0} types
           </div>
           <div class="badge-editor-accent px-3 py-1">
-            {editorState?.decodedData ? 'Decoded' : 'Raw bytes'}
+            {editor.decodedData ? 'Decoded' : 'Raw bytes'}
           </div>
         </div>
       </div>
-
-      {#if errorMessage}
-        <div class="alert-error text-sm shadow-sm">
-          <span class="font-medium">Error:</span>
-          <span>{errorMessage}</span>
-        </div>
-      {/if}
     </header>
 
     <main class="grid gap-4 lg:grid-cols-12">
       <section class="lg:col-span-12">
-        {#if editorState?.availableTypes && editorState.availableTypes.length > 0}
+        {#if editor.availableTypes && editor.availableTypes.length > 0}
           <StructuralViewer
-            decodedData={editorState.decodedData}
-            rootMessageType={editorState.rootMessageType}
-            availableTypes={editorState.availableTypes}
-            currentType={editorState.currentType}
-            hexView={editorState.hexView}
-            originalHexView={editorState.originalHexView}
-            encodedBytes={editorState.encodedBytes}
-            originalBytes={editorState.originalBytes}
             {editor}
             onchange={(data) => editor.updateDecodedData(data)}
             ontypechange={(type) => editor.setCurrentType(type || '')}
@@ -221,11 +167,7 @@
               </div>
               <h2 class="text-xl font-semibold text-editor-primary">Load a schema and data file to begin</h2>
               <p class="text-sm leading-relaxed text-editor-secondary">
-                {#if errorMessage}
-                  Error: {errorMessage}
-                {:else}
-                  The editor becomes interactive once both a schema descriptor and data payload are provided from Forma or the CLI tools.
-                {/if}
+                The editor becomes interactive once both a schema descriptor and data payload are provided from Forma or the CLI tools.
               </p>
             </div>
           </div>

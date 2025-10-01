@@ -19,6 +19,7 @@
     "src/schema.js",
     "src/generated/**/*.d.ts",
     "src/__tests__/**/*.test.ts",
-    "src/test-utils.ts"
+    "src/test-utils.ts",
+    "src/**/*.svelte.ts"
   ]
 }

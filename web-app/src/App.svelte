@@ -9,7 +9,6 @@
   let schemaFileName = $state("No schema loaded");
   let dataFileName = $state("No data loaded");
   let errorMessage = $state("");
-  let editorState = $state<any>(null);
 
   let schemaFileHandle = $state<FileSystemFileHandle | null>(null);
   let dataFileHandle = $state<FileSystemFileHandle | null>(null);
@@ -95,9 +94,8 @@
       return;
     }
     try {
-      const bytes = editor.getEncodedBytes();
       const writable = await dataFileHandle.createWritable();
-      await writable.write(bytes);
+      await writable.write(editor.encodedBytes);
       await writable.close();
       alert("File saved successfully!");
     } catch (err: any) {
@@ -105,35 +103,18 @@
     }
   }
 
-  // --- Editor State Management ---
+  // Watch for changes to editor state
+  $effect(() => {
+    // Access reactive properties to track them
+    const decodedData = editor.decodedData;
 
-  function updateState() {
-    editorState = {
-      decodedData: editor.getDecodedData(),
-      rootMessageType: editor.getRootMessageType(),
-      availableTypes: editor.getAvailableTypes(),
-      currentType: editor.getCurrentType(),
-      hexView: editor.getHexView("encoded"),
-      originalHexView: editor.getHexView("original"),
-      encodedBytes: editor.getEncodedBytes(),
-      originalBytes: editor.getOriginalBytes(),
-      isReady: !!editor.getDecodedData(),
-    };
-    console.log("[WebApp] Editor state updated:", $state.snapshot(editorState));
-    const decoded = editorState.decodedData;
-    if (decoded) {
-      console.log('[WebApp] decodedData field keys', Array.from(decoded.fields.keys()));
+    console.log("[WebApp] Editor state changed");
+    console.log('  - decodedData:', decodedData);
+
+    if (decodedData) {
+      console.log('[WebApp] decodedData field keys', Array.from(decodedData.fields.keys()));
+      errorMessage = ""; // Clear errors on successful data load
     }
-  }
-
-  editor.on("change", () => {
-    errorMessage = "";
-    updateState();
-  });
-
-  editor.on("error", (event) => {
-    errorMessage = event.payload?.message || "An unknown error occurred.";
-    updateState();
   });
 
   onMount(() => {
@@ -185,16 +166,8 @@
       </div>
     {/if}
 
-    {#if editorState?.isReady}
+    {#if editor.decodedData}
       <StructuralViewer
-        decodedData={editorState.decodedData}
-        rootMessageType={editorState.rootMessageType}
-        availableTypes={editorState.availableTypes}
-        currentType={editorState.currentType}
-        hexView={editorState.hexView}
-        originalHexView={editorState.originalHexView}
-        encodedBytes={editorState.encodedBytes}
-        originalBytes={editorState.originalBytes}
         {editor}
         onsave={onSave}
         onchange={(data) => editor.updateDecodedData(data)}

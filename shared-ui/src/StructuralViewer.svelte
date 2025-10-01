@@ -8,14 +8,6 @@
   const EMPTY_BYTES = new Uint8Array();
 
   interface Props {
-    decodedData: MessageValue | null;
-    rootMessageType: MessageType | null;
-    availableTypes: string[];
-    currentType: string | null;
-    hexView: string;
-    originalHexView: string;
-    encodedBytes?: Uint8Array;
-    originalBytes?: Uint8Array;
     editor: StructuralEditor;
     ontypechange?: (type: string | null) => void;
     onchange?: (data: MessageValue | null) => void;
@@ -23,19 +15,21 @@
   }
 
   const {
-    decodedData,
-    rootMessageType,
-    availableTypes,
-    currentType,
-    hexView,
-    originalHexView,
-    encodedBytes = EMPTY_BYTES,
-    originalBytes = EMPTY_BYTES,
     editor,
     ontypechange,
     onchange,
     onsave
   }: Props = $props();
+
+  // Access editor properties directly
+  const decodedData = $derived(editor.decodedData);
+  const rootMessageType = $derived(editor.rootMessageType);
+  const availableTypes = $derived(editor.availableTypes);
+  const currentType = $derived(editor.selectedTypeName);
+  const hexView = $derived(editor.hexView);
+  const originalHexView = $derived(editor.originalHexView);
+  const encodedBytes = $derived(editor.encodedBytes);
+  const originalBytes = $derived(editor.originalBytes);
 
   const rawByteSources = $derived(buildRawSources());
 

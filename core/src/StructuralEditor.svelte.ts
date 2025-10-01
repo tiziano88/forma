@@ -1,9 +1,6 @@
 import {
   Bytes,
   EditorData,
-  EditorEvent,
-  EditorEventType,
-  EventListener,
   EnumType,
   MessageValue,
   InterpretedValue,
@@ -13,7 +10,7 @@ import {
   FieldLabel,
 } from './types.js';
 import * as jspb from 'google-protobuf';
-import { SvelteMap, SvelteSet } from './svelte-reactivity.js';
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
 // Import ts-proto generated types (clean TypeScript, works everywhere!)
 import * as descriptor from './generated/config/descriptor.js';
@@ -295,38 +292,31 @@ class MessageValueImpl implements MessageValue {
 }
 
 export class StructuralEditor {
-  private listeners: Map<EditorEventType, EventListener[]> = new Map();
+  // Reactive state using Svelte 5 runes
+  dataBytes = $state<Bytes | null>(null);
+  decodedData = $state<MessageValue | null>(null);
+  selectedTypeName = $state<string | null>(null);
+  typeRegistry = $state<TypeRegistry>(new Map());
+  enumRegistry = $state<EnumRegistry>(new Map());
+  schemaLoaded = $state(false);
 
-  // Core state
-  private dataBytes: Bytes | null = null;
-  private decodedData: MessageValue | null = null;
-  private selectedTypeName: string | null = null;
-  private typeRegistry: TypeRegistry = new Map();
-  private enumRegistry: EnumRegistry = new Map();
-  private schemaLoaded: boolean = false;
+  // Derived/computed values
+  availableTypes = $derived(Array.from(this.typeRegistry.keys()));
+  rootMessageType = $derived(
+    this.selectedTypeName ? this.typeRegistry.get(this.selectedTypeName) || null : null
+  );
+  encodedBytes = $derived(
+    this.decodedData ? this.decodedData.toBytes() : (this.dataBytes || new Uint8Array())
+  );
+  originalBytes = $derived(this.dataBytes || new Uint8Array());
+  hexView = $derived(this.formatHex(this.encodedBytes));
+  originalHexView = $derived(this.formatHex(this.originalBytes));
 
   constructor() {
     console.log('[Editor Core] Instantiated.');
   }
 
   // --- Public API ---
-
-  public on = (event: EditorEventType, listener: EventListener): void => {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, []);
-    }
-    this.listeners.get(event)!.push(listener);
-  };
-
-  public off = (event: EditorEventType, listener: EventListener): void => {
-    const eventListeners = this.listeners.get(event);
-    if (eventListeners) {
-      const index = eventListeners.indexOf(listener);
-      if (index > -1) {
-        eventListeners.splice(index, 1);
-      }
-    }
-  };
 
   public initialize = async (data: EditorData): Promise<void> => {
     console.log('[Editor Core] Initializing with data');
@@ -340,13 +330,11 @@ export class StructuralEditor {
         this.schemaLoaded = true;
       } catch (error) {
         console.error('[Editor Core] Error loading schema descriptor:', error);
-        this.emit({ type: 'error', payload: error });
         return;
       }
     }
 
     this.createDecodedView();
-    this.emit({ type: 'change' });
   };
 
   public setData = async (
@@ -356,22 +344,24 @@ export class StructuralEditor {
     this.dataBytes = dataBytes;
     this.selectedTypeName = typeName || this.selectedTypeName;
     this.createDecodedView();
-    this.emit({ type: 'change' });
   };
 
-  public getAvailableTypes = (): string[] => {
-    return Array.from(this.typeRegistry.keys());
-  };
-
-  public getCurrentType = (): string | null => {
-    return this.selectedTypeName;
-  };
+  // Backward-compatible getters (return reactive properties)
+  public getAvailableTypes = (): string[] => this.availableTypes;
+  public getCurrentType = (): string | null => this.selectedTypeName;
+  public getDecodedData = (): MessageValue | null => this.decodedData;
+  public getEncodedBytes = (): Bytes => this.encodedBytes;
+  public getOriginalBytes = (): Bytes => this.originalBytes;
+  public getRootMessageType = (): MessageType | null => this.rootMessageType;
+  public getTypeRegistry = (): TypeRegistry => this.typeRegistry;
+  public getEnumRegistry = (): EnumRegistry => this.enumRegistry;
+  public getHexView = (source: 'original' | 'encoded' = 'encoded'): string =>
+    source === 'encoded' ? this.hexView : this.originalHexView;
 
   public setCurrentType = async (typeName: string): Promise<void> => {
     if (this.selectedTypeName === typeName) return;
     this.selectedTypeName = typeName;
     this.createDecodedView();
-    this.emit({ type: 'change' });
   };
 
   public setSchema = async (protoText: string): Promise<void> => {
@@ -386,67 +376,21 @@ export class StructuralEditor {
     try {
       await this.loadSchemaFromDescriptor(descriptorBytes);
       this.schemaLoaded = true;
-      this.emit({ type: 'change' });
     } catch (error) {
       console.error('[Editor Core] Error loading schema descriptor:', error);
-      this.emit({ type: 'error', payload: error });
       throw error;
     }
   };
 
-  public getDecodedData = (): MessageValue | null => {
-    return this.decodedData;
-  };
-
   /**
    * Called when the decoded data has been mutated.
-   * The actual mutation happens by reference (MessageValue uses SvelteMap/SvelteSet),
-   * so this method just emits a change event to notify listeners.
+   * No-op since mutations happen by reference and reactivity is automatic.
    */
   public updateDecodedData = (data: MessageValue | null): void => {
-    this.emit({ type: 'change' });
-  };
-
-  public getEncodedBytes = (): Bytes => {
-    if (!this.decodedData) {
-      return this.dataBytes || new Uint8Array();
-    }
-    return this.decodedData.toBytes();
-  };
-
-  public getOriginalBytes = (): Bytes => {
-    return this.dataBytes || new Uint8Array();
-  };
-
-  public getRootMessageType = (): MessageType | null => {
-    if (!this.selectedTypeName) return null;
-    return this.typeRegistry.get(this.selectedTypeName) || null;
-  };
-
-  public getTypeRegistry = (): TypeRegistry => {
-    return this.typeRegistry;
-  };
-
-  public getEnumRegistry = (): EnumRegistry => {
-    return this.enumRegistry;
-  };
-
-  public getHexView = (source: 'original' | 'encoded' = 'encoded'): string => {
-    const bytes =
-      source === 'encoded'
-        ? this.getEncodedBytes()
-        : this.dataBytes || new Uint8Array();
-    return this.formatHex(bytes);
+    // No longer needed with Svelte 5 reactivity, but kept for backward compatibility
   };
 
   // --- Private Implementation ---
-
-  private emit = (event: EditorEvent): void => {
-    const eventListeners = this.listeners.get(event.type);
-    if (eventListeners) {
-      eventListeners.forEach((listener) => listener(event));
-    }
-  };
 
   private loadSchemaFromDescriptor = async (
     descriptorBytes: Bytes
@@ -658,7 +602,6 @@ export class StructuralEditor {
     } catch (error) {
       console.error('[Editor Core] Error parsing message:', error);
       console.error('[Editor Core] Error stack:', (error as Error).stack);
-      this.emit({ type: 'error', payload: error });
       this.decodedData = null;
     }
   };
