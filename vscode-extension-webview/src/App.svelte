@@ -1,10 +1,35 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { StructuralViewer } from 'shared-ui';
-  import { StructuralEditor } from '@lintx/core';
+  import { StructuralEditor, type MessageValue, type MessageType, type Bytes } from '@lintx/core';
 
-  // Standard VS Code webview API
-  type VSCodeAPI = { postMessage: (msg: any) => void };
+  // Editor state interface
+  interface EditorState {
+    decodedData: MessageValue | null;
+    rootMessageType: MessageType | null;
+    availableTypes: string[];
+    currentType: string | null;
+    hexView: string;
+    originalHexView: string;
+    encodedBytes: Bytes;
+    originalBytes: Bytes;
+    isReady: boolean;
+  }
+
+  // VSCode webview message types
+  type ToVSCodeMessage =
+    | { type: 'ready' }
+    | { type: 'contentChanged'; payload: number[] }
+    | { type: 'save' }
+    | { requestId: string; payload: number[] | { error: string } };
+
+  type FromVSCodeMessage =
+    | { type: 'initWithConfig'; payload: { data: number[]; typeName?: string; schemaDescriptor?: number[]; schemaName?: string; dataName?: string } }
+    | { type: 'updateContent'; payload: number[] }
+    | { type: 'getEncodedBytes'; requestId: string }
+    | { type: 'saveResponse'; success: boolean; error?: string };
+
+  type VSCodeAPI = { postMessage: (msg: ToVSCodeMessage) => void };
   // @ts-ignore
   const acquire = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi : null;
   const vscode: VSCodeAPI | null = acquire ? acquire() : null;
@@ -14,7 +39,7 @@
   let schemaFileName = $state('No schema loaded');
   let dataFileName = $state('No data loaded');
   let errorMessage = $state('');
-  let editorState = $state<any>(null);
+  let editorState = $state<EditorState | null>(null);
   let isInitialized = $state(false);
   let isSaving = $state(false);
 
@@ -55,7 +80,8 @@
   });
 
   editor.on('error', (event) => {
-    errorMessage = event.payload?.message || 'An unknown error occurred.';
+    const error = event.payload as Error | undefined;
+    errorMessage = error?.message || 'An unknown error occurred.';
     updateState();
   });
 

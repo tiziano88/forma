@@ -183,20 +183,22 @@
   }
 
   function handlePrimitiveChange(
-    eventOrValue: any,
+    eventOrValue: Event | string | number | boolean,
     index: number | null = null
   ) {
     // Handle both CustomEvent format and direct value
     const newValue =
-      eventOrValue?.detail !== undefined ? eventOrValue.detail : eventOrValue;
+      (eventOrValue as CustomEvent)?.detail !== undefined
+        ? (eventOrValue as CustomEvent).detail
+        : eventOrValue;
 
     // Note: PrimitiveInput already dispatches mutations directly,
     // but we keep this for any other primitive change sources
     if (dispatcher) {
       if (isRepeated && index !== null) {
-        dispatcher.setField(fieldSchema.number, newValue, index);
+        dispatcher.setField(fieldSchema.number, newValue as string | number | boolean, index);
       } else {
-        dispatcher.setField(fieldSchema.number, newValue);
+        dispatcher.setField(fieldSchema.number, newValue as string | number | boolean);
       }
     }
 
@@ -209,7 +211,7 @@
     dispatchChange();
   }
 
-  function ensureUint8Array(value: any): Uint8Array {
+  function ensureUint8Array(value: unknown): Uint8Array {
     return value instanceof Uint8Array ? value : new Uint8Array();
   }
 </script>

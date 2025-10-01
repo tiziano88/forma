@@ -18,7 +18,7 @@
     originalBytes?: Uint8Array;
     editor: StructuralEditor;
     ontypechange?: (type: string | null) => void;
-    onchange?: (data: any) => void;
+    onchange?: (data: MessageValue | null) => void;
     onsave?: () => void;
   }
 

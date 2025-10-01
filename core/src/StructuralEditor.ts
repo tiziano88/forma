@@ -398,8 +398,12 @@ export class StructuralEditor {
     return this.decodedData;
   };
 
-  public updateDecodedData = (newData: any): void => {
-    // This will require a more complex implementation to update the MessageValue
+  /**
+   * Called when the decoded data has been mutated.
+   * The actual mutation happens by reference (MessageValue uses SvelteMap/SvelteSet),
+   * so this method just emits a change event to notify listeners.
+   */
+  public updateDecodedData = (data: MessageValue | null): void => {
     this.emit({ type: 'change' });
   };
 

@@ -6,7 +6,7 @@
     value: string | number | boolean;
     type: string;
     id: string | number;
-    onchange?: (value: any) => void;
+    onchange?: (value: string | number | boolean) => void;
     dispatcher?: MutationDispatcher;
   }
 
