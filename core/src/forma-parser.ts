@@ -1,23 +1,7 @@
-// Parser for forma.proto Config messages using generated protobuf code
+// Parser for forma.proto Config messages using ts-proto generated code
 // This is used by the VSCode extension to read config.forma.binpb files
 
-import type * as FormaPb from './generated/config/forma_pb.js';
-
-// Lazy-load the protobuf module to avoid browser compatibility issues
-let forma_pb: typeof FormaPb | null = null;
-
-function loadFormaPb(): typeof FormaPb {
-  if (forma_pb) return forma_pb;
-
-  // Use dynamic require for CommonJS interop (Node.js only)
-  if (typeof require === 'undefined') {
-    throw new Error('forma-parser can only be used in Node.js environment');
-  }
-
-  // @ts-ignore - accessing global require
-  forma_pb = require('./generated/config/forma_pb.js') as typeof FormaPb;
-  return forma_pb;
-}
+import * as forma from './generated/config/forma.js';
 
 // Re-export the types for convenience
 export interface Config {
@@ -32,18 +16,14 @@ export interface FileMapping {
 }
 
 export function parseConfig(bytes: Uint8Array): Config {
-  // Load the protobuf module (Node.js only)
-  const pb = loadFormaPb();
+  // Use ts-proto generated decode function
+  const pbConfig = forma.Config.decode(bytes);
 
-  // Access the protobuf classes from the generated module
-  const pbConfig = pb.Config.deserializeBinary(bytes);
-  const pbFiles = pbConfig.getFilesList();
-
-  const files: FileMapping[] = pbFiles.map((pbFile) => ({
-    data: pbFile.getData(),
-    schema: pbFile.getSchema(),
-    schemaDescriptor: pbFile.getSchemaDescriptor(),
-    type: pbFile.getType(),
+  const files: FileMapping[] = pbConfig.files.map((pbFile) => ({
+    data: pbFile.data,
+    schema: pbFile.schema,
+    schemaDescriptor: pbFile.schemaDescriptor,
+    type: pbFile.type,
   }));
 
   return { files };

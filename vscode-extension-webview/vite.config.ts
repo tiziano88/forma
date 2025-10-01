@@ -9,4 +9,10 @@ export default defineConfig({
     outDir: path.resolve(__dirname, '../vscode-extension/media'),
     emptyOutDir: true,
   },
+  optimizeDeps: {
+    include: ['google-protobuf'],
+  },
+  define: {
+    global: 'globalThis',
+  },
 });

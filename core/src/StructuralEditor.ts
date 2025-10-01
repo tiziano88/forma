@@ -15,6 +15,9 @@ import {
 import * as jspb from 'google-protobuf';
 import { SvelteMap, SvelteSet } from './svelte-reactivity.js';
 
+// Import ts-proto generated types (clean TypeScript, works everywhere!)
+import * as descriptor from './generated/config/descriptor.js';
+
 
 // Simple interfaces for descriptor parsing
 interface ParsedFileDescriptorSet {
@@ -53,193 +56,52 @@ interface ParsedEnumValueDescriptorProto {
   number: number;
 }
 
-// Use google-protobuf BinaryReader to parse descriptor set
+// Use ts-proto generated code to parse descriptor set
 function parseFileDescriptorSet(bytes: Uint8Array): ParsedFileDescriptorSet {
-  const reader = new jspb.BinaryReader(bytes);
-  const files: ParsedFileDescriptorProto[] = [];
+  const descriptorSet = descriptor.FileDescriptorSet.decode(bytes);
 
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) break;
-
-    const fieldNumber = reader.getFieldNumber();
-    if (fieldNumber === 1) {
-      // file field
-      const fileBytes = reader.readBytes();
-      files.push(parseFileDescriptorProto(fileBytes));
-    } else {
-      reader.skipField();
-    }
-  }
+  const files: ParsedFileDescriptorProto[] = descriptorSet.file.map((pbFile) => ({
+    name: pbFile.name || '',
+    packageName: pbFile.package || '',
+    messageTypes: pbFile.messageType.map((msg) => parseDescriptorProtoFromGenerated(msg)),
+    enumTypes: pbFile.enumType.map((enumProto) => parseEnumDescriptorProtoFromGenerated(enumProto)),
+  }));
 
   return { files };
 }
 
-function parseFileDescriptorProto(
-  bytes: Uint8Array
-): ParsedFileDescriptorProto {
-  const reader = new jspb.BinaryReader(bytes);
-  let name = '';
-  let packageName = '';
-  const messageTypes: ParsedDescriptorProto[] = [];
-  const enumTypes: ParsedEnumDescriptorProto[] = [];
-
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) break;
-
-    const fieldNumber = reader.getFieldNumber();
-    switch (fieldNumber) {
-      case 1: // name
-        name = reader.readString();
-        break;
-      case 2: // package
-        packageName = reader.readString();
-        break;
-      case 4: // message_type
-        const msgBytes = reader.readBytes();
-        messageTypes.push(parseDescriptorProto(msgBytes));
-        break;
-      case 5: // enum_type
-        const enumBytes = reader.readBytes();
-        enumTypes.push(parseEnumDescriptorProto(enumBytes));
-        break;
-      default:
-        reader.skipField();
-        break;
-    }
-  }
-
-  return { name, packageName, messageTypes, enumTypes };
+// Convert ts-proto DescriptorProto to our ParsedDescriptorProto interface
+function parseDescriptorProtoFromGenerated(msg: descriptor.DescriptorProto): ParsedDescriptorProto {
+  return {
+    name: msg.name || '',
+    fields: msg.field.map((field) => parseFieldDescriptorProtoFromGenerated(field)),
+    nestedTypes: msg.nestedType.map((nested) => parseDescriptorProtoFromGenerated(nested)),
+    enumTypes: msg.enumType.map((enumProto) => parseEnumDescriptorProtoFromGenerated(enumProto)),
+  };
 }
 
-function parseDescriptorProto(bytes: Uint8Array): ParsedDescriptorProto {
-  const reader = new jspb.BinaryReader(bytes);
-  let name = '';
-  const fields: ParsedFieldDescriptorProto[] = [];
-  const nestedTypes: ParsedDescriptorProto[] = [];
-  const enumTypes: ParsedEnumDescriptorProto[] = [];
-
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) break;
-
-    const fieldNumber = reader.getFieldNumber();
-    switch (fieldNumber) {
-      case 1: // name
-        name = reader.readString();
-        break;
-      case 2: // field
-        const fieldBytes = reader.readBytes();
-        fields.push(parseFieldDescriptorProto(fieldBytes));
-        break;
-      case 3: // nested_type
-        const nestedBytes = reader.readBytes();
-        nestedTypes.push(parseDescriptorProto(nestedBytes));
-        break;
-      case 4: // enum_type
-        const enumBytes = reader.readBytes();
-        enumTypes.push(parseEnumDescriptorProto(enumBytes));
-        break;
-      default:
-        reader.skipField();
-        break;
-    }
-  }
-
-  return { name, fields, nestedTypes, enumTypes };
+// Convert ts-proto FieldDescriptorProto to our ParsedFieldDescriptorProto interface
+function parseFieldDescriptorProtoFromGenerated(field: descriptor.FieldDescriptorProto): ParsedFieldDescriptorProto {
+  return {
+    name: field.name || '',
+    number: field.number || 0,
+    label: (field.label || FieldLabel.LABEL_OPTIONAL) as FieldLabel,
+    type: (field.type || FieldType.TYPE_STRING) as FieldType,
+    typeName: field.typeName,
+  };
 }
 
-function parseFieldDescriptorProto(
-  bytes: Uint8Array
-): ParsedFieldDescriptorProto {
-  const reader = new jspb.BinaryReader(bytes);
-  let name = '';
-  let number = 0;
-  let label = FieldLabel.LABEL_OPTIONAL;
-  let type = FieldType.TYPE_STRING;
-  let typeName: string | undefined;
-
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) break;
-
-    const fieldNumber = reader.getFieldNumber();
-    switch (fieldNumber) {
-      case 1: // name
-        name = reader.readString();
-        break;
-      case 3: // number
-        number = reader.readInt32();
-        break;
-      case 4: // label
-        label = reader.readEnum() as FieldLabel;
-        break;
-      case 5: // type
-        type = reader.readEnum() as FieldType;
-        break;
-      case 6: // type_name
-        typeName = reader.readString();
-        break;
-      default:
-        reader.skipField();
-        break;
-    }
-  }
-
-  return { name, number, label, type, typeName };
+// Convert ts-proto EnumDescriptorProto to our ParsedEnumDescriptorProto interface
+function parseEnumDescriptorProtoFromGenerated(enumProto: descriptor.EnumDescriptorProto): ParsedEnumDescriptorProto {
+  return {
+    name: enumProto.name || '',
+    values: enumProto.value.map((value) => ({
+      name: value.name || '',
+      number: value.number || 0,
+    })),
+  };
 }
 
-function parseEnumDescriptorProto(
-  bytes: Uint8Array
-): ParsedEnumDescriptorProto {
-  const reader = new jspb.BinaryReader(bytes);
-  let name = '';
-  const values: ParsedEnumValueDescriptorProto[] = [];
-
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) break;
-
-    const fieldNumber = reader.getFieldNumber();
-    switch (fieldNumber) {
-      case 1: // name
-        name = reader.readString();
-        break;
-      case 2: // value
-        const valueBytes = reader.readBytes();
-        values.push(parseEnumValueDescriptorProto(valueBytes));
-        break;
-      default:
-        reader.skipField();
-        break;
-    }
-  }
-
-  return { name, values };
-}
-
-function parseEnumValueDescriptorProto(
-  bytes: Uint8Array
-): ParsedEnumValueDescriptorProto {
-  const reader = new jspb.BinaryReader(bytes);
-  let name = '';
-  let number = 0;
-
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) break;
-
-    const fieldNumber = reader.getFieldNumber();
-    switch (fieldNumber) {
-      case 1: // name
-        name = reader.readString();
-        break;
-      case 2: // number
-        number = reader.readInt32();
-        break;
-      default:
-        reader.skipField();
-        break;
-    }
-  }
-
-  return { name, number };
-}
 
 type TypeRegistry = Map<string, MessageType>; // "full.name" -> MessageType
 type EnumRegistry = Map<string, EnumType>; // "full.name" -> EnumType
