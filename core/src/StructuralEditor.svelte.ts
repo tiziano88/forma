@@ -346,18 +346,6 @@ export class StructuralEditor {
     this.createDecodedView();
   };
 
-  // Backward-compatible getters (return reactive properties)
-  public getAvailableTypes = (): string[] => this.availableTypes;
-  public getCurrentType = (): string | null => this.selectedTypeName;
-  public getDecodedData = (): MessageValue | null => this.decodedData;
-  public getEncodedBytes = (): Bytes => this.encodedBytes;
-  public getOriginalBytes = (): Bytes => this.originalBytes;
-  public getRootMessageType = (): MessageType | null => this.rootMessageType;
-  public getTypeRegistry = (): TypeRegistry => this.typeRegistry;
-  public getEnumRegistry = (): EnumRegistry => this.enumRegistry;
-  public getHexView = (source: 'original' | 'encoded' = 'encoded'): string =>
-    source === 'encoded' ? this.hexView : this.originalHexView;
-
   public setCurrentType = async (typeName: string): Promise<void> => {
     if (this.selectedTypeName === typeName) return;
     this.selectedTypeName = typeName;
