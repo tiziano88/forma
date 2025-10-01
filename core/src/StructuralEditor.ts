@@ -19,88 +19,6 @@ import { SvelteMap, SvelteSet } from './svelte-reactivity.js';
 import * as descriptor from './generated/config/descriptor.js';
 
 
-// Simple interfaces for descriptor parsing
-interface ParsedFileDescriptorSet {
-  files: ParsedFileDescriptorProto[];
-}
-
-interface ParsedFileDescriptorProto {
-  name: string;
-  packageName: string;
-  messageTypes: ParsedDescriptorProto[];
-  enumTypes: ParsedEnumDescriptorProto[];
-}
-
-interface ParsedDescriptorProto {
-  name: string;
-  fields: ParsedFieldDescriptorProto[];
-  nestedTypes: ParsedDescriptorProto[];
-  enumTypes: ParsedEnumDescriptorProto[];
-}
-
-interface ParsedFieldDescriptorProto {
-  name: string;
-  number: number;
-  label: FieldLabel;
-  type: FieldType;
-  typeName?: string;
-}
-
-interface ParsedEnumDescriptorProto {
-  name: string;
-  values: ParsedEnumValueDescriptorProto[];
-}
-
-interface ParsedEnumValueDescriptorProto {
-  name: string;
-  number: number;
-}
-
-// Use ts-proto generated code to parse descriptor set
-function parseFileDescriptorSet(bytes: Uint8Array): ParsedFileDescriptorSet {
-  const descriptorSet = descriptor.FileDescriptorSet.decode(bytes);
-
-  const files: ParsedFileDescriptorProto[] = descriptorSet.file.map((pbFile) => ({
-    name: pbFile.name || '',
-    packageName: pbFile.package || '',
-    messageTypes: pbFile.messageType.map((msg) => parseDescriptorProtoFromGenerated(msg)),
-    enumTypes: pbFile.enumType.map((enumProto) => parseEnumDescriptorProtoFromGenerated(enumProto)),
-  }));
-
-  return { files };
-}
-
-// Convert ts-proto DescriptorProto to our ParsedDescriptorProto interface
-function parseDescriptorProtoFromGenerated(msg: descriptor.DescriptorProto): ParsedDescriptorProto {
-  return {
-    name: msg.name || '',
-    fields: msg.field.map((field) => parseFieldDescriptorProtoFromGenerated(field)),
-    nestedTypes: msg.nestedType.map((nested) => parseDescriptorProtoFromGenerated(nested)),
-    enumTypes: msg.enumType.map((enumProto) => parseEnumDescriptorProtoFromGenerated(enumProto)),
-  };
-}
-
-// Convert ts-proto FieldDescriptorProto to our ParsedFieldDescriptorProto interface
-function parseFieldDescriptorProtoFromGenerated(field: descriptor.FieldDescriptorProto): ParsedFieldDescriptorProto {
-  return {
-    name: field.name || '',
-    number: field.number || 0,
-    label: (field.label || FieldLabel.LABEL_OPTIONAL) as FieldLabel,
-    type: (field.type || FieldType.TYPE_STRING) as FieldType,
-    typeName: field.typeName,
-  };
-}
-
-// Convert ts-proto EnumDescriptorProto to our ParsedEnumDescriptorProto interface
-function parseEnumDescriptorProtoFromGenerated(enumProto: descriptor.EnumDescriptorProto): ParsedEnumDescriptorProto {
-  return {
-    name: enumProto.name || '',
-    values: enumProto.value.map((value) => ({
-      name: value.name || '',
-      number: value.number || 0,
-    })),
-  };
-}
 
 
 type TypeRegistry = Map<string, MessageType>; // "full.name" -> MessageType
@@ -535,7 +453,7 @@ export class StructuralEditor {
     );
 
     try {
-      const descriptorSet = parseFileDescriptorSet(descriptorBytes);
+      const descriptorSet = descriptor.FileDescriptorSet.decode(descriptorBytes);
       this.typeRegistry = this.buildFlatTypeRegistry(descriptorSet);
       this.enumRegistry = this.buildEnumRegistry(descriptorSet);
 
@@ -561,16 +479,16 @@ export class StructuralEditor {
   };
 
   private buildFlatTypeRegistry = (
-    descriptorSet: ParsedFileDescriptorSet
+    descriptorSet: descriptor.FileDescriptorSet
   ): TypeRegistry => {
     const registry = new Map<string, MessageType>();
 
-    for (const file of descriptorSet.files) {
-      const packageName = file.packageName || '';
+    for (const file of descriptorSet.file) {
+      const packageName = file.package || '';
 
       // Recursively process all message types, flattening them
       const processMessage = (
-        msg: ParsedDescriptorProto,
+        msg: descriptor.DescriptorProto,
         parentName: string
       ) => {
         const fullName = parentName
@@ -586,28 +504,28 @@ export class StructuralEditor {
         };
 
         // Process fields
-        for (const field of msg.fields) {
+        for (const field of msg.field) {
           const fieldDef: FieldDef = {
-            name: field.name,
-            number: field.number,
-            type: field.type,
-            label: field.label,
+            name: field.name || '',
+            number: field.number || 0,
+            type: (field.type || FieldType.TYPE_STRING) as FieldType,
+            label: (field.label || FieldLabel.LABEL_OPTIONAL) as FieldLabel,
             typeName: field.typeName, // Already fully qualified by protobuf parser
           };
 
-          messageType.fields.set(field.number, fieldDef);
-          messageType.fieldNameToNumber.set(field.name, field.number);
+          messageType.fields.set(fieldDef.number, fieldDef);
+          messageType.fieldNameToNumber.set(fieldDef.name, fieldDef.number);
         }
 
         registry.set(fullNameWithDot, messageType);
 
         // Recursively process nested types (they become top-level in registry)
-        for (const nested of msg.nestedTypes) {
+        for (const nested of msg.nestedType) {
           processMessage(nested, fullName);
         }
       };
 
-      for (const message of file.messageTypes) {
+      for (const message of file.messageType) {
         processMessage(message, packageName);
       }
     }
@@ -616,15 +534,15 @@ export class StructuralEditor {
   };
 
   private buildEnumRegistry = (
-    descriptorSet: ParsedFileDescriptorSet
+    descriptorSet: descriptor.FileDescriptorSet
   ): EnumRegistry => {
     const registry = new Map<string, EnumType>();
 
-    for (const file of descriptorSet.files) {
-      const packageName = file.packageName || '';
+    for (const file of descriptorSet.file) {
+      const packageName = file.package || '';
 
       // Process top-level enums
-      for (const enumProto of file.enumTypes || []) {
+      for (const enumProto of file.enumType) {
         const fullName = `.${packageName}.${enumProto.name}`;
         const enumType: EnumType = {
           fullName,
@@ -632,9 +550,9 @@ export class StructuralEditor {
           valuesByName: new Map(),
         };
 
-        for (const value of enumProto.values) {
-          enumType.values.set(value.number, value.name);
-          enumType.valuesByName.set(value.name, value.number);
+        for (const value of enumProto.value) {
+          enumType.values.set(value.number || 0, value.name || '');
+          enumType.valuesByName.set(value.name || '', value.number || 0);
         }
 
         registry.set(fullName, enumType);
@@ -642,7 +560,7 @@ export class StructuralEditor {
 
       // Recursively process nested enums in messages
       const processMessage = (
-        msg: ParsedDescriptorProto,
+        msg: descriptor.DescriptorProto,
         parentName: string
       ) => {
         const fullName = parentName
@@ -650,7 +568,7 @@ export class StructuralEditor {
           : `${packageName}.${msg.name}`;
 
         // Process nested enums
-        for (const enumProto of msg.enumTypes || []) {
+        for (const enumProto of msg.enumType) {
           const enumFullName = `.${fullName}.${enumProto.name}`;
           const enumType: EnumType = {
             fullName: enumFullName,
@@ -658,21 +576,21 @@ export class StructuralEditor {
             valuesByName: new Map(),
           };
 
-          for (const value of enumProto.values) {
-            enumType.values.set(value.number, value.name);
-            enumType.valuesByName.set(value.name, value.number);
+          for (const value of enumProto.value) {
+            enumType.values.set(value.number || 0, value.name || '');
+            enumType.valuesByName.set(value.name || '', value.number || 0);
           }
 
           registry.set(enumFullName, enumType);
         }
 
         // Recursively process nested types
-        for (const nested of msg.nestedTypes) {
+        for (const nested of msg.nestedType) {
           processMessage(nested, fullName);
         }
       };
 
-      for (const message of file.messageTypes) {
+      for (const message of file.messageType) {
         processMessage(message, packageName);
       }
     }
