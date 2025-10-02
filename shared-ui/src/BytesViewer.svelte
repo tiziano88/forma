@@ -1,5 +1,5 @@
 <script lang="ts">
-  type RawViewerMode = "hex" | "digests" | "cString" | "base64";
+  type RawViewerMode = "hex" | "hexEdit" | "digests" | "cString" | "base64";
 
   export type ByteSourceOption = {
     id: string;
@@ -14,12 +14,16 @@
     sources?: ByteSourceOption[];
     initialMode?: RawViewerMode;
     emptyMessage?: string;
+    readonly?: boolean;
+    onchange?: (newBytes: Uint8Array) => void;
   }
 
   let {
     sources = [],
     initialMode = "hex",
     emptyMessage = "No bytes available.",
+    readonly = true,
+    onchange,
   }: Props = $props();
 
   let viewerMode = $state<RawViewerMode>(initialMode);
@@ -31,12 +35,13 @@
   // User-selected source, null means "use default"
   let userSelectedSourceId = $state<string | null>(null);
 
-  const MODE_OPTIONS: Array<{ id: RawViewerMode; label: string }> = [
-    { id: "hex", label: "Hex" },
-    { id: "base64", label: "Base64" },
-    { id: "cString", label: "C String" },
-    { id: "digests", label: "Digests" },
-  ];
+  const MODE_OPTIONS = $derived([
+    { id: "hex" as RawViewerMode, label: "Hex" },
+    ...(readonly ? [] : [{ id: "hexEdit" as RawViewerMode, label: "Edit Hex" }]),
+    { id: "base64" as RawViewerMode, label: "Base64" },
+    { id: "cString" as RawViewerMode, label: "C String" },
+    { id: "digests" as RawViewerMode, label: "Digests" },
+  ]);
 
   const resolvedSources = $derived(
     sources.length > 0
@@ -78,6 +83,9 @@
     return currentSource.hexdump ?? formatHexdump(currentBytes);
   });
 
+  let hexEditValue = $state('');
+  let hexEditError = $state<string | null>(null);
+
   $effect(() => {
     if (viewerMode === "digests") {
       void refreshDigests(currentBytes);
@@ -90,6 +98,13 @@
     }
   });
 
+  // Sync hexEditValue when switching to edit mode or currentBytes changes
+  $effect(() => {
+    if (viewerMode === 'hexEdit') {
+      hexEditValue = formatHexForEdit(currentBytes);
+    }
+  });
+
 
   function selectSource(id: string) {
     userSelectedSourceId = id;
@@ -97,6 +112,117 @@
 
   function selectMode(mode: RawViewerMode) {
     viewerMode = mode;
+  }
+
+  // Generate address column (read-only)
+  function formatAddresses(bytes: Uint8Array, cols = 16): string {
+    const lines: string[] = [];
+    for (let i = 0; i < bytes.length; i += cols) {
+      lines.push(i.toString(16).padStart(8, '0').toUpperCase());
+    }
+    // Add one more line for when editing
+    if (bytes.length === 0 || bytes.length % cols === 0) {
+      lines.push(bytes.length.toString(16).padStart(8, '0').toUpperCase());
+    }
+    return lines.join('\n');
+  }
+
+  // Generate ASCII column (read-only)
+  function formatAscii(bytes: Uint8Array, cols = 16): string {
+    const lines: string[] = [];
+    for (let i = 0; i < bytes.length; i += cols) {
+      const slice = bytes.slice(i, i + cols);
+      const ascii = Array.from(slice)
+        .map(b => (b >= 0x20 && b <= 0x7e ? String.fromCharCode(b) : '.'))
+        .join('');
+      lines.push(ascii);
+    }
+    // Add one more line for when editing
+    if (bytes.length === 0 || bytes.length % cols === 0) {
+      lines.push('');
+    }
+    return lines.join('\n');
+  }
+
+  // Format bytes as hex with spaces (16 bytes per line) for middle column
+  function formatHexForEdit(bytes: Uint8Array, cols = 16): string {
+    const lines: string[] = [];
+    for (let i = 0; i < bytes.length; i += cols) {
+      const slice = bytes.slice(i, i + cols);
+      const hexLine = Array.from(slice)
+        .map(b => b.toString(16).padStart(2, '0').toUpperCase())
+        .join(' ');
+      lines.push(hexLine);
+    }
+    return lines.join('\n');
+  }
+
+  // For hex edit mode, derive values from the current input text
+  const liveEditBytes = $derived.by(() => {
+    if (viewerMode !== 'hexEdit') return currentBytes;
+    const { bytes, error } = parseHexText(hexEditValue);
+    // Only use new bytes if valid, otherwise keep current
+    return bytes !== null ? bytes : currentBytes;
+  });
+
+  const hexAddresses = $derived(formatAddresses(liveEditBytes));
+  const hexAscii = $derived(formatAscii(liveEditBytes));
+
+  // Parse hex text back to bytes
+  function parseHexText(hexText: string): { bytes: Uint8Array | null; error: string | null } {
+    // Remove all whitespace and newlines
+    const cleaned = hexText.replace(/\s+/g, '').toUpperCase();
+
+    // Empty is OK
+    if (cleaned.length === 0) {
+      return { bytes: new Uint8Array(), error: null };
+    }
+
+    // Must be even number of hex chars
+    if (cleaned.length % 2 !== 0) {
+      return { bytes: null, error: 'Hex string must have even number of characters' };
+    }
+
+    // Validate hex chars
+    if (!/^[0-9A-F]*$/.test(cleaned)) {
+      return { bytes: null, error: 'Invalid hex characters (use 0-9, A-F)' };
+    }
+
+    // Convert to bytes
+    const bytes = new Uint8Array(cleaned.length / 2);
+    for (let i = 0; i < cleaned.length; i += 2) {
+      bytes[i / 2] = parseInt(cleaned.substring(i, i + 2), 16);
+    }
+
+    return { bytes, error: null };
+  }
+
+  function handleHexInput(event: Event) {
+    const textarea = event.target as HTMLTextAreaElement;
+    hexEditValue = textarea.value;
+
+    // Validate in real-time to show errors immediately
+    const { error } = parseHexText(hexEditValue);
+    hexEditError = error;
+  }
+
+  function handleHexBlur() {
+    // Auto-format on blur
+    const { bytes, error } = parseHexText(hexEditValue);
+
+    if (error) {
+      hexEditError = error;
+      return;
+    }
+
+    hexEditError = null;
+
+    if (bytes && onchange) {
+      onchange(bytes);
+    }
+
+    // Reformat to clean layout
+    hexEditValue = formatHexForEdit(bytes);
   }
 
   async function refreshDigests(bytes: Uint8Array) {
@@ -280,6 +406,46 @@
 
   {#if viewerMode === "hex"}
     <pre class="code-block">{currentHexdump}</pre>
+  {:else if viewerMode === "hexEdit"}
+    <div class="hex-editor-container">
+      <div class="hex-editor-grid">
+        <!-- Address column (read-only) -->
+        <textarea
+          class="hex-column hex-address"
+          value={hexAddresses}
+          readonly
+          rows="8"
+          spellcheck="false"
+        ></textarea>
+
+        <!-- Hex bytes column (editable) -->
+        <textarea
+          class="hex-column hex-bytes"
+          class:hex-editor-error={hexEditError}
+          value={hexEditValue}
+          oninput={handleHexInput}
+          onblur={handleHexBlur}
+          rows="8"
+          placeholder="00 00 00 00"
+          spellcheck="false"
+        ></textarea>
+
+        <!-- ASCII column (read-only) -->
+        <textarea
+          class="hex-column hex-ascii"
+          value={hexAscii}
+          readonly
+          rows="8"
+          spellcheck="false"
+        ></textarea>
+      </div>
+      {#if hexEditError}
+        <div class="text-error text-xs mt-1">{hexEditError}</div>
+      {/if}
+      <div class="text-xs text-editor-muted mt-1">
+        {liveEditBytes.length} bytes
+      </div>
+    </div>
   {:else if viewerMode === "digests"}
     {#if digestLoading}
       <div class="flex items-center gap-2 text-sm text-editor-muted">
@@ -310,3 +476,63 @@
     <pre class="code-block--break-all">{base64String || emptyMessage}</pre>
   {/if}
 </div>
+
+<style>
+  .hex-editor-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .hex-editor-grid {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1rem;
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .hex-column {
+    padding: 0.5rem;
+    border: 1px solid var(--editor-border, #ccc);
+    border-radius: 0.25rem;
+    background-color: var(--editor-bg, #fff);
+    color: var(--editor-text, #000);
+    resize: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    white-space: pre;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .hex-address {
+    width: 9ch;
+    background-color: var(--editor-bg-secondary, #f5f5f5);
+    color: var(--editor-muted, #666);
+    cursor: default;
+  }
+
+  .hex-bytes {
+    min-width: 48ch;
+  }
+
+  .hex-bytes:focus {
+    outline: 2px solid var(--editor-focus, #4f46e5);
+    outline-offset: -1px;
+  }
+
+  .hex-ascii {
+    width: 17ch;
+    background-color: var(--editor-bg-secondary, #f5f5f5);
+    color: var(--editor-muted, #666);
+    cursor: default;
+  }
+
+  .hex-editor-error {
+    border-color: var(--error-color, #ef4444);
+    background-color: rgba(239, 68, 68, 0.05);
+  }
+</style>

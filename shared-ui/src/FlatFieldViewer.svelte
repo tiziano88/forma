@@ -211,6 +211,17 @@
     dispatchChange();
   }
 
+  function handleBytesChange(newBytes: Uint8Array, index: number | null = null) {
+    if (dispatcher) {
+      if (isRepeated && index !== null) {
+        dispatcher.setField(fieldSchema.number, newBytes, index);
+      } else {
+        dispatcher.setField(fieldSchema.number, newBytes);
+      }
+    }
+    dispatchChange();
+  }
+
   function ensureUint8Array(value: unknown): Uint8Array {
     return value instanceof Uint8Array ? value : new Uint8Array();
   }
@@ -296,6 +307,8 @@
             },
           ]}
           emptyMessage="(empty)"
+          readonly={false}
+          onchange={(newBytes) => handleBytesChange(newBytes, index)}
         />
       {:else}
         <!-- Primitive field -->
@@ -397,6 +410,8 @@
             },
           ]}
           emptyMessage="(empty)"
+          readonly={false}
+          onchange={(newBytes) => handleBytesChange(newBytes)}
         />
       {:else}
         <!-- Primitive field -->
