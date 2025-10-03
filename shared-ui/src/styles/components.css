@@ -17,7 +17,7 @@
 }
 
 .field-card-header {
-  @apply rounded-t-xl border-b px-3 py-2 backdrop-blur-sm;
+  @apply rounded-t-xl border-b px-3 py-1 backdrop-blur-sm;
   border-bottom-color: var(--editor-border-secondary);
   background: var(--editor-card-header-bg);
 }

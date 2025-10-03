@@ -1,5 +1,9 @@
 <script lang="ts">
-  import type { MessageValue, MessageType, StructuralEditor } from '@lintx/core';
+  import type {
+    MessageValue,
+    MessageType,
+    StructuralEditor,
+  } from '@lintx/core';
   import FlatFieldViewer from './FlatFieldViewer.svelte';
   import type { MutationEvent, MutationDispatcher } from './mutations';
 
@@ -22,7 +26,7 @@
     onchange,
     onmutation,
     dispatcher,
-    mutationVersion = 0
+    mutationVersion = 0,
   }: Props = $props();
 
   function handleChange() {
@@ -34,7 +38,7 @@
   }
 </script>
 
-<div class="space-y-4">
+<div class="space-y-1">
   {#each messageSchema?.fields ? Array.from(messageSchema.fields.values()) : [] as field}
     <FlatFieldViewer
       parent={object}
@@ -44,7 +48,7 @@
       onchange={handleChange}
       onmutation={handleMutation}
       {dispatcher}
-      mutationVersion={mutationVersion}
+      {mutationVersion}
     />
   {/each}
 </div>
