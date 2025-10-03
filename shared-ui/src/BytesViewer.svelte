@@ -98,6 +98,9 @@
 
   let hexEditValue = $state('');
   let hexEditError = $state<string | null>(null);
+  let hexBytesTextarea: HTMLTextAreaElement | null = $state(null);
+  let hexAddressTextarea: HTMLTextAreaElement | null = $state(null);
+  let hexAsciiTextarea: HTMLTextAreaElement | null = $state(null);
 
   $effect(() => {
     if (viewerMode === 'digests') {
@@ -115,6 +118,23 @@
   $effect(() => {
     if (viewerMode === 'hexEdit') {
       hexEditValue = formatHexForEdit(currentBytes);
+    }
+  });
+
+  // Auto-resize all textareas when content changes
+  $effect(() => {
+    if (viewerMode === 'hexEdit') {
+      // Trigger on these dependencies
+      hexAddresses;
+      hexEditValue;
+      hexAscii;
+
+      // Auto-resize all textareas
+      setTimeout(() => {
+        if (hexAddressTextarea) autoResize(hexAddressTextarea);
+        if (hexBytesTextarea) autoResize(hexBytesTextarea);
+        if (hexAsciiTextarea) autoResize(hexAsciiTextarea);
+      }, 0);
     }
   });
 
@@ -215,9 +235,19 @@
     return { bytes, error: null };
   }
 
+  function autoResize(textarea: HTMLTextAreaElement) {
+    // Reset height to recalculate
+    textarea.style.height = '0px';
+    // Set to scrollHeight to fit content
+    textarea.style.height = textarea.scrollHeight + 'px';
+  }
+
   function handleHexInput(event: Event) {
     const textarea = event.target as HTMLTextAreaElement;
     hexEditValue = textarea.value;
+
+    // Auto-resize textarea
+    autoResize(textarea);
 
     // Validate in real-time to show errors immediately
     const { error } = parseHexText(hexEditValue);
@@ -429,6 +459,7 @@
       <div class="hex-editor-grid">
         <!-- Address column (read-only) -->
         <textarea
+          bind:this={hexAddressTextarea}
           class="hex-column hex-address"
           value={hexAddresses}
           readonly
@@ -437,6 +468,7 @@
 
         <!-- Hex bytes column (editable) -->
         <textarea
+          bind:this={hexBytesTextarea}
           class="hex-column hex-bytes"
           class:hex-editor-error={hexEditError}
           value={hexEditValue}
@@ -448,17 +480,18 @@
 
         <!-- ASCII column (read-only) -->
         <textarea
+          bind:this={hexAsciiTextarea}
           class="hex-column hex-ascii"
           value={hexAscii}
           readonly
           spellcheck="false"
         ></textarea>
       </div>
-      {#if hexEditError}
-        <div class="text-error text-xs mt-1">{hexEditError}</div>
-      {/if}
-      <div class="text-xs text-editor-muted mt-1">
-        {liveEditBytes.length} bytes
+      <div class="text-xs mt-1 flex items-center justify-between">
+        <span class="text-editor-muted">{liveEditBytes.length} bytes</span>
+        {#if hexEditError}
+          <span class="text-error">{hexEditError}</span>
+        {/if}
       </div>
     </div>
   {:else if viewerMode === 'digests'}
@@ -503,16 +536,14 @@
   }
 
   .hex-column {
-    @apply border rounded-xl px-3 py-2 resize-none overflow-x-hidden text-sm box-content;
+    @apply border rounded-xl px-3 py-2 resize-none overflow-hidden text-sm box-content;
     border-color: var(--editor-border-primary);
     background: var(--editor-bg-secondary);
     color: var(--editor-text-primary);
     font-family: monospace;
     line-height: inherit;
     white-space: pre-wrap;
-    overflow-wrap: break-word;
-    height: auto;
-    min-height: 2.5rem;
+    word-break: break-all;
   }
 
   .hex-column:focus {
