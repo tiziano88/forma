@@ -1,5 +1,5 @@
 <script lang="ts">
-  type RawViewerMode = "hex" | "hexEdit" | "digests" | "cString" | "base64";
+  type RawViewerMode = 'hex' | 'hexEdit' | 'digests' | 'cString' | 'base64';
 
   export type ByteSourceOption = {
     id: string;
@@ -20,8 +20,8 @@
 
   let {
     sources = [],
-    initialMode = "hex",
-    emptyMessage = "No bytes available.",
+    initialMode = 'hex',
+    emptyMessage = 'No bytes available.',
     readonly = true,
     onchange,
   }: Props = $props();
@@ -36,27 +36,36 @@
   let userSelectedSourceId = $state<string | null>(null);
 
   const MODE_OPTIONS = $derived([
-    { id: "hex" as RawViewerMode, label: "Hex" },
-    ...(readonly ? [] : [{ id: "hexEdit" as RawViewerMode, label: "Edit Hex" }]),
-    { id: "base64" as RawViewerMode, label: "Base64" },
-    { id: "cString" as RawViewerMode, label: "C String" },
-    { id: "digests" as RawViewerMode, label: "Digests" },
+    { id: 'hex' as RawViewerMode, label: 'Hex' },
+    ...(readonly
+      ? []
+      : [{ id: 'hexEdit' as RawViewerMode, label: 'Edit Hex' }]),
+    { id: 'base64' as RawViewerMode, label: 'Base64' },
+    { id: 'cString' as RawViewerMode, label: 'C String' },
+    { id: 'digests' as RawViewerMode, label: 'Digests' },
   ]);
 
   const resolvedSources = $derived(
     sources.length > 0
       ? sources
-      : [{ id: "default", label: "Bytes", bytes: EMPTY_BYTES }]
+      : [{ id: 'default', label: 'Bytes', bytes: EMPTY_BYTES }]
   );
 
   // Automatically manage selected source
   const selectedSourceId = $derived.by(() => {
-    if (!resolvedSources || !Array.isArray(resolvedSources) || resolvedSources.length === 0) {
+    if (
+      !resolvedSources ||
+      !Array.isArray(resolvedSources) ||
+      resolvedSources.length === 0
+    ) {
       return null;
     }
 
     // If user has made a selection and it's still valid, use it
-    if (userSelectedSourceId && resolvedSources.some((src) => src.id === userSelectedSourceId)) {
+    if (
+      userSelectedSourceId &&
+      resolvedSources.some((src) => src.id === userSelectedSourceId)
+    ) {
       return userSelectedSourceId;
     }
 
@@ -64,9 +73,13 @@
     return resolvedSources[0].id;
   });
 
-  const cEscapedString = $derived(viewerMode === "cString" ? toCEscapedString(currentBytes) : "");
+  const cEscapedString = $derived(
+    viewerMode === 'cString' ? toCEscapedString(currentBytes) : ''
+  );
 
-  const base64String = $derived(viewerMode === "base64" ? toBase64(currentBytes) : "");
+  const base64String = $derived(
+    viewerMode === 'base64' ? toBase64(currentBytes) : ''
+  );
 
   // Convert to derived values
   const currentSource = $derived.by(() => {
@@ -79,7 +92,7 @@
   const currentBytes = $derived(currentSource?.bytes ?? EMPTY_BYTES);
 
   const currentHexdump = $derived.by(() => {
-    if (!currentSource) return "(empty)";
+    if (!currentSource) return '(empty)';
     return currentSource.hexdump ?? formatHexdump(currentBytes);
   });
 
@@ -87,7 +100,7 @@
   let hexEditError = $state<string | null>(null);
 
   $effect(() => {
-    if (viewerMode === "digests") {
+    if (viewerMode === 'digests') {
       void refreshDigests(currentBytes);
     } else {
       // Cancel any pending digest requests by incrementing the counter
@@ -104,7 +117,6 @@
       hexEditValue = formatHexForEdit(currentBytes);
     }
   });
-
 
   function selectSource(id: string) {
     userSelectedSourceId = id;
@@ -133,7 +145,7 @@
     for (let i = 0; i < bytes.length; i += cols) {
       const slice = bytes.slice(i, i + cols);
       const ascii = Array.from(slice)
-        .map(b => (b >= 0x20 && b <= 0x7e ? String.fromCharCode(b) : '.'))
+        .map((b) => (b >= 0x20 && b <= 0x7e ? String.fromCharCode(b) : '.'))
         .join('');
       lines.push(ascii);
     }
@@ -150,7 +162,7 @@
     for (let i = 0; i < bytes.length; i += cols) {
       const slice = bytes.slice(i, i + cols);
       const hexLine = Array.from(slice)
-        .map(b => b.toString(16).padStart(2, '0').toUpperCase())
+        .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
         .join(' ');
       lines.push(hexLine);
     }
@@ -169,7 +181,10 @@
   const hexAscii = $derived(formatAscii(liveEditBytes));
 
   // Parse hex text back to bytes
-  function parseHexText(hexText: string): { bytes: Uint8Array | null; error: string | null } {
+  function parseHexText(hexText: string): {
+    bytes: Uint8Array | null;
+    error: string | null;
+  } {
     // Remove all whitespace and newlines
     const cleaned = hexText.replace(/\s+/g, '').toUpperCase();
 
@@ -180,7 +195,10 @@
 
     // Must be even number of hex chars
     if (cleaned.length % 2 !== 0) {
-      return { bytes: null, error: 'Hex string must have even number of characters' };
+      return {
+        bytes: null,
+        error: 'Hex string must have even number of characters',
+      };
     }
 
     // Validate hex chars
@@ -238,17 +256,17 @@
 
       const subtle = globalThis.crypto?.subtle;
       if (!subtle) {
-        throw new Error("Web Crypto API is not available in this environment.");
+        throw new Error('Web Crypto API is not available in this environment.');
       }
 
-      const algorithms: AlgorithmIdentifier[] = ["SHA-256", "SHA-1", "SHA-512"];
+      const algorithms: AlgorithmIdentifier[] = ['SHA-256', 'SHA-1', 'SHA-512'];
       const results: Array<{ algorithm: string; value: string }> = [];
 
       for (const algorithm of algorithms) {
         const digestBuffer = await subtle.digest(algorithm, bytes);
         results.push({
           algorithm:
-            typeof algorithm === "string" ? algorithm : String(algorithm),
+            typeof algorithm === 'string' ? algorithm : String(algorithm),
           value: bufferToHex(digestBuffer),
         });
       }
@@ -271,8 +289,8 @@
   function bufferToHex(buffer: ArrayBuffer): string {
     const view = new Uint8Array(buffer);
     return Array.from(view)
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("");
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
   }
 
   function toCEscapedString(bytes: Uint8Array): string {
@@ -284,28 +302,28 @@
     for (const byte of bytes) {
       switch (byte) {
         case 0x5c:
-          result += "\\";
+          result += '\\';
           break;
         case 0x22:
           result += '"';
           break;
         case 0x0a:
-          result += "\n";
+          result += '\n';
           break;
         case 0x0d:
-          result += "\r";
+          result += '\r';
           break;
         case 0x09:
-          result += "\t";
+          result += '\t';
           break;
         case 0x00:
-          result += "\0";
+          result += '\0';
           break;
         default:
           if (byte >= 0x20 && byte <= 0x7e) {
             result += String.fromCharCode(byte);
           } else {
-            result += `\\x${byte.toString(16).padStart(2, "0")}`;
+            result += `\\x${byte.toString(16).padStart(2, '0')}`;
           }
       }
     }
@@ -315,36 +333,36 @@
 
   function formatHexdump(bytes: Uint8Array, columns = 16): string {
     if (!bytes || bytes.length === 0) {
-      return "(empty)";
+      return '(empty)';
     }
 
     const lines: string[] = [];
     for (let offset = 0; offset < bytes.length; offset += columns) {
       const slice = bytes.slice(offset, offset + columns);
       const hexParts = Array.from(slice).map((byte) =>
-        byte.toString(16).padStart(2, "0")
+        byte.toString(16).padStart(2, '0')
       );
       const ascii = Array.from(slice)
         .map((byte) =>
-          byte >= 0x20 && byte <= 0x7e ? String.fromCharCode(byte) : "."
+          byte >= 0x20 && byte <= 0x7e ? String.fromCharCode(byte) : '.'
         )
-        .join("");
+        .join('');
 
-      const hexColumn = hexParts.join(" ").padEnd(columns * 3 - 1, " ");
-      const line = `${offset.toString(16).padStart(8, "0")}  ${hexColumn}  |${ascii}|`;
+      const hexColumn = hexParts.join(' ').padEnd(columns * 3 - 1, ' ');
+      const line = `${offset.toString(16).padStart(8, '0')}  ${hexColumn}  |${ascii}|`;
       lines.push(line);
     }
 
-    return lines.join("\n");
+    return lines.join('\n');
   }
 
   function toBase64(bytes: Uint8Array): string {
     if (!bytes || bytes.length === 0) {
-      return "";
+      return '';
     }
 
-    if (typeof globalThis.btoa === "function") {
-      let binary = "";
+    if (typeof globalThis.btoa === 'function') {
+      let binary = '';
       const chunkSize = 0x8000;
       for (let i = 0; i < bytes.length; i += chunkSize) {
         const chunk = bytes.subarray(i, i + chunkSize);
@@ -353,13 +371,13 @@
       return globalThis.btoa(binary);
     }
 
-    if (typeof Buffer !== "undefined") {
-      return Buffer.from(bytes).toString("base64");
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(bytes).toString('base64');
     }
 
     // Fallback: hex then base64 via TextEncoder (unlikely path)
     const text = String.fromCharCode(...bytes);
-    return globalThis.btoa ? globalThis.btoa(text) : "";
+    return globalThis.btoa ? globalThis.btoa(text) : '';
   }
 </script>
 
@@ -404,9 +422,9 @@
     </div>
   </div>
 
-  {#if viewerMode === "hex"}
+  {#if viewerMode === 'hex'}
     <pre class="code-block">{currentHexdump}</pre>
-  {:else if viewerMode === "hexEdit"}
+  {:else if viewerMode === 'hexEdit'}
     <div class="hex-editor-container">
       <div class="hex-editor-grid">
         <!-- Address column (read-only) -->
@@ -446,7 +464,7 @@
         {liveEditBytes.length} bytes
       </div>
     </div>
-  {:else if viewerMode === "digests"}
+  {:else if viewerMode === 'digests'}
     {#if digestLoading}
       <div class="flex items-center gap-2 text-sm text-editor-muted">
         <span class="loading loading-spinner loading-xs"></span>
@@ -470,9 +488,9 @@
         {/each}
       </ul>
     {/if}
-  {:else if viewerMode === "cString"}
+  {:else if viewerMode === 'cString'}
     <pre class="code-block--wrap">{cEscapedString}</pre>
-  {:else if viewerMode === "base64"}
+  {:else if viewerMode === 'base64'}
     <pre class="code-block--break-all">{base64String || emptyMessage}</pre>
   {/if}
 </div>
@@ -494,7 +512,7 @@
   }
 
   .hex-column {
-    padding: 0.5rem;
+    padding: 0;
     border: 1px solid var(--editor-border, #ccc);
     border-radius: 0.25rem;
     background-color: var(--editor-bg, #fff);
@@ -503,7 +521,7 @@
     overflow-x: hidden;
     overflow-y: auto;
     white-space: pre;
-    font-family: inherit;
+    font-family: monospace;
     font-size: inherit;
     line-height: inherit;
   }

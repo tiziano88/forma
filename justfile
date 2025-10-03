@@ -15,6 +15,7 @@ generate-proto:
         --ts_proto_opt=esModuleInterop=true \
         --ts_proto_opt=outputServices=false \
         --ts_proto_opt=useOptionals=messages \
+        --ts_proto_opt=importSuffix=.js \
         config/forma.proto config/descriptor.proto
 
     echo "Generated files:"
