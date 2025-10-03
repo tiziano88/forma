@@ -512,45 +512,44 @@
   }
 
   .hex-column {
-    padding: 0;
-    border: 1px solid var(--editor-border, #ccc);
-    border-radius: 0.25rem;
-    background-color: var(--editor-bg, #fff);
-    color: var(--editor-text, #000);
+    border: 1px solid var(--editor-border-primary);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--editor-bg-secondary);
+    color: var(--editor-text-primary);
     resize: none;
     overflow-x: hidden;
     overflow-y: auto;
     white-space: pre;
     font-family: monospace;
-    font-size: inherit;
+    font-size: 0.875rem;
     line-height: inherit;
   }
 
+  .hex-column:focus {
+    border-color: var(--editor-border-hover);
+    outline: none;
+  }
+
   .hex-address {
-    width: 9ch;
-    background-color: var(--editor-bg-secondary, #f5f5f5);
+    width: 8ch;
     color: var(--editor-muted, #666);
     cursor: default;
+    box-sizing: content-box;
   }
 
   .hex-bytes {
     min-width: 48ch;
   }
 
-  .hex-bytes:focus {
-    outline: 2px solid var(--editor-focus, #4f46e5);
-    outline-offset: -1px;
-  }
-
   .hex-ascii {
     width: 17ch;
-    background-color: var(--editor-bg-secondary, #f5f5f5);
     color: var(--editor-muted, #666);
     cursor: default;
   }
 
   .hex-editor-error {
-    border-color: var(--error-color, #ef4444);
+    border-color: var(--error-color, #ef4444) !important;
     background-color: rgba(239, 68, 68, 0.05);
   }
 </style>
