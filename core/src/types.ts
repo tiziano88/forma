@@ -1,7 +1,7 @@
 import { SvelteMap, SvelteSet } from './svelte-reactivity.js';
 import type {
   FieldDescriptorProto_Type,
-  FieldDescriptorProto_Label
+  FieldDescriptorProto_Label,
 } from './generated/config/descriptor.js';
 
 export type Bytes = Uint8Array;
@@ -9,7 +9,7 @@ export type Bytes = Uint8Array;
 // Re-export generated enums from descriptor.proto for convenience
 export {
   FieldDescriptorProto_Type as FieldType,
-  FieldDescriptorProto_Label as FieldLabel
+  FieldDescriptorProto_Label as FieldLabel,
 } from './generated/config/descriptor.js';
 
 // Type aliases for use within this file

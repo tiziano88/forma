@@ -15,9 +15,6 @@ import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 // Import ts-proto generated types (clean TypeScript, works everywhere!)
 import * as descriptor from './generated/config/descriptor.js';
 
-
-
-
 type TypeRegistry = Map<string, MessageType>; // "full.name" -> MessageType
 type EnumRegistry = Map<string, EnumType>; // "full.name" -> EnumType
 
@@ -303,10 +300,14 @@ export class StructuralEditor {
   // Derived/computed values
   availableTypes = $derived(Array.from(this.typeRegistry.keys()));
   rootMessageType = $derived(
-    this.selectedTypeName ? this.typeRegistry.get(this.selectedTypeName) || null : null
+    this.selectedTypeName
+      ? this.typeRegistry.get(this.selectedTypeName) || null
+      : null
   );
   encodedBytes = $derived(
-    this.decodedData ? this.decodedData.toBytes() : (this.dataBytes || new Uint8Array())
+    this.decodedData
+      ? this.decodedData.toBytes()
+      : this.dataBytes || new Uint8Array()
   );
   originalBytes = $derived(this.dataBytes || new Uint8Array());
   hexView = $derived(this.formatHex(this.encodedBytes));
@@ -389,7 +390,8 @@ export class StructuralEditor {
     );
 
     try {
-      const descriptorSet = descriptor.FileDescriptorSet.decode(descriptorBytes);
+      const descriptorSet =
+        descriptor.FileDescriptorSet.decode(descriptorBytes);
       this.typeRegistry = this.buildFlatTypeRegistry(descriptorSet);
       this.enumRegistry = this.buildEnumRegistry(descriptorSet);
 

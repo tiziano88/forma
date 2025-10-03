@@ -2,6 +2,7 @@ node_modules/
 dist/
 out/
 vscode-extension/media/assets/
+generated/
 
 .svelte-kit
 .DS_Store
