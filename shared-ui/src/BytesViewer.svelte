@@ -1,5 +1,5 @@
 <script lang="ts">
-  type RawViewerMode = 'hex' | 'hexEdit' | 'digests' | 'cString' | 'base64';
+  type RawViewerMode = 'hex' | 'digests' | 'cString' | 'base64';
 
   export type ByteSourceOption = {
     id: string;
@@ -37,9 +37,6 @@
 
   const MODE_OPTIONS = $derived([
     { id: 'hex' as RawViewerMode, label: 'Hex' },
-    ...(readonly
-      ? []
-      : [{ id: 'hexEdit' as RawViewerMode, label: 'Edit Hex' }]),
     { id: 'base64' as RawViewerMode, label: 'Base64' },
     { id: 'cString' as RawViewerMode, label: 'C String' },
     { id: 'digests' as RawViewerMode, label: 'Digests' },
@@ -98,6 +95,8 @@
 
   let hexEditValue = $state('');
   let hexEditError = $state<string | null>(null);
+  // TODO: Find a better way to prevent auto-formatting during user input
+  let suppressSync = $state(false);
   let hexBytesTextarea: HTMLTextAreaElement | null = $state(null);
   let hexAddressTextarea: HTMLTextAreaElement | null = $state(null);
   let hexAsciiTextarea: HTMLTextAreaElement | null = $state(null);
@@ -114,16 +113,25 @@
     }
   });
 
-  // Sync hexEditValue when switching to edit mode or currentBytes changes
+  // Sync hexEditValue when switching to hex mode or currentBytes changes externally
   $effect(() => {
-    if (viewerMode === 'hexEdit') {
-      hexEditValue = formatHexForEdit(currentBytes);
+    // Explicitly track these dependencies
+    const bytes = currentBytes;
+    const mode = viewerMode;
+    const ro = readonly;
+    const suppress = suppressSync;
+
+    if (mode === 'hex') {
+      // Always sync in readonly mode, or when not suppressing in edit mode
+      if (ro || !suppress) {
+        hexEditValue = formatHexForEdit(bytes);
+      }
     }
   });
 
   // Auto-resize all textareas when content changes
   $effect(() => {
-    if (viewerMode === 'hexEdit') {
+    if (viewerMode === 'hex') {
       // Trigger on these dependencies
       hexAddresses;
       hexEditValue;
@@ -150,11 +158,11 @@
   function formatAddresses(bytes: Uint8Array, cols = 16): string {
     const lines: string[] = [];
     for (let i = 0; i < bytes.length; i += cols) {
-      lines.push(i.toString(16).padStart(8, '0').toUpperCase());
+      lines.push(i.toString(16).padStart(8, '0'));
     }
     // Add one more line for when editing
     if (bytes.length === 0 || bytes.length % cols === 0) {
-      lines.push(bytes.length.toString(16).padStart(8, '0').toUpperCase());
+      lines.push(bytes.length.toString(16).padStart(8, '0'));
     }
     return lines.join('\n');
   }
@@ -182,16 +190,18 @@
     for (let i = 0; i < bytes.length; i += cols) {
       const slice = bytes.slice(i, i + cols);
       const hexLine = Array.from(slice)
-        .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
+        .map((b) => b.toString(16).padStart(2, '0'))
         .join(' ');
       lines.push(hexLine);
     }
     return lines.join('\n');
   }
 
-  // For hex edit mode, derive values from the current input text
+  // For hex mode when not readonly, derive values from the current input text
   const liveEditBytes = $derived.by(() => {
-    if (viewerMode !== 'hexEdit') return currentBytes;
+    if (viewerMode !== 'hex' || readonly) return currentBytes;
+    // If hexEditValue is empty (not yet synced), use currentBytes
+    if (hexEditValue === '') return currentBytes;
     const { bytes, error } = parseHexText(hexEditValue);
     // Only use new bytes if valid, otherwise keep current
     return bytes !== null ? bytes : currentBytes;
@@ -200,13 +210,22 @@
   const hexAddresses = $derived(formatAddresses(liveEditBytes));
   const hexAscii = $derived(formatAscii(liveEditBytes));
 
+  // Display value for hex bytes textarea (derived when readonly, state when editing)
+  const hexDisplayValue = $derived.by(() => {
+    if (readonly) {
+      return formatHexForEdit(currentBytes);
+    }
+    // If hexEditValue is empty (not yet synced), format from currentBytes
+    return hexEditValue === '' ? formatHexForEdit(currentBytes) : hexEditValue;
+  });
+
   // Parse hex text back to bytes
   function parseHexText(hexText: string): {
     bytes: Uint8Array | null;
     error: string | null;
   } {
     // Remove all whitespace and newlines
-    const cleaned = hexText.replace(/\s+/g, '').toUpperCase();
+    const cleaned = hexText.replace(/\s+/g, '').toLowerCase();
 
     // Empty is OK
     if (cleaned.length === 0) {
@@ -222,8 +241,8 @@
     }
 
     // Validate hex chars
-    if (!/^[0-9A-F]*$/.test(cleaned)) {
-      return { bytes: null, error: 'Invalid hex characters (use 0-9, A-F)' };
+    if (!/^[0-9a-f]*$/.test(cleaned)) {
+      return { bytes: null, error: 'Invalid hex characters (use 0-9, a-f)' };
     }
 
     // Convert to bytes
@@ -245,17 +264,25 @@
   function handleHexInput(event: Event) {
     const textarea = event.target as HTMLTextAreaElement;
     hexEditValue = textarea.value;
+    suppressSync = true;
 
     // Auto-resize textarea
     autoResize(textarea);
 
     // Validate in real-time to show errors immediately
-    const { error } = parseHexText(hexEditValue);
+    const { bytes, error } = parseHexText(hexEditValue);
     hexEditError = error;
+
+    // Immediately dispatch change if valid (updates address, ASCII, byte count)
+    if (bytes !== null && onchange) {
+      onchange(bytes);
+    }
   }
 
   function handleHexBlur() {
-    // Auto-format on blur
+    suppressSync = false;
+
+    // Parse and validate
     const { bytes, error } = parseHexText(hexEditValue);
 
     if (error) {
@@ -265,11 +292,12 @@
 
     hexEditError = null;
 
+    // Dispatch change if valid (updates address, ASCII, byte count)
     if (bytes && onchange) {
       onchange(bytes);
     }
 
-    // Reformat to clean layout
+    // Additionally: reformat the hex display
     hexEditValue = formatHexForEdit(bytes);
   }
 
@@ -453,8 +481,6 @@
   </div>
 
   {#if viewerMode === 'hex'}
-    <pre class="code-block">{currentHexdump}</pre>
-  {:else if viewerMode === 'hexEdit'}
     <div class="hex-editor-container">
       <div class="hex-editor-grid">
         <!-- Address column (read-only) -->
@@ -466,15 +492,16 @@
           spellcheck="false"
         ></textarea>
 
-        <!-- Hex bytes column (editable) -->
+        <!-- Hex bytes column (readonly when readonly=true) -->
         <textarea
           bind:this={hexBytesTextarea}
           class="hex-column hex-bytes"
           class:hex-editor-error={hexEditError}
-          value={hexEditValue}
-          oninput={handleHexInput}
-          onblur={handleHexBlur}
-          placeholder="00 00 00 00"
+          value={hexDisplayValue}
+          {readonly}
+          oninput={readonly ? undefined : handleHexInput}
+          onblur={readonly ? undefined : handleHexBlur}
+          placeholder="(hex)"
           spellcheck="false"
         ></textarea>
 
