@@ -96,23 +96,21 @@
 </script>
 
 <div class="flex flex-col gap-4">
-  <section class="grid gap-3 lg:grid-cols-2">
-    <div class="section-header">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-semibold text-editor-secondary">Root type</span>
-        <span class="badge-editor-outline">
-          {currentType ? 'Custom' : 'Auto'}
-        </span>
-      </div>
-      <div class="mt-3 text-sm text-editor-secondary">
-        Choose which message to treat as the document root. Leaving it on auto picks the last type in the descriptor.
-      </div>
-      <div class="mt-4">
+  <section class="section-main">
+    <div class="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+      <h2 class="text-sm font-semibold text-editor-primary">Structured view</h2>
+      <div class="flex items-center gap-2">
+        {#if decodedData && rootMessageType}
+          <div class="badge-editor-type">
+            {rootMessageType.fullName}
+          </div>
+        {/if}
         <select
           id="root-type-select"
-          class="select-editor"
+          class="select-editor text-xs"
           value={currentType ?? ''}
           onchange={handleTypeChange}
+          title="Choose root message type"
         >
           <option value=''>Auto (last in schema)</option>
           {#each availableTypes as name}
@@ -120,49 +118,6 @@
           {/each}
         </select>
       </div>
-    </div>
-
-    <div class="section-header">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-semibold text-editor-secondary">Session</span>
-        <span class="badge-editor-accent">
-          {decodedData ? 'Writable' : 'Read only'}
-        </span>
-      </div>
-      <div class="mt-2.5 grid gap-2.5 text-sm text-editor-secondary sm:grid-cols-2">
-        <div class="flex items-center justify-between rounded-lg border px-3 py-1.5 surface-secondary" style="border-color: var(--editor-border-primary);">
-          <span>Current type</span>
-          <span class="font-medium text-editor-primary truncate max-w-[60%] text-right">{currentType ?? rootMessageType?.fullName ?? 'Auto'}</span>
-        </div>
-        <div class="flex items-center justify-between rounded-lg border px-3 py-1.5 surface-secondary" style="border-color: var(--editor-border-primary);">
-          <span>Fields</span>
-          <span class="font-medium text-editor-primary">{rootMessageType ? rootMessageType.fields.size : 0}</span>
-        </div>
-        <div class="flex items-center justify-between rounded-lg border px-3 py-1.5 surface-secondary" style="border-color: var(--editor-border-primary);">
-          <span>Bytes</span>
-          <span class="font-medium text-editor-primary">{encodedBytes?.length ?? 0}</span>
-        </div>
-        <div class="flex items-center justify-end">
-          <button
-            class="btn btn-primary btn-xs rounded-lg shadow-sm"
-            style="box-shadow: var(--editor-shadow-sm);"
-            onclick={() => onsave?.()}
-          >
-            Save changes
-          </button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section-main">
-    <div class="mb-2.5 flex items-center justify-between">
-      <h2 class="text-sm font-semibold text-editor-primary">Structured view</h2>
-      {#if decodedData && rootMessageType}
-        <div class="badge badge-outline text-[10px] font-medium" style="border-color: var(--editor-border-primary); background: var(--editor-bg-tertiary); color: var(--editor-text-secondary);">
-          {rootMessageType.fullName}
-        </div>
-      {/if}
     </div>
 
     {#if decodedData && rootMessageType}
@@ -242,5 +197,29 @@
         </div>
       </div>
     {/if}
+  </section>
+
+  <!-- Metadata Section -->
+  <section class="section-header">
+    <div class="flex items-center justify-between">
+      <span class="text-sm font-semibold text-editor-secondary">Session Info</span>
+      <span class="badge-editor-accent text-xs">
+        {decodedData ? 'Writable' : 'Read only'}
+      </span>
+    </div>
+    <div class="mt-2.5 grid gap-2.5 text-sm text-editor-secondary sm:grid-cols-3">
+      <div class="flex items-center justify-between rounded-lg border px-3 py-1.5 surface-secondary" style="border-color: var(--editor-border-primary);">
+        <span>Current type</span>
+        <span class="font-medium text-editor-primary truncate max-w-[60%] text-right">{currentType ?? rootMessageType?.fullName ?? 'Auto'}</span>
+      </div>
+      <div class="flex items-center justify-between rounded-lg border px-3 py-1.5 surface-secondary" style="border-color: var(--editor-border-primary);">
+        <span>Fields</span>
+        <span class="font-medium text-editor-primary">{rootMessageType ? rootMessageType.fields.size : 0}</span>
+      </div>
+      <div class="flex items-center justify-between rounded-lg border px-3 py-1.5 surface-secondary" style="border-color: var(--editor-border-primary);">
+        <span>Bytes</span>
+        <span class="font-medium text-editor-primary">{encodedBytes?.length ?? 0}</span>
+      </div>
+    </div>
   </section>
 </div>

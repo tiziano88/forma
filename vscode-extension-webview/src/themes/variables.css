@@ -9,6 +9,11 @@
   --editor-text-secondary: var(--vscode-descriptionForeground);
   --editor-text-muted: var(--vscode-disabledForeground);
 
+  /* ===== FONTS ===== */
+  --editor-font-family: var(--vscode-editor-font-family);
+  --editor-font-size: var(--vscode-editor-font-size);
+  --editor-font-weight: var(--vscode-editor-font-weight);
+
   /* ===== INTERACTIVE COLORS ===== */
   --editor-primary: var(--vscode-button-background);
   --editor-primary-bg: color-mix(

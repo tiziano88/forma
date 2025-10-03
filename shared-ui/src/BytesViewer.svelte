@@ -558,16 +558,21 @@
   }
 
   .hex-editor-grid {
-    @apply flex gap-4 font-mono text-sm;
+    @apply flex gap-4;
     line-height: 1.5;
+    font-family: var(--editor-font-family, monospace);
+    font-size: var(--editor-font-size, 14px);
+    font-weight: var(--editor-font-weight, normal);
   }
 
   .hex-column {
-    @apply border rounded-xl px-3 py-2 resize-none overflow-hidden text-sm box-content;
+    @apply border rounded-xl px-3 py-2 resize-none overflow-hidden box-content;
     border-color: var(--editor-border-primary);
     background: var(--editor-bg-secondary);
     color: var(--editor-text-primary);
-    font-family: monospace;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
     line-height: inherit;
     white-space: pre-wrap;
     word-break: break-all;

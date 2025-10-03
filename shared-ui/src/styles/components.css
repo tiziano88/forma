@@ -43,10 +43,7 @@
 }
 
 .field-card-type-pill {
-  @apply text-xs font-mono px-2 py-1 rounded-full;
-  background: var(--editor-bg-tertiary);
-  color: var(--editor-text-secondary);
-  border: 1px solid var(--editor-border-primary);
+  @apply type-badge;
 }
 
 .field-card-controls {
@@ -54,8 +51,11 @@
 }
 
 .field-card-index {
-  @apply font-mono text-sm;
+  @apply text-sm;
   color: var(--editor-text-muted);
+  font-family: var(--editor-font-family, monospace);
+  font-size: var(--editor-font-size, 14px);
+  font-weight: var(--editor-font-weight, normal);
 }
 
 .field-card-placeholder {
@@ -203,31 +203,43 @@
 /* ===== CODE & DATA DISPLAY ===== */
 
 .code-block {
-  @apply whitespace-pre overflow-auto max-h-60 rounded-lg border p-3 text-[11px] font-mono leading-relaxed;
+  @apply whitespace-pre overflow-auto max-h-60 rounded-lg border p-3 leading-relaxed;
   border-color: var(--editor-border-primary);
   background: var(--editor-bg-tertiary);
   color: var(--editor-text-primary);
+  font-family: var(--editor-font-family, monospace);
+  font-size: var(--editor-font-size, 11px);
+  font-weight: var(--editor-font-weight, normal);
 }
 
 .code-block--wrap {
-  @apply whitespace-pre-wrap break-words overflow-auto max-h-60 rounded-lg border p-3 text-[11px] font-mono leading-relaxed;
+  @apply whitespace-pre-wrap break-words overflow-auto max-h-60 rounded-lg border p-3 leading-relaxed;
   border-color: var(--editor-border-primary);
   background: var(--editor-bg-tertiary);
   color: var(--editor-text-primary);
+  font-family: var(--editor-font-family, monospace);
+  font-size: var(--editor-font-size, 11px);
+  font-weight: var(--editor-font-weight, normal);
 }
 
 .code-block--break-all {
-  @apply whitespace-pre-wrap break-all overflow-auto max-h-60 rounded-lg border p-3 text-[11px] font-mono leading-relaxed;
+  @apply whitespace-pre-wrap break-all overflow-auto max-h-60 rounded-lg border p-3 leading-relaxed;
   border-color: var(--editor-border-primary);
   background: var(--editor-bg-tertiary);
   color: var(--editor-text-primary);
+  font-family: var(--editor-font-family, monospace);
+  font-size: var(--editor-font-size, 11px);
+  font-weight: var(--editor-font-weight, normal);
 }
 
 .data-list {
-  @apply space-y-1 rounded-lg border p-3 text-[11px] font-mono;
+  @apply space-y-1 rounded-lg border p-3;
   border-color: var(--editor-border-primary);
   background: var(--editor-bg-tertiary);
   color: var(--editor-text-primary);
+  font-family: var(--editor-font-family, monospace);
+  font-size: var(--editor-font-size, 11px);
+  font-weight: var(--editor-font-weight, normal);
 }
 
 /* ===== FORM INPUTS ===== */
@@ -271,9 +283,12 @@
 }
 
 .value-item-index {
-  @apply rounded-full px-2.5 py-1 font-mono text-[11px];
+  @apply rounded-full px-2.5 py-1;
   background: var(--editor-bg-tertiary);
   color: var(--editor-text-muted);
+  font-family: var(--editor-font-family, monospace);
+  font-size: var(--editor-font-size, 11px);
+  font-weight: var(--editor-font-weight, normal);
 }
 
 .repeated-list {
@@ -318,11 +333,18 @@
 
 /* ===== BADGES & INDICATORS ===== */
 
-.badge-editor-type {
-  @apply text-xs border font-mono px-2 py-1 rounded;
+.type-badge {
+  @apply inline-flex items-center text-xs border px-2 py-1 rounded-full;
   border-color: var(--editor-border-primary);
   background: var(--editor-bg-tertiary);
   color: var(--editor-text-secondary);
+  font-family: var(--editor-font-family, monospace);
+  font-size: var(--editor-font-size, 12px);
+  font-weight: var(--editor-font-weight, normal);
+}
+
+.badge-editor-type {
+  @apply type-badge;
 }
 
 .badge-editor-repeated {

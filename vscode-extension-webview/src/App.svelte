@@ -1,7 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { StructuralViewer } from 'shared-ui';
-  import { StructuralEditor, type MessageValue, type MessageType, type Bytes } from '@lintx/core';
+  import {
+    StructuralEditor,
+    type MessageValue,
+    type MessageType,
+    type Bytes,
+  } from '@lintx/core';
 
   // VSCode webview message types
   type ToVSCodeMessage =
@@ -11,14 +16,24 @@
     | { requestId: string; payload: number[] | { error: string } };
 
   type FromVSCodeMessage =
-    | { type: 'initWithConfig'; payload: { data: number[]; typeName?: string; schemaDescriptor?: number[]; schemaName?: string; dataName?: string } }
+    | {
+        type: 'initWithConfig';
+        payload: {
+          data: number[];
+          typeName?: string;
+          schemaDescriptor?: number[];
+          schemaName?: string;
+          dataName?: string;
+        };
+      }
     | { type: 'updateContent'; payload: number[] }
     | { type: 'getEncodedBytes'; requestId: string }
     | { type: 'saveResponse'; success: boolean; error?: string };
 
   type VSCodeAPI = { postMessage: (msg: ToVSCodeMessage) => void };
   // @ts-ignore
-  const acquire = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi : null;
+  const acquire =
+    typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi : null;
   const vscode: VSCodeAPI | null = acquire ? acquire() : null;
 
   const editor = new StructuralEditor();
@@ -55,49 +70,65 @@
       console.log('[Webview] Received message:', msg);
 
       switch (msg.type) {
-      case 'initWithConfig': {
-        console.log('[Webview] Initializing with payload:', msg.payload);
-        console.log('[Webview] Payload keys:', Object.keys(msg.payload));
-        console.log('[Webview] Data length:', msg.payload.data?.length);
-        console.log('[Webview] Type name:', msg.payload.typeName);
-        console.log('[Webview] Schema descriptor length:', msg.payload.schemaDescriptor?.length);
-        
-        const initData = {
-          data: new Uint8Array(msg.payload.data || []),
-          typeName: msg.payload.typeName,
-          schemaDescriptor: msg.payload.schemaDescriptor ? new Uint8Array(msg.payload.schemaDescriptor) : undefined,
-        };
-        console.log('[Webview] About to call editor.initialize with:', initData);
-        
-        try {
-          await editor.initialize(initData);
-          console.log('[Webview] editor.initialize completed successfully');
-        } catch (error) {
-          console.error('[Webview] Error during editor.initialize:', error);
-          console.error('[Webview] Error stack:', (error as Error).stack);
-        }
+        case 'initWithConfig': {
+          console.log('[Webview] Initializing with payload:', msg.payload);
+          console.log('[Webview] Payload keys:', Object.keys(msg.payload));
+          console.log('[Webview] Data length:', msg.payload.data?.length);
+          console.log('[Webview] Type name:', msg.payload.typeName);
+          console.log(
+            '[Webview] Schema descriptor length:',
+            msg.payload.schemaDescriptor?.length
+          );
 
-        schemaFileName = msg.payload.schemaName || 'Pre-compiled Schema';
-        dataFileName = msg.payload.dataName || 'Data';
-        isInitialized = true;
-        break;
-      }
-      case 'updateContent': {
-        isInitialized = false;
-        await editor.setData(new Uint8Array(msg.payload));
-        isInitialized = true;
-        break;
-      }
-      case 'getEncodedBytes': {
-        isSaving = true;
-        setTimeout(() => { isSaving = false; }, 1000);
-        try {
-          vscode?.postMessage({ requestId: msg.requestId, payload: Array.from(editor.encodedBytes) });
-        } catch (err: any) {
-          vscode?.postMessage({ requestId: msg.requestId, payload: { error: err.message } });
+          const initData = {
+            data: new Uint8Array(msg.payload.data || []),
+            typeName: msg.payload.typeName,
+            schemaDescriptor: msg.payload.schemaDescriptor
+              ? new Uint8Array(msg.payload.schemaDescriptor)
+              : undefined,
+          };
+          console.log(
+            '[Webview] About to call editor.initialize with:',
+            initData
+          );
+
+          try {
+            await editor.initialize(initData);
+            console.log('[Webview] editor.initialize completed successfully');
+          } catch (error) {
+            console.error('[Webview] Error during editor.initialize:', error);
+            console.error('[Webview] Error stack:', (error as Error).stack);
+          }
+
+          schemaFileName = msg.payload.schemaName || 'Pre-compiled Schema';
+          dataFileName = msg.payload.dataName || 'Data';
+          isInitialized = true;
+          break;
         }
-        break;
-      }
+        case 'updateContent': {
+          isInitialized = false;
+          await editor.setData(new Uint8Array(msg.payload));
+          isInitialized = true;
+          break;
+        }
+        case 'getEncodedBytes': {
+          isSaving = true;
+          setTimeout(() => {
+            isSaving = false;
+          }, 1000);
+          try {
+            vscode?.postMessage({
+              requestId: msg.requestId,
+              payload: Array.from(editor.encodedBytes),
+            });
+          } catch (err: any) {
+            vscode?.postMessage({
+              requestId: msg.requestId,
+              payload: { error: err.message },
+            });
+          }
+          break;
+        }
       }
     } catch (error) {
       console.error('[Webview] Error in handleVsCodeMessage:', error);
@@ -123,56 +154,44 @@
   {/if}
 
   <div class="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 pb-12 pt-8 sm:px-4 lg:px-6">
-    <header class="app-header">
-      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div class="space-y-1">
-          <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold status-primary">
-            Forma Structural Editor
+    {#if editor.availableTypes && editor.availableTypes.length > 0}
+      <StructuralViewer
+        {editor}
+        onchange={(data) => editor.updateDecodedData(data)}
+        ontypechange={(type) => editor.setCurrentType(type || '')}
+        onsave={() => {}}
+      />
+    {:else}
+      <div class="placeholder-state">
+        <div class="mx-auto flex max-w-md flex-col items-center gap-4">
+          <div
+            class="rounded-full p-4"
+            style="background: var(--editor-bg-tertiary); color: var(--editor-text-secondary);"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-7 w-7"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M12 6v12m6-6H6"
+              />
+            </svg>
           </div>
-          <h1 class="text-xl font-semibold leading-snug text-editor-primary md:text-2xl">
-            Inspect and edit structured protobuf data
-          </h1>
-          <p class="text-sm text-editor-secondary">
-            Schema&nbsp;· {schemaFileName} &nbsp;&mdash;&nbsp; Data&nbsp;· {dataFileName}
+          <h2 class="text-xl font-semibold text-editor-primary">
+            Load a schema and data file to begin
+          </h2>
+          <p class="text-sm leading-relaxed text-editor-secondary">
+            The editor becomes interactive once both a schema descriptor and
+            data payload are provided from Forma or the CLI tools.
           </p>
         </div>
-
-        <div class="flex flex-wrap items-center gap-2 text-xs">
-          <div class="badge-editor-outline px-3 py-1">
-            {editor.availableTypes?.length ?? 0} types
-          </div>
-          <div class="badge-editor-accent px-3 py-1">
-            {editor.decodedData ? 'Decoded' : 'Raw bytes'}
-          </div>
-        </div>
       </div>
-    </header>
-
-    <main class="grid gap-4 lg:grid-cols-12">
-      <section class="lg:col-span-12">
-        {#if editor.availableTypes && editor.availableTypes.length > 0}
-          <StructuralViewer
-            {editor}
-            onchange={(data) => editor.updateDecodedData(data)}
-            ontypechange={(type) => editor.setCurrentType(type || '')}
-            onsave={() => {}}
-          />
-        {:else}
-          <div class="placeholder-state">
-            <div class="mx-auto flex max-w-md flex-col items-center gap-4">
-              <div class="rounded-full p-4" style="background: var(--editor-bg-tertiary); color: var(--editor-text-secondary);">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6" />
-                </svg>
-              </div>
-              <h2 class="text-xl font-semibold text-editor-primary">Load a schema and data file to begin</h2>
-              <p class="text-sm leading-relaxed text-editor-secondary">
-                The editor becomes interactive once both a schema descriptor and data payload are provided from Forma or the CLI tools.
-              </p>
-            </div>
-          </div>
-        {/if}
-      </section>
-    </main>
+    {/if}
   </div>
 </div>
