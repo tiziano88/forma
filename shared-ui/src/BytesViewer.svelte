@@ -432,7 +432,6 @@
           class="hex-column hex-address"
           value={hexAddresses}
           readonly
-          rows="8"
           spellcheck="false"
         ></textarea>
 
@@ -443,7 +442,6 @@
           value={hexEditValue}
           oninput={handleHexInput}
           onblur={handleHexBlur}
-          rows="8"
           placeholder="00 00 00 00"
           spellcheck="false"
         ></textarea>
@@ -453,7 +451,6 @@
           class="hex-column hex-ascii"
           value={hexAscii}
           readonly
-          rows="8"
           spellcheck="false"
         ></textarea>
       </div>
@@ -501,18 +498,21 @@
   }
 
   .hex-editor-grid {
-    @apply grid gap-4 font-mono text-sm;
-    grid-template-columns: auto 1fr auto;
+    @apply flex gap-4 font-mono text-sm;
     line-height: 1.5;
   }
 
   .hex-column {
-    @apply border rounded-xl px-3 py-2 resize-none overflow-x-hidden overflow-y-auto whitespace-pre text-sm;
+    @apply border rounded-xl px-3 py-2 resize-none overflow-x-hidden text-sm box-content;
     border-color: var(--editor-border-primary);
     background: var(--editor-bg-secondary);
     color: var(--editor-text-primary);
     font-family: monospace;
     line-height: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    height: auto;
+    min-height: 2.5rem;
   }
 
   .hex-column:focus {
@@ -521,18 +521,18 @@
   }
 
   .hex-address {
-    @apply cursor-default box-content;
+    @apply cursor-default;
     width: 8ch;
     color: var(--editor-muted, #666);
   }
 
   .hex-bytes {
-    min-width: 48ch;
+    width: 47ch;
   }
 
   .hex-ascii {
     @apply cursor-default;
-    width: 17ch;
+    width: 16ch;
     color: var(--editor-muted, #666);
   }
 
