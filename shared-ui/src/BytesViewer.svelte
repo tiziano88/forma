@@ -497,45 +497,33 @@
 
 <style>
   .hex-editor-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    @apply flex flex-col gap-2;
   }
 
   .hex-editor-grid {
-    display: grid;
+    @apply grid gap-4 font-mono text-sm;
     grid-template-columns: auto 1fr auto;
-    gap: 1rem;
-    font-family: 'Courier New', 'Consolas', monospace;
-    font-size: 14px;
     line-height: 1.5;
   }
 
   .hex-column {
-    border: 1px solid var(--editor-border-primary);
-    border-radius: 0.75rem;
-    padding: 0.5rem 0.75rem;
+    @apply border rounded-xl px-3 py-2 resize-none overflow-x-hidden overflow-y-auto whitespace-pre text-sm;
+    border-color: var(--editor-border-primary);
     background: var(--editor-bg-secondary);
     color: var(--editor-text-primary);
-    resize: none;
-    overflow-x: hidden;
-    overflow-y: auto;
-    white-space: pre;
     font-family: monospace;
-    font-size: 0.875rem;
     line-height: inherit;
   }
 
   .hex-column:focus {
+    @apply outline-none;
     border-color: var(--editor-border-hover);
-    outline: none;
   }
 
   .hex-address {
+    @apply cursor-default box-content;
     width: 8ch;
     color: var(--editor-muted, #666);
-    cursor: default;
-    box-sizing: content-box;
   }
 
   .hex-bytes {
@@ -543,9 +531,9 @@
   }
 
   .hex-ascii {
+    @apply cursor-default;
     width: 17ch;
     color: var(--editor-muted, #666);
-    cursor: default;
   }
 
   .hex-editor-error {
