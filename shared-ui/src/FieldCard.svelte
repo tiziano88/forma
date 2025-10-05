@@ -100,7 +100,7 @@
     style="top: {top}px; z-index: {20 - depth};"
   >
     <div class="field-card-header-content">
-      <span class="field-card-name">{fieldSchema.name}</span>
+      <span class="field-card-name" class:line-through={fieldSchema.deprecated}>{fieldSchema.name}</span>
       {#if arrayIndex !== null}
         <span class="field-card-index">[{arrayIndex}]</span>
       {:else if isPlaceholder}

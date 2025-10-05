@@ -1,9 +1,9 @@
 
-Û
-config.protoforma.config"z
+ß
+config.protoforma.config"~
 FileMapping
-data (	Rdata
-schema (	Rschema+
+data (	Rdata
+schema (	BRschema+
 schema_descriptor (	RschemaDescriptor
 type (	Rtype"9
 Config/

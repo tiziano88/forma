@@ -42,6 +42,7 @@ export interface FieldDef {
   type: FieldType;
   label: FieldLabel;
   typeName?: string;
+  deprecated?: boolean;
 }
 
 export interface MessageType {

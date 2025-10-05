@@ -449,6 +449,7 @@ export class StructuralEditor {
             type: (field.type || FieldType.TYPE_STRING) as FieldType,
             label: (field.label || FieldLabel.LABEL_OPTIONAL) as FieldLabel,
             typeName: field.typeName, // Already fully qualified by protobuf parser
+            deprecated: field.options?.deprecated,
           };
 
           messageType.fields.set(fieldDef.number, fieldDef);
