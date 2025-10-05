@@ -63,6 +63,7 @@ generate-sample-desc:
     protoc \
         --descriptor_set_out=web-app/public/sample.desc \
         --include_imports \
+        --include_source_info \
         web-app/public/sample.proto
 
     echo "Generated sample descriptor at web-app/public/sample.desc"

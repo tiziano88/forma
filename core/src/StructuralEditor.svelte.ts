@@ -424,10 +424,14 @@ export class StructuralEditor {
     for (const file of descriptorSet.file) {
       const packageName = file.package || '';
 
+      // Build a map of source code locations for comments
+      const commentMap = this.buildCommentMap(file.sourceCodeInfo);
+
       // Recursively process all message types, flattening them
       const processMessage = (
         msg: descriptor.DescriptorProto,
-        parentName: string
+        parentName: string,
+        messagePath: number[]
       ) => {
         const fullName = parentName
           ? `${parentName}.${msg.name}`
@@ -442,7 +446,17 @@ export class StructuralEditor {
         };
 
         // Process fields
-        for (const field of msg.field) {
+        for (let fieldIndex = 0; fieldIndex < msg.field.length; fieldIndex++) {
+          const field = msg.field[fieldIndex];
+          // Path to this field: [...messagePath, 2 (field descriptor), fieldIndex]
+          const fieldPath = [...messagePath, 2, fieldIndex];
+          const pathKey = fieldPath.join(',');
+          const comment = commentMap.get(pathKey);
+
+          if (comment) {
+            console.log('[Editor Core] Field', field.name, 'has comment from path', pathKey, ':', comment.substring(0, 50));
+          }
+
           const fieldDef: FieldDef = {
             name: field.name || '',
             number: field.number || 0,
@@ -450,6 +464,7 @@ export class StructuralEditor {
             label: (field.label || FieldLabel.LABEL_OPTIONAL) as FieldLabel,
             typeName: field.typeName, // Already fully qualified by protobuf parser
             deprecated: field.options?.deprecated,
+            comment: comment,
           };
 
           messageType.fields.set(fieldDef.number, fieldDef);
@@ -459,17 +474,46 @@ export class StructuralEditor {
         registry.set(fullNameWithDot, messageType);
 
         // Recursively process nested types (they become top-level in registry)
-        for (const nested of msg.nestedType) {
-          processMessage(nested, fullName);
+        for (let nestedIndex = 0; nestedIndex < msg.nestedType.length; nestedIndex++) {
+          const nested = msg.nestedType[nestedIndex];
+          // Path to nested type: [...messagePath, 3 (nested_type), nestedIndex]
+          processMessage(nested, fullName, [...messagePath, 3, nestedIndex]);
         }
       };
 
-      for (const message of file.messageType) {
-        processMessage(message, packageName);
+      for (let msgIndex = 0; msgIndex < file.messageType.length; msgIndex++) {
+        const message = file.messageType[msgIndex];
+        // Path to top-level message: [4 (message_type), msgIndex]
+        processMessage(message, packageName, [4, msgIndex]);
       }
     }
 
     return registry;
+  };
+
+  private buildCommentMap = (
+    sourceCodeInfo?: descriptor.SourceCodeInfo
+  ): Map<string, string> => {
+    const commentMap = new Map<string, string>();
+
+    if (!sourceCodeInfo) {
+      console.log('[Editor Core] No sourceCodeInfo available');
+      return commentMap;
+    }
+
+    console.log('[Editor Core] Building comment map from sourceCodeInfo with', sourceCodeInfo.location.length, 'locations');
+
+    for (const location of sourceCodeInfo.location) {
+      const pathKey = location.path.join(',');
+      const comment = location.leadingComments || location.trailingComments;
+      if (comment) {
+        console.log('[Editor Core] Found comment for path', pathKey, ':', comment.substring(0, 50) + '...');
+        commentMap.set(pathKey, comment.trim());
+      }
+    }
+
+    console.log('[Editor Core] Built comment map with', commentMap.size, 'entries');
+    return commentMap;
   };
 
   private buildEnumRegistry = (

@@ -42,6 +42,9 @@
   const headerHeight = 40;
   const top = $derived(depth * headerHeight);
 
+  // State for showing/hiding comment
+  let showComment = $state(false);
+
   // Map wire format types to friendly names
   const typeNameMap: Record<number, string> = {
     [FieldType.TYPE_DOUBLE]: "double",
@@ -106,6 +109,15 @@
       {:else if isPlaceholder}
         <span class="field-card-index">[*]</span>
       {/if}
+      {#if fieldSchema.comment}
+        <button
+          class="field-comment-icon"
+          title={showComment ? "Hide comment" : "Show comment"}
+          onclick={() => showComment = !showComment}
+        >
+          ⓘ
+        </button>
+      {/if}
       <span class="field-card-number">#{fieldSchema.number}</span>
       <span class="field-card-type-pill">
         {#if isRepeated && arrayIndex === null}repeated
@@ -141,6 +153,12 @@
       </div>
     </div>
   </div>
+
+  {#if showComment && fieldSchema.comment}
+    <div class="field-comment">
+      {fieldSchema.comment}
+    </div>
+  {/if}
 
   {#if hasContent}
     <div class="px-2.5 py-2.5">

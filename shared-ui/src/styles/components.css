@@ -58,6 +58,27 @@
   font-weight: var(--editor-font-weight, normal);
 }
 
+.field-comment-icon {
+  @apply w-5 h-5 rounded-full flex items-center justify-center text-xs cursor-pointer border;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-tertiary);
+  color: var(--editor-text-secondary);
+}
+
+.field-comment-icon:hover {
+  background: var(--editor-primary-bg);
+  color: var(--editor-primary);
+  border-color: var(--editor-primary);
+}
+
+.field-comment {
+  @apply px-3 py-2 text-sm border-t;
+  border-color: var(--editor-border-secondary);
+  background: var(--editor-bg-tertiary);
+  color: var(--editor-text-secondary);
+  white-space: pre-wrap;
+}
+
 .field-card-placeholder {
   opacity: 0.7;
   border-style: dashed;

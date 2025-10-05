@@ -71,7 +71,7 @@
     "build": "pnpm generate-wkt && pnpm --filter vscode-extension-webview build && tsc -p ./ && pnpm run copy-schemas",
     "esbuild-base": "esbuild ./out/extension.js --bundle --outfile=out/extension.bundled.js --external:vscode --format=cjs --platform=node --target=node18 && mv out/extension.bundled.js out/extension.js",
     "generate-wkt": "node ./scripts/generate-wkt-desc.cjs",
-    "copy-schemas": "mkdir -p media/schemas && cp ../config/forma.proto media/schemas/config.proto && cd media/schemas && protoc --descriptor_set_out=config.desc --include_imports config.proto",
+    "copy-schemas": "mkdir -p media/schemas && cp ../config/forma.proto media/schemas/config.proto && cd media/schemas && protoc --descriptor_set_out=config.desc --include_imports --include_source_info config.proto",
     "package": "pnpm -r build && pnpm run esbuild-base && vsce package",
     "clean": "rm -rf out media"
   },
