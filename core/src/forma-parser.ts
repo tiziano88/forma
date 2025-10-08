@@ -13,6 +13,7 @@ export interface FileMapping {
   schema: string;
   schemaDescriptor: string;
   type: string;
+  presentation: string;
 }
 
 export function parseConfig(bytes: Uint8Array): Config {
@@ -24,6 +25,7 @@ export function parseConfig(bytes: Uint8Array): Config {
     schema: pbFile.schema,
     schemaDescriptor: pbFile.schemaDescriptor,
     type: pbFile.type,
+    presentation: pbFile.presentation,
   }));
 
   return { files };

@@ -8,6 +8,10 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./dist/forma-parser.js": {
+      "import": "./dist/forma-parser.js",
+      "types": "./dist/forma-parser.d.ts"
     }
   },
   "scripts": {
