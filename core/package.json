@@ -12,6 +12,14 @@
     "./dist/forma-parser.js": {
       "import": "./dist/forma-parser.js",
       "types": "./dist/forma-parser.d.ts"
+    },
+    "./examples/dockerfile": {
+      "import": "./dist/examples/dockerfile.js",
+      "types": "./dist/examples/dockerfile.d.ts"
+    },
+    "./examples/cargo-toml": {
+      "import": "./dist/examples/cargo-toml.js",
+      "types": "./dist/examples/cargo-toml.d.ts"
     }
   },
   "scripts": {

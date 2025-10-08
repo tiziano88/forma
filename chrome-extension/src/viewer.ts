@@ -6,6 +6,7 @@
 import { StructuralEditor } from '@lintx/core';
 import type { FileMapping } from '@lintx/core';
 import { parseConfig } from '@lintx/core/dist/forma-parser.js';
+import { getConfigSchemaBytes } from './generated/config-schema';
 
 // Mock Svelte runes for browser environment
 (window as any).$state = function (initialValue: any) {
@@ -252,15 +253,8 @@ async function displayConfigFile(data: ViewerData) {
   `;
 
   try {
-    // Embedded config schema descriptor (forma.proto compiled)
-    const CONFIG_SCHEMA_BASE64 = 'CoQKChJjb25maWcvZm9ybWEucHJvdG8SDGZvcm1hLmNvbmZpZyKiAQoLRmlsZU1hcHBpbmcSEgoEZGF0YRgBIAEoCVIEZGF0YRIaCgZzY2hlbWEYAiABKAlCAhgBUgZzY2hlbWESKwoRc2NoZW1hX2Rlc2NyaXB0b3IYBCABKAlSEHNjaGVtYURlc2NyaXB0b3ISEgoEdHlwZRgDIAEoCVIEdHlwZRIiCgxwcmVzZW50YXRpb24YBSABKAlSDHByZXNlbnRhdGlvbiI5CgZDb25maWcSLwoFZmlsZXMYASADKAsyGS5mb3JtYS5jb25maWcuRmlsZU1hcHBpbmdSBWZpbGVzSvcHCgYSBAAAFQEKCAoBDBIDAAASCggKAQISAwEAFQpNCgIEABIEBAAQARpBIEEgbWFwcGluZyBiZXR3ZWVuIGEgZGF0YSBmaWxlIGFuZCB0aGUgc2NoZW1hL3R5cGUgdG8gZGVjb2RlIGl0LgoKCgoDBAABEgMECBMKVQoEBAACABIDBgISGkggUGF0aCB0byB0aGUgYmluYXJ5IGRhdGEgZmlsZSAocmVsYXRpdmUgdG8gY29uZmlnIGxvY2F0aW9uIG9yIGFic29sdXRlKQoKDAoFBAACAAUSAwYCCAoMCgUEAAIAARIDBgkNCgwKBQQAAgADEgMGEBEKUgoEBAACARIDCAIqGkUgUGF0aCB0byB0aGUgLnByb3RvIHNjaGVtYSAocmVsYXRpdmUgdG8gY29uZmlnIGxvY2F0aW9uIG9yIGFic29sdXRlKQoKDAoFBAACAQUSAwgCCAoMCgUEAAIBARIDCAkPCgwKBQQAAgEDEgMIEhMKDAoFBAACAQgSAwgUKQoNCgYEAAIBCAMSAwgWJwpbCgQEAAICEgMKAh8aTiBQYXRoIHRvIHRoZSBiaW5hcnkgZGVzY3JpcHRvciBmaWxlIChyZWxhdGl2ZSB0byBjb25maWcgbG9jYXRpb24gb3IgYWJzb2x1dGUpCgoMCgUEAAICBRIDCgIICgwKBQQAAgIBEgMKCRoKDAoFBAACAgMSAwodHgpJCgQEAAIDEgMMAhIaPCBGdWxseS1xdWFsaWZpZWQgUHJvdG9idWYgbWVzc2FnZSB0eXBlIHRvIGRlY29kZSAob3B0aW9uYWwpCgoMCgUEAAIDBRIDDAIICgwKBQQAAgMBEgMMCQ0KDAoFBAACAwMSAwwQEQqaAQoEBAACBBIDDwIaGowBIE9wdGlvbmFsOiBQYXRoIHRvIHByZXNlbnRhdGlvbiBmaWxlIHdpdGggY29tbWVudHMgYW5kIHN0eWxpbmcKIEF1dG8tY3JlYXRlZCBhcyA8ZGF0YT4ucHJlc2VudGF0aW9uLmZvcm1hLmJpbnBiIHdoZW4gZmlyc3QgY29tbWVudCBpcyBhZGRlZAoKDAoFBAACBAUSAw8CCAoMCgUEAAIEARIDDwkVCgwKBQQAAgQDEgMPGBkKTgoCBAESBBMAFQEaQiBXb3Jrc3BhY2UtbGV2ZWwgY29uZmlndXJhdGlvbjogbXVsdGlwbGUgbWFwcGluZ3Mgc3VwcG9ydGVkIG9ubHkuCgoKCgMEAQESAxMIDgoLCgQEAQIAEgMUAiEKDAoFBAECAAQSAxQCCgoMCgUEAQIABhIDFAsWCgwKBQQBAgABEgMUFxwKDAoFBAECAAMSAxQfIGIGcHJvdG8z';
-
-    // Decode base64 to bytes
-    const binaryString = atob(CONFIG_SCHEMA_BASE64);
-    const configSchemaBytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      configSchemaBytes[i] = binaryString.charCodeAt(i);
-    }
+    // Use the embedded config schema
+    const configSchemaBytes = getConfigSchemaBytes();
 
     // Use the regular rendering with the config schema
     await renderWithSchema(configSchemaBytes, data, contentDiv, 'forma.config.Config');

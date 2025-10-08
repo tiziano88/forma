@@ -114,3 +114,9 @@ build-extension:
     pnpm build
     echo "Extension built successfully at chrome-extension/dist/"
     ls -la dist/
+
+# Run web-app dev server (builds dependencies first)
+dev:
+    pnpm --filter @lintx/core build
+    pnpm --filter shared-ui build
+    cd web-app && pnpm dev

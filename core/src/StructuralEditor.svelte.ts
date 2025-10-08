@@ -14,6 +14,8 @@ import {
 import * as jspb from 'google-protobuf';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { PresentationManager } from './PresentationManager.js';
+import { protoToSchema } from './proto-to-schema.js';
+import type { Schema, SumType, ProductType, Annotations } from './schema.js';
 
 // Import ts-proto generated types (clean TypeScript, works everywhere!)
 import * as descriptor from './generated/config/descriptor.js';
@@ -296,18 +298,35 @@ export class StructuralEditor {
   dataBytes = $state<Bytes | null>(null);
   decodedData = $state<MessageValue | null>(null);
   selectedTypeName = $state<string | null>(null);
-  typeRegistry = $state<TypeRegistry>(new Map());
-  enumRegistry = $state<EnumRegistry>(new Map());
+  private _typeRegistry = $state<TypeRegistry>(new Map());
+  private _enumRegistry = $state<EnumRegistry>(new Map());
   schemaLoaded = $state(false);
   presentationManager = $state<PresentationManager>(new PresentationManager());
 
+  /** Abstract schema derived from protobuf registries. */
+  get schema(): Schema {
+    return protoToSchema(this._typeRegistry, this._enumRegistry).schema;
+  }
+
+  /** Annotations (display metadata) derived from protobuf registries. */
+  get annotations(): Annotations {
+    return protoToSchema(this._typeRegistry, this._enumRegistry).annotations;
+  }
+
   // Derived/computed values
-  availableTypes = $derived(Array.from(this.typeRegistry.keys()));
+  availableTypes = $derived(Array.from(this._typeRegistry.keys()));
   rootMessageType = $derived(
     this.selectedTypeName
-      ? this.typeRegistry.get(this.selectedTypeName) || null
+      ? this._typeRegistry.get(this.selectedTypeName) || null
       : null
   );
+
+  /** Root type from the abstract schema (product type). */
+  get rootProductType(): ProductType | null {
+    if (!this.selectedTypeName) return null;
+    const def = this.schema.definitions[this.selectedTypeName];
+    return def?.kind === 'product' ? def : null;
+  }
   encodedBytes = $derived(
     this.decodedData
       ? this.decodedData.toBytes()
@@ -316,6 +335,23 @@ export class StructuralEditor {
   originalBytes = $derived(this.dataBytes || new Uint8Array());
   hexView = $derived.by(() => this.formatHex(this.encodedBytes));
   originalHexView = $derived.by(() => this.formatHex(this.originalBytes));
+
+  /**
+   * Look up enum variant names by type name.
+   * Returns a Map<number, string> (value -> name) or null.
+   */
+  getEnumValues(typeName: string): Map<number, string> | null {
+    const def = this.schema.definitions[typeName];
+    if (!def || def.kind !== 'sum') return null;
+    const sum = def as SumType;
+    const result = new Map<number, string>();
+    for (const [name, variant] of Object.entries(sum.variants)) {
+      if (variant.number !== undefined) {
+        result.set(variant.number, name);
+      }
+    }
+    return result;
+  }
 
   constructor() {
     console.log('[Editor Core] Instantiated.');
@@ -470,16 +506,16 @@ export class StructuralEditor {
     try {
       const descriptorSet =
         descriptor.FileDescriptorSet.decode(descriptorBytes);
-      this.typeRegistry = this.buildFlatTypeRegistry(descriptorSet);
-      this.enumRegistry = this.buildEnumRegistry(descriptorSet);
+      this._typeRegistry = this.buildFlatTypeRegistry(descriptorSet);
+      this._enumRegistry = this.buildEnumRegistry(descriptorSet);
 
       console.log(
         '[Editor Core] Successfully loaded schema from descriptor. Found types:',
-        Array.from(this.typeRegistry.keys())
+        Array.from(this._typeRegistry.keys())
       );
       console.log(
         '[Editor Core] Found enums:',
-        Array.from(this.enumRegistry.keys())
+        Array.from(this._enumRegistry.keys())
       );
 
       // Debug: Print the TypeRegistry structure
@@ -489,7 +525,7 @@ export class StructuralEditor {
         '[Editor Core] Error loading schema from descriptor:',
         error
       );
-      this.typeRegistry.clear();
+      this._typeRegistry.clear();
       throw error;
     }
   };
@@ -661,7 +697,7 @@ export class StructuralEditor {
 
   private printTypeRegistry = (): void => {
     console.log('\n=== TypeRegistry Structure ===');
-    for (const [typeName, messageType] of this.typeRegistry) {
+    for (const [typeName, messageType] of this._typeRegistry) {
       console.log(`\nMessageType: ${typeName}`);
       console.log('  Fields:');
       for (const [fieldNumber, fieldDef] of messageType.fields) {
@@ -692,7 +728,7 @@ export class StructuralEditor {
     }
 
     const messageType = this.selectedTypeName
-      ? this.typeRegistry.get(this.selectedTypeName)
+      ? this._typeRegistry.get(this.selectedTypeName)
       : null;
     console.log(
       '  messageType found:',
@@ -815,7 +851,7 @@ export class StructuralEditor {
     fieldDef: FieldDef
   ): MessageValue => {
     const nestedBytes = reader.readBytes();
-    const nestedType = this.typeRegistry.get(fieldDef.typeName || '');
+    const nestedType = this._typeRegistry.get(fieldDef.typeName || '');
     if (!nestedType) {
       throw new Error(`Unknown message type: ${fieldDef.typeName}`);
     }
@@ -853,7 +889,7 @@ export class StructuralEditor {
   };
 
   createEmptyMessage(typeName: string): MessageValue | null {
-    const messageType = this.typeRegistry.get(typeName);
+    const messageType = this._typeRegistry.get(typeName);
     if (!messageType) {
       return null;
     }

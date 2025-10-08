@@ -4,9 +4,11 @@
   "description": "Chrome extension to view protobuf files on GitHub",
   "type": "module",
   "scripts": {
+    "prebuild": "npm run generate-config-schema",
     "build": "webpack --mode production",
     "dev": "webpack --mode development --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "generate-config-schema": "node scripts/generate-config-schema.js"
   },
   "dependencies": {
     "@lintx/core": "workspace:*"

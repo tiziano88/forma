@@ -1,16 +1,16 @@
 <script lang="ts">
   import type {
     MessageValue,
-    MessageType,
     StructuralEditor,
     FieldPath,
   } from '@lintx/core';
+  import type { ProductType } from '@lintx/core';
   import FlatFieldViewer from './FlatFieldViewer.svelte';
   import type { MutationEvent, MutationDispatcher } from './mutations';
 
   interface Props {
     object: MessageValue;
-    messageSchema: MessageType;
+    productType: ProductType;
     editor: StructuralEditor;
     depth?: number;
     parentPath?: FieldPath;
@@ -22,7 +22,7 @@
 
   const {
     object,
-    messageSchema,
+    productType,
     editor,
     depth = 0,
     parentPath,
@@ -31,6 +31,15 @@
     dispatcher,
     mutationVersion = 0,
   }: Props = $props();
+
+  // Derive the FieldDef array from the object's type (which is still MessageType).
+  // We use productType for iteration order, but the actual FieldDef for rendering
+  // is still pulled from the object's MessageType (until FlatFieldViewer is migrated).
+  const fields = $derived(() => {
+    const messageType = object?.type;
+    if (!messageType?.fields) return [];
+    return Array.from(messageType.fields.values());
+  });
 
   function handleChange() {
     onchange?.();
@@ -42,7 +51,7 @@
 </script>
 
 <div class="space-y-1">
-  {#each messageSchema?.fields ? Array.from(messageSchema.fields.values()) : [] as field}
+  {#each fields() as field}
     <FlatFieldViewer
       parent={object}
       fieldSchema={field}

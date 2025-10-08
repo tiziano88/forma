@@ -27,28 +27,30 @@ describe('MessageValue System', () => {
         schemaDescriptor: descriptorBytes,
         data: new Uint8Array(0),
       });
-      const typeRegistry = editor.typeRegistry;
+      const schema = editor.schema;
 
-      // Verify expected message types are loaded
-      expect(typeRegistry.has('.example.Person')).toBe(true);
-      expect(typeRegistry.has('.example.Address')).toBe(true);
-      expect(typeRegistry.has('.example.PhoneNumber')).toBe(true);
-      expect(typeRegistry.has('.example.Article')).toBe(true);
+      // Verify expected message types are loaded (as product types in schema)
+      expect(schema.definitions['.example.Person']).toBeDefined();
+      expect(schema.definitions['.example.Address']).toBeDefined();
+      expect(schema.definitions['.example.PhoneNumber']).toBeDefined();
+      expect(schema.definitions['.example.Article']).toBeDefined();
 
       // Verify Person message structure
-      const personType = typeRegistry.get('.example.Person')!;
-      expect(personType.fullName).toBe('.example.Person');
-      expect(personType.fields.size).toBe(8);
+      const personType = schema.definitions['.example.Person'];
+      expect(personType.kind).toBe('product');
+      if (personType.kind === 'product') {
+        expect(Object.keys(personType.fields)).toHaveLength(8);
 
-      // Check specific fields
-      expect(personType.fields.get(1)?.name).toBe('name');
-      expect(personType.fields.get(2)?.name).toBe('id');
-      expect(personType.fields.get(3)?.name).toBe('is_verified');
-      expect(personType.fields.get(4)?.name).toBe('eye_color');
-      expect(personType.fields.get(5)?.name).toBe('address');
-      expect(personType.fields.get(6)?.name).toBe('phones');
-      expect(personType.fields.get(7)?.name).toBe('articles');
-      expect(personType.fields.get(8)?.name).toBe('cats');
+        // Check specific fields by name
+        expect(personType.fields['name']).toBeDefined();
+        expect(personType.fields['id']).toBeDefined();
+        expect(personType.fields['is_verified']).toBeDefined();
+        expect(personType.fields['eye_color']).toBeDefined();
+        expect(personType.fields['address']).toBeDefined();
+        expect(personType.fields['phones']).toBeDefined();
+        expect(personType.fields['articles']).toBeDefined();
+        expect(personType.fields['cats']).toBeDefined();
+      }
     });
   });
 
@@ -314,8 +316,8 @@ describe('MessageValue System', () => {
           data: new Uint8Array(0),
         });
         // If no error, check if schema was actually loaded correctly
-        const typeRegistry = editor.typeRegistry;
-        expect(typeRegistry.size).toBe(0); // Should have no valid types
+        const schema = editor.schema;
+        expect(Object.keys(schema.definitions).length).toBe(0); // Should have no valid types
       } catch (error) {
         // Error is also acceptable
         expect(error).toBeDefined();

@@ -277,13 +277,12 @@ export class ProtoFormatter {
       return this.yellow(String(value));
     }
 
-    const enumRegistry = this.editor.enumRegistry;
-    const enumType = enumRegistry.get(field.typeName);
-    if (!enumType) {
+    const enumValues = this.editor.getEnumValues(field.typeName);
+    if (!enumValues) {
       return this.yellow(String(value));
     }
 
-    const name = enumType.values.get(value);
+    const name = enumValues.get(value);
     if (name) {
       return `${this.cyan(name)}${this.dim(` (${value})`)}`;
     }

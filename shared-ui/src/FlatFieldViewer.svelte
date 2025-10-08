@@ -2,7 +2,6 @@
   import type {
     MessageValue,
     FieldDef,
-    EnumType,
     StructuralEditor,
     InterpretedValue,
     FieldPath,
@@ -38,7 +37,7 @@
     dispatcher,
     mutationVersion = 0,
   }: Props = $props();
-  let enumType = $state<EnumType | null>(null);
+  let enumValues = $state<Map<number, string> | null>(null);
 
   // A set of well-known or custom types that require special UI handling.
   const SPECIAL_CASED_TYPES = new Set([".google.protobuf.Timestamp"]);
@@ -103,17 +102,16 @@
     fieldSchema.typeName && SPECIAL_CASED_TYPES.has(fieldSchema.typeName)
   );
 
-  // Get enum type information if this field is an enum
+  // Get enum values from the abstract schema
   $effect(() => {
     if (
       fieldSchema.type === FieldType.TYPE_ENUM &&
       fieldSchema.typeName &&
       editor
     ) {
-      const enumRegistry = editor.getEnumRegistry();
-      enumType = enumRegistry.get(fieldSchema.typeName) || null;
+      enumValues = editor.getEnumValues(fieldSchema.typeName);
     } else {
-      enumType = null;
+      enumValues = null;
     }
   });
 
@@ -289,21 +287,21 @@
           >
         </div>
       {:else if fieldSchema.type === FieldType.TYPE_ENUM}
-        {#if enumType}
+        {#if enumValues}
           <div class="form-control">
             <select
               class="select-editor"
               value={item ?? 0}
               onchange={(e) => handleEnumChange(e, index)}
             >
-              {#each Array.from(enumType.values.entries()) as [number, name]}
+              {#each Array.from(enumValues.entries()) as [number, name]}
                 <option value={number}>
                   {name} ({number})
                 </option>
               {/each}
             </select>
             <div class="text-xs text-editor-muted mt-1">
-              Current: {enumType.values.get(item) || "UNKNOWN"} = {item}
+              Current: {enumValues.get(item) || "UNKNOWN"} = {item}
             </div>
           </div>
         {:else}
@@ -396,21 +394,21 @@
           >
         </div>
       {:else if fieldSchema.type === FieldType.TYPE_ENUM}
-        {#if enumType}
+        {#if enumValues}
           <div class="form-control">
             <select
               class="select-editor"
               value={currentValue ?? 0}
               onchange={handleEnumChange}
             >
-              {#each Array.from(enumType.values.entries()) as [number, name]}
+              {#each Array.from(enumValues.entries()) as [number, name]}
                 <option value={number}>
                   {name} ({number})
                 </option>
               {/each}
             </select>
             <div class="text-xs text-editor-muted mt-1">
-              Current: {enumType.values.get(currentValue) || "UNKNOWN"} = {currentValue}
+              Current: {enumValues.get(currentValue) || "UNKNOWN"} = {currentValue}
             </div>
           </div>
         {:else}

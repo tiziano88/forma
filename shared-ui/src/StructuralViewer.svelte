@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { MessageValue, MessageType, StructuralEditor } from '@lintx/core';
+  import type { ProductType } from '@lintx/core';
   import ObjectViewer from './ObjectViewer.svelte';
   import BytesViewer, { type ByteSourceOption } from './BytesViewer.svelte';
   import type { FieldMutation, MutationEvent } from './mutations';
@@ -27,6 +28,7 @@
   const availableTypes = $derived(editor.availableTypes);
   const currentType = $derived(editor.selectedTypeName);
   const hexView = $derived(editor.hexView);
+  const rootProductType = $derived(editor.rootProductType);
   const originalHexView = $derived(editor.originalHexView);
   const encodedBytes = $derived(editor.encodedBytes);
   const originalBytes = $derived(editor.originalBytes);
@@ -100,9 +102,9 @@
     <div class="mb-2.5 flex flex-wrap items-center justify-between gap-2">
       <h2 class="text-sm font-semibold text-editor-primary">Structured view</h2>
       <div class="flex items-center gap-2">
-        {#if decodedData && rootMessageType}
+        {#if decodedData && rootProductType}
           <div class="badge-editor-type">
-            {rootMessageType.fullName}
+            {rootMessageType?.fullName ?? currentType ?? 'Auto'}
           </div>
         {/if}
         <select
@@ -120,10 +122,10 @@
       </div>
     </div>
 
-    {#if decodedData && rootMessageType}
+    {#if decodedData && rootProductType}
       <ObjectViewer
         object={decodedData}
-        messageSchema={rootMessageType}
+        productType={rootProductType}
         editor={editor}
         onchange={handleDataChange}
         onmutation={handleMutation}
@@ -214,7 +216,7 @@
       </div>
       <div class="flex items-center justify-between rounded-lg border px-3 py-1.5 surface-secondary" style="border-color: var(--editor-border-primary);">
         <span>Fields</span>
-        <span class="font-medium text-editor-primary">{rootMessageType ? rootMessageType.fields.size : 0}</span>
+        <span class="font-medium text-editor-primary">{rootProductType ? Object.keys(rootProductType.fields).length : 0}</span>
       </div>
       <div class="flex items-center justify-between rounded-lg border px-3 py-1.5 surface-secondary" style="border-color: var(--editor-border-primary);">
         <span>Bytes</span>
