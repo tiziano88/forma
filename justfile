@@ -105,3 +105,12 @@ test-all: generate-test-proto test
 # Format all files
 format:
     pnpm format
+
+# Build Chrome extension
+build-extension:
+    #!/usr/bin/env bash
+    echo "Building Chrome extension..."
+    cd chrome-extension
+    pnpm build
+    echo "Extension built successfully at chrome-extension/dist/"
+    ls -la dist/

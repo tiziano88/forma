@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Forma Protobuf Viewer",
+  "version": "1.0.0",
+  "description": "View protobuf binary files beautifully on GitHub and other sites",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://github.com/*",
+    "https://raw.githubusercontent.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://github.com/*",
+        "https://raw.githubusercontent.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["viewer.html", "viewer.js", "styles.css"],
+      "matches": ["https://github.com/*", "https://raw.githubusercontent.com/*"]
+    }
+  ]
+}

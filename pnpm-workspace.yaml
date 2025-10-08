@@ -5,3 +5,4 @@ packages:
   - 'web-app'
   - 'shared-ui'
   - 'cli'
+  - 'chrome-extension'

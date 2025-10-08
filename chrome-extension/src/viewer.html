@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Forma Protobuf Viewer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="forma-viewer">
+    <div class="forma-header">
+      <h1>Forma Protobuf Viewer</h1>
+      <div class="forma-file-info">
+        <span class="file-name" id="file-name">Loading...</span>
+        <span class="file-size" id="file-size"></span>
+      </div>
+    </div>
+    <div id="forma-content"></div>
+  </div>
+  <script src="viewer.js"></script>
+  <script>
+    // viewer.js will be bundled by webpack and included by content script
+  </script>
+</body>
+</html>

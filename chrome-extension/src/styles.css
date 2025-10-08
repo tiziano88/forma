@@ -1,0 +1,257 @@
+/* Forma Protobuf Viewer Styles */
+
+#forma-viewer {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  padding: 16px;
+  background: #ffffff;
+  color: #24292f;
+}
+
+.forma-header {
+  border-bottom: 1px solid #d0d7de;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+.forma-header h1, .forma-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.forma-file-info {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+  color: #57606a;
+}
+
+.file-name {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-weight: 600;
+}
+
+.file-size {
+  color: #8c959f;
+}
+
+.forma-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.forma-btn {
+  padding: 5px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background-color: #f6f8fa;
+  color: #24292f;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.forma-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #cfd6dd;
+}
+
+.forma-btn-primary {
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid rgba(27, 31, 36, 0.15);
+  border-radius: 6px;
+  background-color: #2da44e;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.forma-btn-primary:hover {
+  background-color: #2c974b;
+}
+
+.forma-message {
+  padding: 24px;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.forma-message h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.forma-message p {
+  margin: 8px 0;
+  color: #57606a;
+  font-size: 14px;
+}
+
+.forma-message code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+  padding: 2px 6px;
+  background: #ffffff;
+  border: 1px solid #d0d7de;
+  border-radius: 3px;
+}
+
+.forma-hint {
+  font-style: italic;
+  color: #8c959f !important;
+  margin-top: 16px !important;
+}
+
+.forma-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* Tree view styles */
+.forma-tree {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 16px;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.forma-tree-line {
+  white-space: pre;
+  padding: 2px 0;
+}
+
+.forma-field-name {
+  color: #0969da;
+  font-weight: 600;
+}
+
+.forma-field-number {
+  color: #8c959f;
+  font-size: 11px;
+}
+
+.forma-type-name {
+  color: #8250df;
+}
+
+.forma-value-string {
+  color: #1a7f37;
+}
+
+.forma-value-number {
+  color: #d29922;
+}
+
+.forma-value-bool {
+  color: #cf222e;
+}
+
+.forma-value-bytes {
+  color: #8c959f;
+  font-style: italic;
+}
+
+.forma-unset {
+  color: #8c959f;
+  font-style: italic;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  #forma-viewer {
+    background: #0d1117;
+    color: #c9d1d9;
+  }
+
+  .forma-header {
+    border-bottom-color: #30363d;
+  }
+
+  .forma-file-info {
+    color: #8b949e;
+  }
+
+  .file-size {
+    color: #6e7681;
+  }
+
+  .forma-btn {
+    border-color: #30363d;
+    background-color: #21262d;
+    color: #c9d1d9;
+  }
+
+  .forma-btn:hover {
+    background-color: #30363d;
+    border-color: #8b949e;
+  }
+
+  .forma-btn-primary {
+    background-color: #238636;
+  }
+
+  .forma-btn-primary:hover {
+    background-color: #2ea043;
+  }
+
+  .forma-message {
+    background: #161b22;
+    border-color: #30363d;
+  }
+
+  .forma-message p {
+    color: #8b949e;
+  }
+
+  .forma-message code {
+    background: #0d1117;
+    border-color: #30363d;
+  }
+
+  .forma-tree {
+    background: #161b22;
+    border-color: #30363d;
+  }
+
+  .forma-field-name {
+    color: #58a6ff;
+  }
+
+  .forma-field-number {
+    color: #6e7681;
+  }
+
+  .forma-type-name {
+    color: #bc8cff;
+  }
+
+  .forma-value-string {
+    color: #7ee787;
+  }
+
+  .forma-value-number {
+    color: #ffa657;
+  }
+
+  .forma-value-bool {
+    color: #ff7b72;
+  }
+
+  .forma-value-bytes, .forma-unset {
+    color: #6e7681;
+  }
+}
