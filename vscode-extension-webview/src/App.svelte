@@ -11,7 +11,7 @@
   // VSCode webview message types
   type ToVSCodeMessage =
     | { type: 'ready' }
-    | { type: 'contentChanged'; payload: number[] }
+    | { type: 'contentChanged'; payload: { data: number[]; presentationData?: number[] } }
     | { type: 'save' }
     | { requestId: string; payload: number[] | { error: string } };
 
@@ -24,6 +24,7 @@
           schemaDescriptor?: number[];
           schemaName?: string;
           dataName?: string;
+          presentationData?: number[];
         };
       }
     | { type: 'updateContent'; payload: number[] }
@@ -55,9 +56,22 @@
     console.log('  - rootMessageType:', editor.rootMessageType);
 
     if (isInitialized) {
+      const payload: { data: number[]; presentationData?: number[] } = {
+        data: Array.from(encodedBytes),
+      };
+
+      // Always include presentation data (even if empty, so file gets created)
+      const isDirty = editor.isPresentationDirty();
+      const commentCount = editor.presentationManager.getTotalCommentCount();
+      console.log('[Webview] Presentation status:', { isDirty, commentCount });
+
+      const presentationBytes = editor.getPresentationData();
+      payload.presentationData = Array.from(presentationBytes);
+      console.log('[Webview] Including presentation data in contentChanged:', payload.presentationData.length, 'bytes');
+
       vscode?.postMessage({
         type: 'contentChanged',
-        payload: Array.from(encodedBytes),
+        payload,
       });
     }
   });
@@ -86,6 +100,9 @@
             schemaDescriptor: msg.payload.schemaDescriptor
               ? new Uint8Array(msg.payload.schemaDescriptor)
               : undefined,
+            presentationData: msg.payload.presentationData
+              ? new Uint8Array(msg.payload.presentationData)
+              : undefined,
           };
           console.log(
             '[Webview] About to call editor.initialize with:',
@@ -95,6 +112,7 @@
           try {
             await editor.initialize(initData);
             console.log('[Webview] editor.initialize completed successfully');
+            console.log('[Webview] Loaded with', editor.presentationManager.getTotalCommentCount(), 'comments');
           } catch (error) {
             console.error('[Webview] Error during editor.initialize:', error);
             console.error('[Webview] Error stack:', (error as Error).stack);

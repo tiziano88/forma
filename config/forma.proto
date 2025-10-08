@@ -11,6 +11,9 @@ message FileMapping {
   string schema_descriptor = 4;
   // Fully-qualified Protobuf message type to decode (optional)
   string type = 3;
+  // Optional: Path to presentation file with comments and styling
+  // Auto-created as <data>.presentation.forma.binpb when first comment is added
+  string presentation = 5;
 }
 
 // Workspace-level configuration: multiple mappings supported only.

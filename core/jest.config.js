@@ -14,6 +14,8 @@ module.exports = {
   // Allow importing generated protobuf files
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^(\\.{1,2}/.*)\\.js$': '$1', // Strip .js extensions for Jest
+    '^svelte/reactivity$': '<rootDir>/jest-mocks/svelte-reactivity.js',
   },
   // Fix TypeScript configuration for Jest globals
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],

@@ -3,6 +3,11 @@ import type {
   FieldDescriptorProto_Type,
   FieldDescriptorProto_Label,
 } from './generated/config/descriptor.js';
+import type {
+  FieldPath as ProtoFieldPath,
+  FieldPathSegment as ProtoFieldPathSegment,
+  Comment as ProtoComment,
+} from './generated/config/presentation.js';
 
 export type Bytes = Uint8Array;
 
@@ -23,6 +28,7 @@ export interface EditorData {
   data: Bytes;
   typeName?: string | null;
   schemaDescriptor?: Bytes;
+  presentationData?: Bytes;
 }
 
 // Events the editor can emit for the UI to listen to
@@ -80,4 +86,80 @@ export interface MessageValue {
   isModified(): boolean;
   getModifiedFieldNumbers(): number[];
   resetModifiedTracking(): void;
+}
+
+// Re-export presentation types for convenience
+export type { ProtoFieldPath, ProtoFieldPathSegment, ProtoComment };
+export type FieldPath = ProtoFieldPath;
+export type FieldPathSegment = ProtoFieldPathSegment;
+export type Comment = ProtoComment;
+
+/**
+ * PathKey utilities for comparing and manipulating FieldPath objects
+ */
+export class PathKey {
+  /**
+   * Check if two FieldPath objects are equal
+   */
+  static equals(a: FieldPath, b: FieldPath): boolean {
+    if (a.segments.length !== b.segments.length) return false;
+
+    for (let i = 0; i < a.segments.length; i++) {
+      const segA = a.segments[i];
+      const segB = b.segments[i];
+      if (segA.fieldNumber !== segB.fieldNumber || segA.arrayIndex !== segB.arrayIndex) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Create a copy of a FieldPath
+   */
+  static clone(path: FieldPath): FieldPath {
+    return {
+      segments: path.segments.map(seg => ({
+        fieldNumber: seg.fieldNumber,
+        arrayIndex: seg.arrayIndex,
+      })),
+    };
+  }
+
+  /**
+   * Append a segment to a path (returns new path)
+   */
+  static append(path: FieldPath, segment: FieldPathSegment): FieldPath {
+    return {
+      segments: [...path.segments, segment],
+    };
+  }
+
+  /**
+   * Get parent path (remove last segment, returns new path or null)
+   */
+  static parent(path: FieldPath): FieldPath | null {
+    if (path.segments.length === 0) return null;
+    return {
+      segments: path.segments.slice(0, -1),
+    };
+  }
+
+  /**
+   * Check if pathA starts with pathB (pathB is a prefix of pathA)
+   */
+  static startsWith(pathA: FieldPath, pathB: FieldPath): boolean {
+    if (pathB.segments.length > pathA.segments.length) return false;
+
+    for (let i = 0; i < pathB.segments.length; i++) {
+      const segA = pathA.segments[i];
+      const segB = pathB.segments[i];
+      if (segA.fieldNumber !== segB.fieldNumber || segA.arrayIndex !== segB.arrayIndex) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 }

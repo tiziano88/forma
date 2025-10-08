@@ -79,6 +79,84 @@
   white-space: pre-wrap;
 }
 
+.schema-comment {
+  font-style: italic;
+}
+
+.value-comments {
+  @apply px-3 py-2 space-y-2;
+}
+
+.value-comment {
+  @apply px-3 py-2 rounded border;
+  border-color: var(--editor-border-primary);
+  background: var(--editor-bg-secondary);
+  font-family: var(--editor-font-family);
+  font-size: var(--editor-font-size);
+}
+
+.value-comment-text {
+  color: var(--editor-text-primary);
+  white-space: pre-wrap;
+}
+
+.value-comment-meta {
+  @apply text-xs mt-1;
+  color: var(--editor-text-secondary);
+}
+
+.add-comment-form {
+  @apply px-3 py-2 space-y-2;
+  background: var(--editor-bg-secondary);
+  border-top: 1px solid var(--editor-border-secondary);
+}
+
+.add-comment-input {
+  @apply w-full px-2 py-1 border rounded;
+  background: var(--editor-bg-primary);
+  border-color: var(--editor-border-primary);
+  color: var(--editor-text-primary);
+  font-family: var(--editor-font-family);
+  font-size: var(--editor-font-size);
+}
+
+.add-comment-input:focus {
+  outline: none;
+  border-color: var(--editor-primary);
+}
+
+.add-comment-buttons {
+  @apply flex gap-2;
+}
+
+.btn-add-comment,
+.btn-cancel-comment {
+  @apply px-3 py-1 rounded text-sm cursor-pointer border;
+  font-family: var(--editor-font-family);
+}
+
+.btn-add-comment {
+  background: var(--editor-primary-bg);
+  color: var(--editor-primary);
+  border-color: var(--editor-primary);
+}
+
+.btn-add-comment:hover {
+  background: var(--editor-primary);
+  color: var(--editor-bg-primary);
+}
+
+.btn-cancel-comment {
+  background: var(--editor-bg-tertiary);
+  color: var(--editor-text-secondary);
+  border-color: var(--editor-border-primary);
+}
+
+.btn-cancel-comment:hover {
+  background: var(--editor-bg-secondary);
+  color: var(--editor-text-primary);
+}
+
 .field-card-placeholder {
   opacity: 0.7;
   border-style: dashed;

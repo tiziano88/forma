@@ -7,6 +7,7 @@ const MAX_CONFIG_SEARCH_DEPTH = 10;
 class StructuralDocument implements vscode.CustomDocument {
   private readonly _uri: vscode.Uri;
   private _documentData: Uint8Array;
+  private _presentationData: Uint8Array | null = null;
   private readonly _onDidDispose = new vscode.EventEmitter<void>();
   public readonly onDidDispose = this._onDidDispose.event;
 
@@ -30,6 +31,14 @@ class StructuralDocument implements vscode.CustomDocument {
   }
   public get documentData(): Uint8Array {
     return this._documentData;
+  }
+
+  public get presentationData(): Uint8Array | null {
+    return this._presentationData;
+  }
+
+  public setPresentationData(data: Uint8Array | null) {
+    this._presentationData = data;
   }
 
   public makeEdit(newContent: Uint8Array) {
@@ -108,7 +117,24 @@ class StructuralEditorProvider
       data = new Uint8Array();
     }
 
+    // Try to load presentation data if it exists
+    const presentationUri = this.getPresentationUri(uri);
+    let presentationData: Uint8Array | null = null;
+    try {
+      presentationData = await vscode.workspace.fs.readFile(presentationUri);
+      this._outputChannel.appendLine(
+        `[OPEN] Successfully read presentation data: ${presentationData.length} bytes from ${presentationUri.fsPath}`
+      );
+    } catch (e) {
+      this._outputChannel.appendLine(
+        `[OPEN] No existing presentation file found at ${presentationUri.fsPath} (will be created on first save)`
+      );
+    }
+
     const document = new StructuralDocument(uri, data);
+    if (presentationData) {
+      document.setPresentationData(presentationData);
+    }
 
     const listener = document.onDidChange((e) => {
       this._onDidChangeCustomDocument.fire({ document, ...e });
@@ -166,6 +192,10 @@ class StructuralEditorProvider
                   : 'none'
               }, data: ${
                 initPayload.data ? `${initPayload.data.length} bytes` : 'none'
+              }, presentationData: ${
+                initPayload.presentationData
+                  ? `${initPayload.presentationData.length} bytes`
+                  : 'none'
               }`
             );
             webviewPanel.webview.postMessage({
@@ -175,7 +205,23 @@ class StructuralEditorProvider
             break;
           }
           case 'contentChanged': {
-            document.makeEdit(new Uint8Array(msg.payload));
+            const data = msg.payload.data || msg.payload;
+            this._outputChannel.appendLine(
+              `[CONTENT_CHANGED] Received data: ${Array.isArray(data) ? data.length : 'invalid'} bytes`
+            );
+
+            document.makeEdit(new Uint8Array(data));
+
+            if (msg.payload.presentationData) {
+              this._outputChannel.appendLine(
+                `[CONTENT_CHANGED] Received presentation data: ${msg.payload.presentationData.length} bytes`
+              );
+              document.setPresentationData(new Uint8Array(msg.payload.presentationData));
+            } else {
+              this._outputChannel.appendLine(
+                `[CONTENT_CHANGED] No presentation data in payload`
+              );
+            }
             break;
           }
         }
@@ -206,7 +252,42 @@ class StructuralEditorProvider
     if (cancel.isCancellationRequested) {
       return;
     }
+
+    // Save main data file
+    this._outputChannel.appendLine(
+      `[SAVE] Writing main data file (${doc.documentData.length} bytes) to: ${dest.fsPath}`
+    );
     await vscode.workspace.fs.writeFile(dest, doc.documentData);
+    this._outputChannel.appendLine(
+      `[SAVE] ✓ Successfully wrote main data file`
+    );
+
+    // Always save presentation file (even if empty, so it gets created)
+    // Only save presentation file for actual file saves, not backup/temp saves
+    if (doc.presentationData && dest.fsPath === doc.uri.fsPath) {
+      const presentationUri = this.getPresentationUri(doc.uri);
+      this._outputChannel.appendLine(
+        `[SAVE] Writing presentation file (${doc.presentationData.length} bytes) to: ${presentationUri.fsPath}`
+      );
+      await vscode.workspace.fs.writeFile(presentationUri, doc.presentationData);
+      this._outputChannel.appendLine(
+        `[SAVE] ✓ Successfully wrote presentation file: ${presentationUri.fsPath}`
+      );
+    } else if (dest.fsPath !== doc.uri.fsPath) {
+      this._outputChannel.appendLine(
+        `[SAVE] Skipping presentation file save (backup/temp save to ${dest.fsPath})`
+      );
+    } else {
+      this._outputChannel.appendLine(
+        `[SAVE] No presentation data available (presentationData is null)`
+      );
+    }
+  }
+
+  private getPresentationUri(dataUri: vscode.Uri): vscode.Uri {
+    const fsPath = dataUri.fsPath;
+    const presentationPath = fsPath.replace(/\.(binpb|bin|binarypb)$/, '.presentation.forma.binpb');
+    return vscode.Uri.file(presentationPath);
   }
 
   async revertCustomDocument(
@@ -351,6 +432,9 @@ async function prepareInitPayload(
     dataName: path.basename(document.uri.fsPath),
     schemaDescriptor: session.schemaDescriptor
       ? Array.from(session.schemaDescriptor)
+      : undefined,
+    presentationData: document.presentationData
+      ? Array.from(document.presentationData)
       : undefined,
   };
 }

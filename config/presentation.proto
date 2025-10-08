@@ -1,0 +1,55 @@
+syntax = "proto3";
+package forma.presentation;
+
+// A segment in the path to a field (field number + array index)
+message FieldPathSegment {
+  // Protobuf field number
+  int32 field_number = 1;
+
+  // Array index (0 for non-repeated fields, 0+ for repeated)
+  int32 array_index = 2;
+}
+
+// Path to a specific field in the document tree
+message FieldPath {
+  repeated FieldPathSegment segments = 1;
+}
+
+// A single comment with its own identity and styling
+message Comment {
+  // Unique identifier for this comment
+  string uuid = 1;
+
+  // Comment content
+  string text = 2;
+
+  // Optional: author information
+  string author = 3;
+
+  // When the comment was created (Unix timestamp in milliseconds)
+  int64 timestamp = 4;
+
+  // Optional styling for this comment's display
+  string color = 10;
+  string background = 11;
+  string font_family = 12;
+  int32 font_size = 13;
+}
+
+// Comments attached to a specific field value
+message FieldComments {
+  // Path to the field
+  FieldPath path = 1;
+
+  // All comments for this field (supports multiple comments per field)
+  repeated Comment comments = 2;
+}
+
+// Root presentation document
+message DocumentPresentation {
+  // Schema version for future migrations
+  int32 version = 1;
+
+  // All field comments in this document
+  repeated FieldComments field_comments = 2;
+}

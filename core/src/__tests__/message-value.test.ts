@@ -1,4 +1,4 @@
-import { StructuralEditor } from '../StructuralEditor';
+import { StructuralEditor } from '../StructuralEditor.svelte';
 import {
   loadDescriptor,
   loadBinaryData,
@@ -27,7 +27,7 @@ describe('MessageValue System', () => {
         schemaDescriptor: descriptorBytes,
         data: new Uint8Array(0),
       });
-      const typeRegistry = editor.getTypeRegistry();
+      const typeRegistry = editor.typeRegistry;
 
       // Verify expected message types are loaded
       expect(typeRegistry.has('.example.Person')).toBe(true);
@@ -67,7 +67,7 @@ describe('MessageValue System', () => {
         typeName: '.example.Person',
       });
 
-      const decodedData = editor.getDecodedData();
+      const decodedData = editor.decodedData;
       expect(decodedData).toBeDefined();
       expect(decodedData?.type.fullName).toBe('.example.Person');
 
@@ -178,7 +178,7 @@ describe('MessageValue System', () => {
       await editor.setData(serializedBytes);
       editor.setCurrentType('.example.Person');
 
-      const messageValue = editor.getDecodedData();
+      const messageValue = editor.decodedData;
       expect(messageValue).toBeDefined();
       expect(messageValue?.type.fullName).toBe('.example.Person');
 
@@ -241,7 +241,7 @@ describe('MessageValue System', () => {
         typeName: '.example.Person',
       });
 
-      messageValue = editor.getDecodedData();
+      messageValue = editor.decodedData;
     });
 
     test('getField() returns correct values', () => {
@@ -314,7 +314,7 @@ describe('MessageValue System', () => {
           data: new Uint8Array(0),
         });
         // If no error, check if schema was actually loaded correctly
-        const typeRegistry = editor.getTypeRegistry();
+        const typeRegistry = editor.typeRegistry;
         expect(typeRegistry.size).toBe(0); // Should have no valid types
       } catch (error) {
         // Error is also acceptable
@@ -334,7 +334,7 @@ describe('MessageValue System', () => {
         await editor.setData(invalidBytes);
         editor.setCurrentType('.example.Person');
         // If no error thrown, check that decoding still works safely
-        const decoded = editor.getDecodedData();
+        const decoded = editor.decodedData;
         // Should either be null or have minimal fields
       } catch (error) {
         // Error is acceptable
@@ -345,7 +345,7 @@ describe('MessageValue System', () => {
     test('handles missing type gracefully', () => {
       // setCurrentType may not throw, but just set the type without validation
       editor.setCurrentType('.nonexistent.Type');
-      const decoded = editor.getDecodedData();
+      const decoded = editor.decodedData;
       // Should be null or undefined since the type doesn't exist
       expect(decoded).toBeNull();
     });

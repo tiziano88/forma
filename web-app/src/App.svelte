@@ -94,9 +94,27 @@
       return;
     }
     try {
+      // Save main data file
       const writable = await dataFileHandle.createWritable();
       await writable.write(editor.encodedBytes);
       await writable.close();
+
+      // Save presentation file if there are any comments
+      if (editor.isPresentationDirty() || editor.presentationManager.getTotalCommentCount() > 0) {
+        const dataFileName = dataFileHandle.name;
+        const presentationFileName = dataFileName.replace(/\.(binpb|bin|binarypb)$/, '.presentation.forma.binpb');
+
+        // Offer download of presentation file
+        const blob = new Blob([editor.getPresentationData()], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = presentationFileName;
+        a.click();
+        URL.revokeObjectURL(url);
+        console.log(`Downloaded presentation data as ${presentationFileName}`);
+      }
+
       alert("File saved successfully!");
     } catch (err: any) {
       errorMessage = err?.message || String(err);

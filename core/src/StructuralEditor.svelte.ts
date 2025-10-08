@@ -8,9 +8,12 @@ import {
   MessageType,
   FieldType,
   FieldLabel,
+  FieldPath,
+  Comment,
 } from './types.js';
 import * as jspb from 'google-protobuf';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
+import { PresentationManager } from './PresentationManager.js';
 
 // Import ts-proto generated types (clean TypeScript, works everywhere!)
 import * as descriptor from './generated/config/descriptor.js';
@@ -296,6 +299,7 @@ export class StructuralEditor {
   typeRegistry = $state<TypeRegistry>(new Map());
   enumRegistry = $state<EnumRegistry>(new Map());
   schemaLoaded = $state(false);
+  presentationManager = $state<PresentationManager>(new PresentationManager());
 
   // Derived/computed values
   availableTypes = $derived(Array.from(this.typeRegistry.keys()));
@@ -310,14 +314,75 @@ export class StructuralEditor {
       : this.dataBytes || new Uint8Array()
   );
   originalBytes = $derived(this.dataBytes || new Uint8Array());
-  hexView = $derived(this.formatHex(this.encodedBytes));
-  originalHexView = $derived(this.formatHex(this.originalBytes));
+  hexView = $derived.by(() => this.formatHex(this.encodedBytes));
+  originalHexView = $derived.by(() => this.formatHex(this.originalBytes));
 
   constructor() {
     console.log('[Editor Core] Instantiated.');
   }
 
   // --- Public API ---
+
+  /**
+   * Get presentation data as bytes for saving
+   */
+  public getPresentationData(): Uint8Array {
+    return this.presentationManager.save();
+  }
+
+  /**
+   * Check if presentation has unsaved changes
+   */
+  public isPresentationDirty(): boolean {
+    return this.presentationManager.isDirty();
+  }
+
+  /**
+   * Get comments for a specific field path
+   */
+  public getComments(path: FieldPath): Comment[] {
+    return this.presentationManager.getComments(path);
+  }
+
+  /**
+   * Add a comment to a field path
+   */
+  public addComment(
+    path: FieldPath,
+    text: string,
+    options?: {
+      author?: string;
+      color?: string;
+      background?: string;
+      fontFamily?: string;
+      fontSize?: number;
+    }
+  ): Comment {
+    return this.presentationManager.addComment(path, text, options);
+  }
+
+  /**
+   * Update an existing comment
+   */
+  public updateComment(
+    uuid: string,
+    updates: {
+      text?: string;
+      color?: string;
+      background?: string;
+      fontFamily?: string;
+      fontSize?: number;
+    }
+  ): boolean {
+    return this.presentationManager.updateComment(uuid, updates);
+  }
+
+  /**
+   * Delete a comment by UUID
+   */
+  public deleteComment(uuid: string): boolean {
+    return this.presentationManager.deleteComment(uuid);
+  }
 
   public initialize = async (data: EditorData): Promise<void> => {
     console.log('[Editor Core] Initializing with data');
@@ -332,6 +397,19 @@ export class StructuralEditor {
       } catch (error) {
         console.error('[Editor Core] Error loading schema descriptor:', error);
         return;
+      }
+    }
+
+    if (data.presentationData) {
+      try {
+        this.presentationManager.load(data.presentationData);
+        console.log(
+          '[Editor Core] Loaded presentation data with',
+          this.presentationManager.getTotalCommentCount(),
+          'comments'
+        );
+      } catch (error) {
+        console.error('[Editor Core] Error loading presentation data:', error);
       }
     }
 

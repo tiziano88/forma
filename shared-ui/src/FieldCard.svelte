@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { MessageValue, FieldDef } from "@lintx/core";
+  import type { MessageValue, FieldDef, FieldPath, Comment } from "@lintx/core";
   import { FieldType } from "@lintx/core";
 
   interface Props {
@@ -13,6 +13,9 @@
     showMoveUp?: boolean;
     showMoveDown?: boolean;
     hasContent?: boolean;
+    fieldPath?: FieldPath;
+    valueComments?: Comment[];
+    onaddcomment?: (text: string) => void;
     onchange?: () => void;
     onadd?: () => void;
     onremove?: () => void;
@@ -32,6 +35,9 @@
     showMoveUp = false,
     showMoveDown = false,
     hasContent = true,
+    fieldPath,
+    valueComments = [],
+    onaddcomment,
     onchange,
     onadd,
     onremove,
@@ -42,8 +48,12 @@
   const headerHeight = 40;
   const top = $derived(depth * headerHeight);
 
-  // State for showing/hiding comment
-  let showComment = $state(false);
+  // State for showing/hiding schema comment
+  let showSchemaComment = $state(false);
+
+  // State for adding new value comment
+  let showAddValueComment = $state(false);
+  let newCommentText = $state('');
 
   // Map wire format types to friendly names
   const typeNameMap: Record<number, string> = {
@@ -91,6 +101,15 @@
   function handleMoveDown() {
     onmovedown?.();
   }
+
+  function handleAddComment() {
+    console.log('[FieldCard] handleAddComment called, text:', newCommentText, 'callback:', !!onaddcomment);
+    if (newCommentText.trim() && onaddcomment) {
+      onaddcomment(newCommentText.trim());
+      newCommentText = '';
+      showAddValueComment = false;
+    }
+  }
 </script>
 
 <div
@@ -112,12 +131,19 @@
       {#if fieldSchema.comment}
         <button
           class="field-comment-icon"
-          title={showComment ? "Hide comment" : "Show comment"}
-          onclick={() => showComment = !showComment}
+          title={showSchemaComment ? "Hide schema comment" : "Show schema comment"}
+          onclick={() => showSchemaComment = !showSchemaComment}
         >
           ⓘ
         </button>
       {/if}
+      <button
+        class="field-comment-icon"
+        title="Add comment"
+        onclick={() => showAddValueComment = !showAddValueComment}
+      >
+        💬
+      </button>
       <span class="field-card-number">#{fieldSchema.number}</span>
       <span class="field-card-type-pill">
         {#if isRepeated && arrayIndex === null}repeated
@@ -154,9 +180,43 @@
     </div>
   </div>
 
-  {#if showComment && fieldSchema.comment}
-    <div class="field-comment">
-      {fieldSchema.comment}
+  {#if showSchemaComment && fieldSchema.comment}
+    <div class="field-comment schema-comment">
+      <strong>Schema:</strong> {fieldSchema.comment}
+    </div>
+  {/if}
+
+  <!-- Value comments (always visible if present) -->
+  {#if valueComments.length > 0}
+    <div class="value-comments">
+      {#each valueComments as comment}
+        <div class="value-comment" style:color={comment.color || undefined} style:background={comment.background || undefined}>
+          <div class="value-comment-text">{comment.text}</div>
+          {#if comment.author}
+            <div class="value-comment-meta">— {comment.author}</div>
+          {/if}
+        </div>
+      {/each}
+    </div>
+  {/if}
+
+  <!-- Add comment form -->
+  {#if showAddValueComment}
+    <div class="add-comment-form">
+      <input
+        type="text"
+        bind:value={newCommentText}
+        placeholder="Add a comment..."
+        class="add-comment-input"
+        onkeydown={(e) => {
+          if (e.key === 'Enter') handleAddComment();
+          if (e.key === 'Escape') showAddValueComment = false;
+        }}
+      />
+      <div class="add-comment-buttons">
+        <button class="btn-add-comment" onclick={handleAddComment}>Add</button>
+        <button class="btn-cancel-comment" onclick={() => showAddValueComment = false}>Cancel</button>
+      </div>
     </div>
   {/if}
 

@@ -16,7 +16,7 @@ generate-proto:
         --ts_proto_opt=outputServices=false \
         --ts_proto_opt=useOptionals=messages \
         --ts_proto_opt=importSuffix=.js \
-        config/forma.proto config/descriptor.proto
+        config/forma.proto config/descriptor.proto config/presentation.proto
 
     echo "Generated files:"
     find core/src/generated -name "*.ts" -type f

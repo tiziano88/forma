@@ -5,6 +5,8 @@
     EnumType,
     StructuralEditor,
     InterpretedValue,
+    FieldPath,
+    Comment,
   } from "@lintx/core";
   import { FieldLabel, FieldType } from "@lintx/core";
   import FieldCard from "./FieldCard.svelte";
@@ -18,6 +20,7 @@
     fieldSchema: FieldDef;
     editor: StructuralEditor;
     depth?: number;
+    parentPath?: FieldPath;
     onchange?: () => void;
     onmutation?: (event: MutationEvent) => void;
     dispatcher?: MutationDispatcher;
@@ -29,6 +32,7 @@
     fieldSchema,
     editor,
     depth = 0,
+    parentPath,
     onchange,
     onmutation,
     dispatcher,
@@ -38,6 +42,34 @@
 
   // A set of well-known or custom types that require special UI handling.
   const SPECIAL_CASED_TYPES = new Set([".google.protobuf.Timestamp"]);
+
+  // Build the field path for this field
+  function buildFieldPath(arrayIndex?: number): FieldPath {
+    const segments = parentPath?.segments || [];
+    return {
+      segments: [
+        ...segments,
+        {
+          fieldNumber: fieldSchema.number,
+          arrayIndex: arrayIndex ?? 0,
+        },
+      ],
+    };
+  }
+
+  // Get comments for a specific path
+  function getCommentsForPath(arrayIndex?: number): Comment[] {
+    const path = buildFieldPath(arrayIndex);
+    return editor.getComments(path);
+  }
+
+  function handleAddComment(text: string, arrayIndex?: number) {
+    const path = buildFieldPath(arrayIndex);
+    console.log('[FlatFieldViewer] Adding comment:', text, 'to path:', path);
+    const comment = editor.addComment(path, text);
+    console.log('[FlatFieldViewer] Comment added:', comment);
+    dispatchChange();
+  }
 
   const isRepeated = $derived(fieldSchema.label === FieldLabel.LABEL_REPEATED);
 
@@ -239,6 +271,9 @@
       showRemoveButton={true}
       showMoveUp={index > 0}
       showMoveDown={index < currentItems.length - 1}
+      fieldPath={buildFieldPath(index)}
+      valueComments={getCommentsForPath(index)}
+      onaddcomment={(text) => handleAddComment(text, index)}
       onadd={() => handleAdd(index)}
       onremove={() => handleRemove(index)}
       onmoveup={() => handleMove(index, "up")}
@@ -290,6 +325,7 @@
             messageSchema={item?.type}
             {editor}
             depth={depth + 1}
+            parentPath={buildFieldPath(index)}
             onchange={() => handleObjectChange(index)}
             {onmutation}
             dispatcher={dispatcher?.createChild(fieldSchema.number, index || 0)}
@@ -343,6 +379,9 @@
     hasContent={!fieldIsUnset}
     showAddButton={fieldIsUnset}
     showRemoveButton={!fieldIsUnset}
+    fieldPath={buildFieldPath()}
+    valueComments={getCommentsForPath()}
+    onaddcomment={(text) => handleAddComment(text)}
     onadd={() => handleAdd()}
     onremove={() => handleRemove()}
     onchange={dispatchChange}
@@ -393,6 +432,7 @@
             messageSchema={currentValue?.type}
             {editor}
             depth={depth + 1}
+            parentPath={buildFieldPath()}
             onchange={() => handleObjectChange()}
             {onmutation}
             dispatcher={dispatcher?.createChild(fieldSchema.number, 0)}

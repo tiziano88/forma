@@ -3,6 +3,7 @@
     MessageValue,
     MessageType,
     StructuralEditor,
+    FieldPath,
   } from '@lintx/core';
   import FlatFieldViewer from './FlatFieldViewer.svelte';
   import type { MutationEvent, MutationDispatcher } from './mutations';
@@ -12,6 +13,7 @@
     messageSchema: MessageType;
     editor: StructuralEditor;
     depth?: number;
+    parentPath?: FieldPath;
     onchange?: () => void;
     onmutation?: (event: MutationEvent) => void;
     dispatcher?: MutationDispatcher;
@@ -23,6 +25,7 @@
     messageSchema,
     editor,
     depth = 0,
+    parentPath,
     onchange,
     onmutation,
     dispatcher,
@@ -45,6 +48,7 @@
       fieldSchema={field}
       {editor}
       {depth}
+      {parentPath}
       onchange={handleChange}
       onmutation={handleMutation}
       {dispatcher}
